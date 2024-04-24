@@ -71,7 +71,7 @@ for period in range(int(config["YANDEX_METRIKA"]["PERIODS"]), 0, -1):
 # добавляем метку времени
         data["ts"] = pd.DatetimeIndex(data["ym:s:dateTime"]).asi8
 # создаем таблицу в первый раз
-        if period == int(["YANDEX_METRIKA"]["PERIODS"]) and "p" == 0:
+        if period == int(["YANDEX_METRIKA"]["PERIODS"]) and p == "0":
             cursor.execute((pd.io.sql.get_schema(data, config["YANDEX_METRIKA"]["TABLE"])).replace("CREATE TABLE ", "CREATE TABLE IF NOT EXISTS "))
             connection.commit()
         data.to_sql(name=config["YANDEX_METRIKA"]["TABLE"], con=connection, if_exists='append')
