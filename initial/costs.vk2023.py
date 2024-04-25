@@ -5,15 +5,18 @@ import pandas as pd
 import requests
 import time
 
-# импорт библиотек для работы с БД
-# import mysql.connector as db_connector
-# import psycopg2 as db_connector
-# import mariadb as db_connector
-
 # импорт настроек
 import configparser
 config = configparser.ConfigParser()
 config.read("../settings.ini")
+
+# импорт библиотек для работы с БД
+if config["DB"]["TYPE"] == "MYSQL":
+    import mysql.connector as db_connector
+elif config["DB"]["TYPE"] == "POSTGRESQL":
+    import psycopg2 as db_connector
+elif config["DB"]["TYPE"] == "MARIADB":
+    import mariadb as db_connector
 
 # создание подключения к БД
 if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB"]:
