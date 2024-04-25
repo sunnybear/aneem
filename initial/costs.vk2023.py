@@ -6,7 +6,7 @@ import requests
 import time
 
 # импорт библиотек для работы с БД
-import mysql.connector as db_connector
+# import mysql.connector as db_connector
 # import psycopg2 as db_connector
 # import mariadb as db_connector
 
@@ -34,6 +34,8 @@ r_refresh = requests.post('https://ads.vk.com/api/v2/oauth2/token.json', data={
 }).json()
 vk2023_access_token = r_refresh['access_token']
 
+# создаем таблицу для данных при наличии каких-либо данных
+table_not_created = True
 # выгружаем данные за 5 лет по месяцам
 for period in range(int(config["VK_2023"]["PERIODS"]), 0, -1):
 # Задержка в 1 секунду для избежания превышения лимитов по запросам
@@ -63,9 +65,7 @@ for period in range(int(config["VK_2023"]["PERIODS"]), 0, -1):
                 item["date"] = row["date"]
                 items.append(item)
 # формируем датафрейм из ответа API
-    data = pd.DataFrame(items)
-# добавляем метку времени
-    data["ts"] = pd.DatetimeIndex(data["date"]).asi8
+    data = pd.DataFrame(items)		
 # базовый процесс очистки: приведение к нужным типам
     for col in data_all.columns:
 # приведение целых чисел
@@ -80,12 +80,27 @@ for period in range(int(config["VK_2023"]["PERIODS"]), 0, -1):
 # приведение строк
         else:
             data_all[col] = data_all[col].fillna('')
+    if len(data):
+# добавляем метку времени
+        data["ts"] = pd.DatetimeIndex(data["date"]).asi8
 # создаем таблицу в первый раз
-    if period == int(config["VK_2023"]["PERIODS"]):
-        cursor.execute((pd.io.sql.get_schema(data, config["VK_2023"]["TABLE"])).replace("CREATE TABLE ", "CREATE TABLE IF NOT EXISTS "))
-        connection.commit()
-    data.to_sql(name=config["VK_2023"]["TABLE"], con=connection, if_exists='append')
-    connection.commit()
+        if table_not_created:
+            if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB"]:
+                cursor.execute((pd.io.sql.get_schema(data, config["VK_2023"]["TABLE"])).replace("CREATE TABLE ", "CREATE TABLE IF NOT EXISTS "))
+                connection.commit()
+            elif config["DB"]["TYPE"] == "CLICKHOUSE":
+                requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/', verify=False,
+                    params={"database": config["DB"]["DB"], "query": (pd.io.sql.get_schema(data, config["VK_2023"]["TABLE"]) + "  ENGINE=MergeTree ORDER BY (`ts`)").replace("CREATE TABLE ", "CREATE TABLE IF NOT EXISTS " + config["DB"]["DB"] + ".")})
+            table_not_created = False
+        if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB"]:
+            data.to_sql(name=config["VK_2023"]["TABLE"], con=connection, if_exists='append')
+            connection.commit()
+        elif config["DB"]["TYPE"] == "CLICKHOUSE":
+            csv_file = data.to_csv().encode('utf-8')
+            requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/',
+                params={"database": config["DB"]["DB"], "query": 'INSERT INTO ' + config["DB"]["DB"] + '.' + config["VK_2023"]["TABLE"] + ' FORMAT CSV'},
+                headers={'Content-Type':'application/octet-stream'}, data=csv_file, stream=True, verify=False)
+    print (date_since + "=>" + date_until + ": " + str(len(data)))
 
 # закрытие подключения к БД
 if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB"]:

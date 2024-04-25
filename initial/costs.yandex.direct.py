@@ -6,7 +6,7 @@ import pandas as pd
 import requests
 
 # импорт библиотек для работы с БД
-import mysql.connector as db_connector
+# import mysql.connector as db_connector
 # import psycopg2 as db_connector
 # import mariadb as db_connector
 
@@ -25,6 +25,8 @@ if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB"]:
     )
     cursor = connection.cursor()
 
+# создаем таблицу для данных при наличии каких-либо данных
+table_not_created = True
 # создание подключения к API Яндекс.Директ
 client = YandexDirect(
   access_token=config["YANDEX_DIRECT"]["ACCESS_TOKEN"],
@@ -44,12 +46,14 @@ client = YandexDirect(
 
 # история Яндекс.Директ, по умолчанию, доступна за 3 года
 for period in range(int(config["YANDEX_DIRECT"]["PERIODS"]), 0, -1):
+    date_since = (date.today() - timedelta(days=period*int(config["YANDEX_DIRECT"]["DELTA"]))).strftime('%Y-%m-%d')
+    date_until = (date.today() - timedelta(days=(period-1)*int(config["YANDEX_DIRECT"]["DELTA"]))+1).strftime('%Y-%m-%d')
 # Создание запроса на выгрузку данных (помесячно)
     result = client.reports().post(data={
       "params": {
         "SelectionCriteria": {
-          "DateFrom": (date.today() - timedelta(days=period*int(config["YANDEX_DIRECT"]["DELTA"]))).strftime('%Y-%m-%d'),
-          "DateTo": (date.today() - timedelta(days=(period-1)*int(config["YANDEX_DIRECT"]["DELTA"]))+1).strftime('%Y-%m-%d')
+          "DateFrom": date_since,
+          "DateTo": date_until
         },
 # список выгружаемых полей
         "FieldNames": [
@@ -93,13 +97,26 @@ for period in range(int(config["YANDEX_DIRECT"]["PERIODS"]), 0, -1):
 # приведение строк
         else:
             data[col] = data[col].fillna('')
-    data["ts"] = pd.DatetimeIndex(data["Date"]).asi8
+    if len(data):
+        data["ts"] = pd.DatetimeIndex(data["Date"]).asi8
 # создаем таблицу в первый раз
-    if period == int(config["YANDEX_DIRECT"]["PERIODS"]):
-        cursor.execute((pd.io.sql.get_schema(data, config["YANDEX_DIRECT"]["TABLE"])).replace("CREATE TABLE ", "CREATE TABLE IF NOT EXISTS "))
-        connection.commit()
-    data.to_sql(name=config["YANDEX_DIRECT"]["TABLE"], con=connection, if_exists='append')
-    connection.commit()
+        if table_not_created:
+            if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB"]:
+                cursor.execute((pd.io.sql.get_schema(data, config["YANDEX_DIRECT"]["TABLE"])).replace("CREATE TABLE ", "CREATE TABLE IF NOT EXISTS "))
+                connection.commit()
+            elif config["DB"]["TYPE"] == "CLICKHOUSE":
+                requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/', verify=False,
+                    params={"database": config["DB"]["DB"], "query": (pd.io.sql.get_schema(data, config["YANDEX_DIRECT"]["TABLE"]) + "  ENGINE=MergeTree ORDER BY (`ts`)").replace("CREATE TABLE ", "CREATE TABLE IF NOT EXISTS " + config["DB"]["DB"] + ".")})
+            table_not_created = False
+        if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB"]:
+            data.to_sql(name=config["YANDEX_DIRECT"]["TABLE"], con=connection, if_exists='append')
+            connection.commit()
+        elif config["DB"]["TYPE"] == "CLICKHOUSE":
+            csv_file = data.to_csv().encode('utf-8')
+            requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/',
+                params={"database": config["DB"]["DB"], "query": 'INSERT INTO ' + config["DB"]["DB"] + '.' + config["YANDEX_DIRECT"]["TABLE"] + ' FORMAT CSV'},
+                headers={'Content-Type':'application/octet-stream'}, data=csv_file, stream=True, verify=False)
+    print (date_since + "=>" + date_until + ": " + str(len(data)))
 
 # закрытие подключения к БД
 if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB"]:
