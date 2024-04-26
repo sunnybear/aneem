@@ -6,7 +6,7 @@ import requests
 import time
 from tapi_yandex_metrika import YandexMetrikaLogsapi
 import numpy as np
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 
 # импорт настроек
 import configparser
@@ -15,11 +15,11 @@ config.read("../settings.ini")
 
 # подключение к БД
 if config["DB"]["TYPE"] == "MYSQL":
-	engine = create_engine('mysql+mysqlclient://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + '/' + config["DB"]["DB"])
+	engine = create_engine('mysql+mysqlclient://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + '/' + config["DB"]["DB"] + '?charset=utf8')
 elif config["DB"]["TYPE"] == "POSTGRESQL":
-    engine = create_engine('postgresql+psycopg2://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + '/' + config["DB"]["DB"])
+    engine = create_engine('postgresql+psycopg2://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + '/' + config["DB"]["DB"] + '?client_encoding=utf8')
 elif config["DB"]["TYPE"] == "MARIADB":
-    engine = create_engine('mysql+mysqldb://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + '/' + config["DB"]["DB"])
+    engine = create_engine('mysql+mysqldb://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + '/' + config["DB"]["DB"] + '?charset=utf8')
 elif config["DB"]["TYPE"] == "ORACLE":
     engine = create_engine('oracle+pyodbc://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + '/' + config["DB"]["DB"])
 elif config["DB"]["TYPE"] == "SQLITE":
@@ -28,6 +28,10 @@ elif config["DB"]["TYPE"] == "SQLITE":
 # создание подключения к БД
 if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
     connection = engine.raw_connection()
+    if config["DB"]["TYPE"] in ["MYSQL", "MARIADB"]:
+        connection.execute(text('SET NAMES utf8mb4'))
+        connection.execute(text('SET CHARACTER SET utf8mb4'))
+        connection.execute(text('SET character_set_connection=utf8mb4'))
 
 # создаем таблицу для данных при наличии каких-либо данных
 table_not_created = True
@@ -43,6 +47,11 @@ for period in range(int(config["YANDEX_METRIKA"]["PERIODS"]), 0, -1):
         "date1": date_until,
         "date2": date_since
     }
+# удаляем все текущие запросы API
+    api_requests = api.allinfo().get()
+	if "requests" in api_requests:
+        for req in api_requests["requests"]:
+            api.clean(requestId=req["request_id"]).post()
 # отправляем запрос API
     result = api.create().post(params=params)
 # получаем ID в очереди
