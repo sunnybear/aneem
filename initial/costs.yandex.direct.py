@@ -50,7 +50,7 @@ client = YandexDirect(
 # история Яндекс.Директ, по умолчанию, доступна за 3 года
 for period in range(int(config["YANDEX_DIRECT"]["PERIODS"]), 0, -1):
     date_since = (date.today() - timedelta(days=period*int(config["YANDEX_DIRECT"]["DELTA"]))).strftime('%Y-%m-%d')
-    date_until = (date.today() - timedelta(days=(period-1)*int(config["YANDEX_DIRECT"]["DELTA"]))+1).strftime('%Y-%m-%d')
+    date_until = (date.today() - timedelta(days=(period-1)*int(config["YANDEX_DIRECT"]["DELTA"])+1)).strftime('%Y-%m-%d')
 # Создание запроса на выгрузку данных (помесячно)
     result = client.reports().post(data={
       "params": {
