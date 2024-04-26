@@ -112,7 +112,7 @@ for period in range(int(config["YANDEX_DIRECT"]["PERIODS"]), 0, -1):
                 requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/', verify=False,
                     params={"database": config["DB"]["DB"], "query": (pd.io.sql.get_schema(data, config["YANDEX_DIRECT"]["TABLE"]) + "  ENGINE=MergeTree ORDER BY (`ts`)").replace("CREATE TABLE ", "CREATE TABLE IF NOT EXISTS " + config["DB"]["DB"] + ".").replace("INTEGER", "Int64")})
             table_not_created = False
-        if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE"]:
+        if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
 # обработка ошибок при добавлении данных
             try:
                 data.to_sql(name=config["YANDEX_DIRECT"]["TABLE"], con=engine, if_exists='append', chunksize=100)
