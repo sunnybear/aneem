@@ -71,7 +71,7 @@ for period in range(int(config["YANDEX_APPMETRICA"]["PERIODS"]), 0, -1):
         if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE"]:
 # обработка ошибок при добавлении данных
             try:
-                data.to_sql(name=config["YANDEX_APPMETRICA"]["TABLE_EVENTS"], con=engine, if_exists='append', chunksize=100)
+                data.to_sql(name=config["YANDEX_APPMETRICA"]["TABLE_EVENTS"], con=engine, if_exists='append', chunksize=100, encoding='utf-8')
             except Exception E:
                 print (E)
                 connection.rollback()

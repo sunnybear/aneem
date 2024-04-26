@@ -101,7 +101,7 @@ for period in range(int(config["VK_2023"]["PERIODS"]), 0, -1):
         if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
 # обработка ошибок при добавлении данных
             try:
-                data.to_sql(name=config["VK_2023"]["TABLE"], con=engine, if_exists='append', chunksize=100)
+                data.to_sql(name=config["VK_2023"]["TABLE"], con=engine, if_exists='append', chunksize=100, encoding='utf-8')
             except Exception E:
                 print (E)
                 connection.rollback()
