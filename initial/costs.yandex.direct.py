@@ -14,16 +14,18 @@ config.read("../settings.ini")
 
 # подключение к БД
 if config["DB"]["TYPE"] == "MYSQL":
-	engine = create_engine('mysql+mysqlclient://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + '/' + onfig["DB"]["DB"])
+	engine = create_engine('mysql+mysqlclient://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + '/' + config["DB"]["DB"])
 elif config["DB"]["TYPE"] == "POSTGRESQL":
-    engine = create_engine('postgresql+psycopg2://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + '/' + onfig["DB"]["DB"])
+    engine = create_engine('postgresql+psycopg2://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + '/' + config["DB"]["DB"])
 elif config["DB"]["TYPE"] == "MARIADB":
-    engine = create_engine('mysql+mysqldb://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + '/' + onfig["DB"]["DB"])
+    engine = create_engine('mysql+mysqldb://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + '/' + config["DB"]["DB"])
 elif config["DB"]["TYPE"] == "ORACLE":
-    engine = create_engine('oracle+pyodbc://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + '/' + onfig["DB"]["DB"])
+    engine = create_engine('oracle+pyodbc://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + '/' + config["DB"]["DB"])
+elif config["DB"]["TYPE"] == "SQLITE":
+    engine = create_engine('sqlite:///' + config["DB"]["DB"])
 
 # создание подключения к БД
-if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE"]:
+if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
     connection = engine.raw_connection()
 
 # создаем таблицу для данных при наличии каких-либо данных
@@ -109,7 +111,7 @@ for period in range(int(config["YANDEX_DIRECT"]["PERIODS"]), 0, -1):
         if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE"]:
 # обработка ошибок при добавлении данных
             try:
-                data.to_sql(name=config["YANDEX_DIRECT"]["TABLE"], con=engine, if_exists='append')
+                data.to_sql(name=config["YANDEX_DIRECT"]["TABLE"], con=engine, if_exists='append', chunksize=100)
             except Exception E:
                 print (E)
                 connection.rollback()
@@ -121,6 +123,6 @@ for period in range(int(config["YANDEX_DIRECT"]["PERIODS"]), 0, -1):
     print (date_since + "=>" + date_until + ": " + str(len(data)))
 
 # закрытие подключения к БД
-if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE"]:
+if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
     connection.commit()
     connection.close()
