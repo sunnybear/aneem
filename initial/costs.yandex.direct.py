@@ -14,11 +14,11 @@ config.read("../settings.ini")
 
 # подключение к БД
 if config["DB"]["TYPE"] == "MYSQL":
-	engine = create_engine('mysql+mysqlclient://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + '/' + config["DB"]["DB"] + '?charset=utf8')
+    engine = create_engine('mysql+mysqldb://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + '/' + config["DB"]["DB"] + '?charset=utf8')
 elif config["DB"]["TYPE"] == "POSTGRESQL":
     engine = create_engine('postgresql+psycopg2://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + '/' + config["DB"]["DB"] + '?client_encoding=utf8')
 elif config["DB"]["TYPE"] == "MARIADB":
-    engine = create_engine('mysql+mysqldb://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + '/' + config["DB"]["DB"] + '?charset=utf8')
+    engine = create_engine('mariadb+mysqldb://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + '/' + config["DB"]["DB"] + '?charset=utf8')
 elif config["DB"]["TYPE"] == "ORACLE":
     engine = create_engine('oracle+pyodbc://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + '/' + config["DB"]["DB"])
 elif config["DB"]["TYPE"] == "SQLITE":
@@ -26,7 +26,7 @@ elif config["DB"]["TYPE"] == "SQLITE":
 
 # создание подключения к БД
 if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
-    connection = engine.raw_connection()
+    connection = engine.connect()
     if config["DB"]["TYPE"] in ["MYSQL", "MARIADB"]:
         connection.execute(text('SET NAMES utf8mb4'))
         connection.execute(text('SET CHARACTER SET utf8mb4'))

@@ -11,15 +11,15 @@ from sqlalchemy import create_engine, text
 # импорт настроек
 import configparser
 config = configparser.ConfigParser()
-config.read("../settings.ini")
+config.read("../../settings.ini")
 
 # подключение к БД
 if config["DB"]["TYPE"] == "MYSQL":
-	engine = create_engine('mysql+mysqlclient://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + '/' + config["DB"]["DB"] + '?charset=utf8')
+    engine = create_engine('mysql+mysqldb://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + '/' + config["DB"]["DB"] + '?charset=utf8')
 elif config["DB"]["TYPE"] == "POSTGRESQL":
     engine = create_engine('postgresql+psycopg2://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + '/' + config["DB"]["DB"] + '?client_encoding=utf8')
 elif config["DB"]["TYPE"] == "MARIADB":
-    engine = create_engine('mysql+mysqldb://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + '/' + config["DB"]["DB"] + '?charset=utf8')
+    engine = create_engine('mariadb+mysqldb://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + '/' + config["DB"]["DB"] + '?charset=utf8')
 elif config["DB"]["TYPE"] == "ORACLE":
     engine = create_engine('oracle+pyodbc://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + '/' + config["DB"]["DB"])
 elif config["DB"]["TYPE"] == "SQLITE":
@@ -27,7 +27,7 @@ elif config["DB"]["TYPE"] == "SQLITE":
 
 # создание подключения к БД
 if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
-    connection = engine.raw_connection()
+    connection = engine.connect()
     if config["DB"]["TYPE"] in ["MYSQL", "MARIADB"]:
         connection.execute(text('SET NAMES utf8mb4'))
         connection.execute(text('SET CHARACTER SET utf8mb4'))
@@ -37,7 +37,7 @@ if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"
 table_not_created = True
 api = YandexMetrikaLogsapi(access_token=config["YANDEX_METRIKA"]["ACCESS_TOKEN"], default_url_params={'counterId': config["YANDEX_METRIKA"]["COUNTER_ID"]})
 # Создание запроса на выгрузку данных (вчера)
-yesterday = (date.today() - timedelta(days=1).strftime('%Y-%m-%d')
+yesterday = (date.today() - timedelta(days=1)).strftime('%Y-%m-%d')
 params = {
     "fields": "ym:s:visitID,ym:s:dateTime,ym:s:isNewUser,ym:s:startURL,ym:s:endURL,ym:s:pageViews,ym:s:visitDuration,ym:s:ipAddress,ym:s:regionCountry,ym:s:regionCity,ym:s:regionCountryID,ym:s:regionCityID,ym:s:clientID,ym:s:networkType,ym:s:goalsID,ym:s:referer,ym:s:from,ym:s:lastTrafficSource,ym:s:lastAdvEngine,ym:s:lastReferalSource,ym:s:lastSearchEngineRoot,ym:s:lastSearchEngine,ym:s:lastSocialNetwork,ym:s:lastSocialNetworkProfile,ym:s:lastDirectClickOrder,ym:s:lastDirectPlatformType,ym:s:lastDirectPlatform,ym:s:lastUTMCampaign,ym:s:lastUTMContent,ym:s:lastUTMMedium,ym:s:lastUTMSource,ym:s:lastUTMTerm,ym:s:lastRecommendationSystem,ym:s:lastGCLID,ym:s:lastMessenger,ym:s:browser,ym:s:browserLanguage,ym:s:browserCountry,ym:s:deviceCategory,ym:s:mobilePhone,ym:s:mobilePhoneModel,ym:s:operatingSystemRoot,ym:s:operatingSystem,ym:s:browserMajorVersion,ym:s:browserMinorVersion,ym:s:browserEngine,ym:s:browserEngineVersion1,ym:s:browserEngineVersion2,ym:s:browserEngineVersion3,ym:s:browserEngineVersion4",
     "source": "visits",
@@ -84,22 +84,13 @@ for p in info["log_request"]["parts"]:
 # добавляем метку времени
         data["ts"] = pd.DatetimeIndex(data["ym:s:dateTime"]).asi8
         if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
-            try:
-                connection.execute(text('DELETE FROM ' + config["YANDEX_METRIKA"]["TABLE_VISITS"] + ' WHERE `ym:s:dateTime`>=' + yesterday))
-                connection.commit()
-            except Exception E:
-                print (E)
-                connection.rollback()
-# обработка ошибок при добавлении данных
-            try:
-                data.to_sql(name=config["YANDEX_METRIKA"]["TABLE_VISITS"], con=engine, if_exists='append', chunksize=100)
-            except Exception E:
-                print (E)
-                connection.rollback()
+            connection.execute(text('DELETE FROM ' + config["YANDEX_METRIKA"]["TABLE_VISITS"] + ' WHERE `ym:s:dateTime`>=' + yesterday))
+            connection.commit()
+            data.to_sql(name=config["YANDEX_METRIKA"]["TABLE_VISITS"], con=engine, if_exists='append', chunksize=100)
         elif config["DB"]["TYPE"] == "CLICKHOUSE":
 # удаляем данные за вчера
             requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/',
-                params={"database": config["DB"]["DB"], "query": 'DELETE FROM ' + config["DB"]["DB"] + '.' + config["YANDEX_METRIKA"]["TABLE_VISITS"] + ' WHERE `ym:s:dateTime`>=' + yesterday},
+                params={"database": config["DB"]["DB"], "query": 'DELETE FROM ' + config["DB"]["DB"] + '.' + config["YANDEX_METRIKA"]["TABLE_VISITS"] + ' WHERE `ym:s:dateTime`>=' + yesterday}, headers={'Content-Type':'application/octet-stream'}, verify=False)
 # добавляем новые данные
             csv_file = data.to_csv().encode('utf-8')
             requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/',
