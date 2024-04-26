@@ -1,0 +1,1 @@
+cd ~/aibi/daily/ && /usr/bin/python3 daily.visits.yandex.direct.py >/dev/null 2>/dev/null
