@@ -2,31 +2,29 @@
 from datetime import datetime as dt
 from datetime import date, timedelta
 import pandas as pd
+import numpy as np
 import requests
 import time
+from sqlalchemy import create_engine
 
 # импорт настроек
 import configparser
 config = configparser.ConfigParser()
 config.read("../settings.ini")
 
-# импорт библиотек для работы с БД
+# подключение к БД
 if config["DB"]["TYPE"] == "MYSQL":
-    import mysql.connector as db_connector
+	engine = create_engine('mysql+mysqlclient://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + '/' + onfig["DB"]["DB"])
 elif config["DB"]["TYPE"] == "POSTGRESQL":
-    import psycopg2 as db_connector
+    engine = create_engine('postgresql+psycopg2://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + '/' + onfig["DB"]["DB"])
 elif config["DB"]["TYPE"] == "MARIADB":
-    import mariadb as db_connector
+    engine = create_engine('mysql+mysqldb://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + '/' + onfig["DB"]["DB"])
+elif config["DB"]["TYPE"] == "ORACLE":
+    engine = create_engine('oracle+pyodbc://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + '/' + onfig["DB"]["DB"])
 
 # создание подключения к БД
-if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB"]:
-    connection = db_connector.connect(
-      host=config["DB"]["HOST"],
-      user=config["DB"]["USER"],
-      password=config["DB"]["PASSWORD"],
-      database=config["DB"]["DB"]
-    )
-    cursor = connection.cursor()
+if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE"]:
+    connection = engine.raw_connection()
 
 # обновляем токен ВК
 r_refresh = requests.post('https://ads.vk.com/api/v2/oauth2/token.json', data={
@@ -43,10 +41,12 @@ table_not_created = True
 for period in range(int(config["VK_2023"]["PERIODS"]), 0, -1):
 # Задержка в 1 секунду для избежания превышения лимитов по запросам
     time.sleep(1)
+    date_since = (date.today() - timedelta(days=period*int(config["VK_2023"]["DELTA"]))).strftime('%Y-%m-%d')
+	date_until = (date.today() - timedelta(days=(period-1)*int(config["VK_2023"]["DELTA"]))+1).strftime('%Y-%m-%d')
 # Создание запроса на выгрузку данных (помесячно)
     r = requests.get("https://ads.vk.com/api/v2/statistics/ad_plans/day.json", params={
-        'date_from': (date.today() - timedelta(days=period*int(config["VK_2023"]["DELTA"]))).strftime('%Y-%m-%d'),
-        'date_to': (date.today() - timedelta(days=(period-1)*int(config["VK_2023"]["DELTA"]))+1).strftime('%Y-%m-%d'),
+        'date_from': date_since,
+        'date_to': date_until,
         'metrics': 'base'
     }, headers = {'Authorization': 'Bearer ' + vk2023_access_token}).json()
 # формируем первичный список данных
@@ -73,7 +73,7 @@ for period in range(int(config["VK_2023"]["PERIODS"]), 0, -1):
     for col in data_all.columns:
 # приведение целых чисел
         if col in ["shows", "clicks", "goals", "vk_goals", "campaign_id"]:
-            data_all[col] = data_all[col].fillna('').replace('', 0).astype(int)
+            data_all[col] = data_all[col].fillna('').replace('', 0).astype(np.int64)
 # приведение вещественных чисел
         elif col in ["spent", "cpm", "cpc", "cpa", "ctr", "cr", "vk_cpa", "vk_cr"]:
             data_all[col] = data_all[col].fillna(0.0).astype(float)
@@ -88,16 +88,17 @@ for period in range(int(config["VK_2023"]["PERIODS"]), 0, -1):
         data["ts"] = pd.DatetimeIndex(data["date"]).asi8
 # создаем таблицу в первый раз
         if table_not_created:
-            if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB"]:
-                cursor.execute((pd.io.sql.get_schema(data, config["VK_2023"]["TABLE"])).replace("CREATE TABLE ", "CREATE TABLE IF NOT EXISTS "))
-                connection.commit()
-            elif config["DB"]["TYPE"] == "CLICKHOUSE":
+            if config["DB"]["TYPE"] == "CLICKHOUSE":
                 requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/', verify=False,
-                    params={"database": config["DB"]["DB"], "query": (pd.io.sql.get_schema(data, config["VK_2023"]["TABLE"]) + "  ENGINE=MergeTree ORDER BY (`ts`)").replace("CREATE TABLE ", "CREATE TABLE IF NOT EXISTS " + config["DB"]["DB"] + ".")})
+                    params={"database": config["DB"]["DB"], "query": (pd.io.sql.get_schema(data, config["VK_2023"]["TABLE"]) + "  ENGINE=MergeTree ORDER BY (`ts`)").replace("CREATE TABLE ", "CREATE TABLE IF NOT EXISTS " + config["DB"]["DB"] + ".").replace("INTEGER", "Int64")})
             table_not_created = False
-        if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB"]:
-            data.to_sql(name=config["VK_2023"]["TABLE"], con=connection, if_exists='append')
-            connection.commit()
+        if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE"]:
+# обработка ошибок при добавлении данных
+            try:
+                data.to_sql(name=config["VK_2023"]["TABLE"], con=engine, if_exists='append')
+            except Exception E:
+                print (E)
+                connection.rollback()
         elif config["DB"]["TYPE"] == "CLICKHOUSE":
             csv_file = data.to_csv().encode('utf-8')
             requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/',
@@ -106,6 +107,6 @@ for period in range(int(config["VK_2023"]["PERIODS"]), 0, -1):
     print (date_since + "=>" + date_until + ": " + str(len(data)))
 
 # закрытие подключения к БД
-if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB"]:
-    cursor.close()
+if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE"]:
+    connection.commit()
     connection.close()

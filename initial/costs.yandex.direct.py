@@ -3,30 +3,28 @@ from datetime import datetime as dt
 from datetime import date, timedelta
 from tapi_yandex_direct import YandexDirect
 import pandas as pd
+import numpy as np
 import requests
+from sqlalchemy import create_engine
 
 # импорт настроек
 import configparser
 config = configparser.ConfigParser()
 config.read("../settings.ini")
 
-# импорт библиотек для работы с БД
+# подключение к БД
 if config["DB"]["TYPE"] == "MYSQL":
-    import mysql.connector as db_connector
+	engine = create_engine('mysql+mysqlclient://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + '/' + onfig["DB"]["DB"])
 elif config["DB"]["TYPE"] == "POSTGRESQL":
-    import psycopg2 as db_connector
+    engine = create_engine('postgresql+psycopg2://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + '/' + onfig["DB"]["DB"])
 elif config["DB"]["TYPE"] == "MARIADB":
-    import mariadb as db_connector
+    engine = create_engine('mysql+mysqldb://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + '/' + onfig["DB"]["DB"])
+elif config["DB"]["TYPE"] == "ORACLE":
+    engine = create_engine('oracle+pyodbc://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + '/' + onfig["DB"]["DB"])
 
 # создание подключения к БД
-if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB"]:
-    connection = db_connector.connect(
-      host=config["DB"]["HOST"],
-      user=config["DB"]["USER"],
-      password=config["DB"]["PASSWORD"],
-      database=config["DB"]["DB"]
-    )
-    cursor = connection.cursor()
+if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE"]:
+    connection = engine.raw_connection()
 
 # создаем таблицу для данных при наличии каких-либо данных
 table_not_created = True
@@ -90,7 +88,7 @@ for period in range(int(config["YANDEX_DIRECT"]["PERIODS"]), 0, -1):
     for col in data.columns:
 # приведение целых чисел
         if col in ["CampaignId", "Clicks", "Conversions", "Impressions","LocationOfPresenceId"]:
-            data[col] = data[col].fillna(0).replace('--', 0).astype(int)
+            data[col] = data[col].fillna(0).replace('--', 0).astype(np.int64)
 # приведение вещественных чисел
         elif col in ["ConversionRate", "Cost"]:
             data[col] = data[col].fillna(0.0).replace('--', 0.0).astype(float)
@@ -104,16 +102,17 @@ for period in range(int(config["YANDEX_DIRECT"]["PERIODS"]), 0, -1):
         data["ts"] = pd.DatetimeIndex(data["Date"]).asi8
 # создаем таблицу в первый раз
         if table_not_created:
-            if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB"]:
-                cursor.execute((pd.io.sql.get_schema(data, config["YANDEX_DIRECT"]["TABLE"])).replace("CREATE TABLE ", "CREATE TABLE IF NOT EXISTS "))
-                connection.commit()
-            elif config["DB"]["TYPE"] == "CLICKHOUSE":
+            if config["DB"]["TYPE"] == "CLICKHOUSE":
                 requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/', verify=False,
-                    params={"database": config["DB"]["DB"], "query": (pd.io.sql.get_schema(data, config["YANDEX_DIRECT"]["TABLE"]) + "  ENGINE=MergeTree ORDER BY (`ts`)").replace("CREATE TABLE ", "CREATE TABLE IF NOT EXISTS " + config["DB"]["DB"] + ".")})
+                    params={"database": config["DB"]["DB"], "query": (pd.io.sql.get_schema(data, config["YANDEX_DIRECT"]["TABLE"]) + "  ENGINE=MergeTree ORDER BY (`ts`)").replace("CREATE TABLE ", "CREATE TABLE IF NOT EXISTS " + config["DB"]["DB"] + ".").replace("INTEGER", "Int64")})
             table_not_created = False
-        if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB"]:
-            data.to_sql(name=config["YANDEX_DIRECT"]["TABLE"], con=connection, if_exists='append')
-            connection.commit()
+        if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE"]:
+# обработка ошибок при добавлении данных
+            try:
+                data.to_sql(name=config["YANDEX_DIRECT"]["TABLE"], con=engine, if_exists='append')
+            except Exception E:
+                print (E)
+                connection.rollback()
         elif config["DB"]["TYPE"] == "CLICKHOUSE":
             csv_file = data.to_csv().encode('utf-8')
             requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/',
@@ -122,6 +121,6 @@ for period in range(int(config["YANDEX_DIRECT"]["PERIODS"]), 0, -1):
     print (date_since + "=>" + date_until + ": " + str(len(data)))
 
 # закрытие подключения к БД
-if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB"]:
-    cursor.close()
+if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE"]:
+    connection.commit()
     connection.close()
