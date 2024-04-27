@@ -37,47 +37,47 @@ if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"
 # создаем таблицу для данных при наличии каких-либо данных
 table_not_created = True
 
-# получение количества лидов
-leads = requests.get(config["BITRIX24"]["WEBHOOK"] + 'crm.lead.list.json?ORDER[ID]=ASC&FILDER[>ID]=0').json()
-# общее количество лидов
-leads_total = int(leads["total"])
-# текущий ID лида - для следующего запроса
-last_lead_id = 0
-# счетчик количества лидов
-leads_current = 0
-# запросы пакетами по 50*50 лидов до исчерпания количества для загрузки
-while leads_current < leads_total:
-    leads = {}
+# получение количества сделок
+deals = requests.get(config["BITRIX24"]["WEBHOOK"] + 'crm.deal.list.json?ORDER[ID]=ASC&FILDER[>ID]=0').json()
+# общее количество сделок
+deals_total = int(deals["total"])
+# текущий ID сделки - для следующего запроса
+last_deal_id = 0
+# счетчик количества сделок
+deals_current = 0
+# запросы пакетами по 50*50 сделок до исчерпания количества для загрузки
+while deals_current < deals_total:
+    deals = {}
     if config["BITRIX24"]["METHOD"] == "BATCH":
-        cmd = ['cmd[0]=crm.lead.list%3Fstart%3D-1%26order%5BID%5D%3DASC%26filter%5B%3EID%5D%3D' + str(last_lead_id)]
+        cmd = ['cmd[0]=crm.deal.list%3Fstart%3D-1%26order%5BID%5D%3DASC%26filter%5B%3EID%5D%3D' + str(last_deal_id)]
         for i in range(1, 50):
-            cmd.append('cmd['+str(i)+']=crm.lead.list%3Fstart%3D-1%26order%5BID%5D%3DASC%26filter%5B%3EID%5D%3D%24result%5B'+str(i-1)+'%5D%5B49%5D%5BID%5D')
-        leads_req = requests.get(config["BITRIX24"]["WEBHOOK"] + 'batch.json?' + '&'.join(cmd)).json()
-# разбор лидов из пакетного запроса
-        for lead_group in leads_req["result"]["result"]:
-            for lead in lead_group:
-                last_lead_id = int(lead['ID'])
-                leads[last_lead_id] = lead
+            cmd.append('cmd['+str(i)+']=crm.deal.list%3Fstart%3D-1%26order%5BID%5D%3DASC%26filter%5B%3EID%5D%3D%24result%5B'+str(i-1)+'%5D%5B49%5D%5BID%5D')
+        deals_req = requests.get(config["BITRIX24"]["WEBHOOK"] + 'batch.json?' + '&'.join(cmd)).json()
+# разбор сделок из пакетного запроса
+        for deal_group in deals_req["result"]["result"]:
+            for deal in deal_group:
+                last_deal_id = int(deal['ID'])
+                deals[last_deal_id] = deal
     elif config["BITRIX24"]["METHOD"] == "SINGLE":
-        leads_req = requests.get(config["BITRIX24"]["WEBHOOK"] + 'crm.lead.list.json?ORDER[ID]=ASC&FILDER[>ID]=' + str(last_lead_id)).json()
-# разбор лидов из обычного запроса
-        for lead in leads_req["result"]:
-            last_lead_id = int(lead['ID'])
-            leads[last_lead_id] = lead
-    leads_current += len(leads)
+        deals_req = requests.get(config["BITRIX24"]["WEBHOOK"] + 'crm.deal.list.json?ORDER[ID]=ASC&FILDER[>ID]=' + str(last_deal_id)).json()
+# разбор сделок из обычного запроса
+        for deal in deals_req["result"]:
+            last_deal_id = int(deal['ID'])
+            deals[last_deal_id] = deal
+    deals_current += len(deals)
 # формируем датафрейм
-    data = pd.DataFrame.from_dict(leads, orient='index')
+    data = pd.DataFrame.from_dict(deals, orient='index')
 # базовый процесс очистки: приведение к нужным типам
     for col in data.columns:
 # приведение целых чисел
-        if col in ["COMPANY_ID", "ASSIGNED_BY_ID", "CONTACT_ID", "CREATED_BY_ID", "MODIFY_BY_ID", "MOVED_BY_ID", "ADDRESS_COUNTRY_CODE", "ADDRESS_LOC_ADDR_ID", "LAST_ACTIVITY_BY", "ID"]:
+        if col in ["LEAD_ID", "COMPANY_ID", "QUOTE_ID", "ASSIGNED_BY_ID", "CREATED_BY_ID", "MODIFY_BY_ID", "LOCATION_ID", "CATEGORY_ID", "MOVED_BY_ID", "LAST_ACTIVITY_BY", "ID"]:
             data[col] = data[col].fillna('').replace('', 0).astype(np.int64)
 # приведение вещественных чисел
-        elif col in ["OPPORTUNITY"]:
+        elif col in ["TAX_VALUE", "OPPORTUNITY", "PROBABILITY"]:
 # приведение дат
             data[col] = data[col].fillna('').replace('', 0.0).astype(float)
-        elif col in ["DATE_CREATE", "DATE_MODIFY", "DATE_CLOSED", "MOVED_TIME", "LAST_ACTIVITY_TIME"]:
-            data[col] = pd.to_datetime(data[col].fillna('').replace('', '2000-01-01T00:00:00+03:00').apply(lambda x: dt.strptime(x, '%Y-%m-%dT%H:%M:%S%z').strftime("%Y-%m-%d %H:%M:%S").replace('202-','2024-')))
+        elif col in ["BEGINDATE", "CLOSEDATE", "DATE_CREATE", "DATE_MODIFY", "MOVED_TIME", "LAST_ACTIVITY_TIME"]:
+            data[col] = pd.to_datetime(data[col].fillna('').replace('', '2000-01-01T00:00:00+03:00').apply(lambda x: dt.strptime(x, '%Y-%m-%dT%H:%M:%S%z').strftime("%Y-%m-%d %H:%M:%S").replace('202-','2020-')))
 # приведение строк
         else:
             data[col] = data[col].fillna('')
@@ -87,21 +87,21 @@ while leads_current < leads_total:
         if table_not_created:
             if config["DB"]["TYPE"] == "CLICKHOUSE":
                 requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/', verify=False,
-                    params={"database": config["DB"]["DB"], "query": (pd.io.sql.get_schema(data, config["BITRIX24"]["TABLE_LEADS"]) + "  ENGINE=MergeTree ORDER BY (`ts`)").replace("CREATE TABLE ", "CREATE TABLE IF NOT EXISTS " + config["DB"]["DB"] + ".").replace("INTEGER", "Int64")})
+                    params={"database": config["DB"]["DB"], "query": (pd.io.sql.get_schema(data, config["BITRIX24"]["TABLE_DEALS"]) + "  ENGINE=MergeTree ORDER BY (`ts`)").replace("CREATE TABLE ", "CREATE TABLE IF NOT EXISTS " + config["DB"]["DB"] + ".").replace("INTEGER", "Int64")})
             table_not_created = False
         if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
 # обработка ошибок при добавлении данных
             try:
-                data.to_sql(name=config["BITRIX24"]["TABLE_LEADS"], con=engine, if_exists='append', chunksize=100)
+                data.to_sql(name=config["BITRIX24"]["TABLE_DEALS"], con=engine, if_exists='append', chunksize=100)
             except Exception as E:
                 print (E)
                 connection.rollback()
         elif config["DB"]["TYPE"] == "CLICKHOUSE":
             csv_file = data.to_csv().encode('utf-8')
             requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/',
-                params={"database": config["DB"]["DB"], "query": 'INSERT INTO ' + config["DB"]["DB"] + '.' + config["BITRIX24"]["TABLE_LEADS"] + ' FORMAT CSV'},
+                params={"database": config["DB"]["DB"], "query": 'INSERT INTO ' + config["DB"]["DB"] + '.' + config["BITRIX24"]["TABLE_DEALS"] + ' FORMAT CSV'},
                 headers={'Content-Type':'application/octet-stream'}, data=csv_file, stream=True, verify=False)
-    print (str(last_lead_id) + ": " + str(leads_current))
+    print (str(last_deal_id) + ": " + str(deals_current))
 
 # закрытие подключения к БД
 if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
