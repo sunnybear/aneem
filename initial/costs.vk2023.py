@@ -102,7 +102,7 @@ for period in range(int(config["VK_2023"]["PERIODS"]), 0, -1):
 # обработка ошибок при добавлении данных
             try:
                 data.to_sql(name=config["VK_2023"]["TABLE"], con=engine, if_exists='append', chunksize=100)
-            except Exception E:
+            except Exception as E:
                 print (E)
                 connection.rollback()
         elif config["DB"]["TYPE"] == "CLICKHOUSE":

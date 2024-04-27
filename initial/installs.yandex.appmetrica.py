@@ -72,7 +72,7 @@ for period in range(int(config["YANDEX_APPMETRICA"]["PERIODS"]), 0, -1):
 # обработка ошибок при добавлении данных
             try:
                 data.to_sql(name=config["YANDEX_APPMETRICA"]["TABLE_INSTALLS"], con=engine, if_exists='append', chunksize=100)
-            except Exception E:
+            except Exception as E:
                 print (E)
                 connection.rollback()
         elif config["DB"]["TYPE"] == "CLICKHOUSE":

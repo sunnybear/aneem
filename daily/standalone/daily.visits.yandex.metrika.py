@@ -83,9 +83,17 @@ for p in info["log_request"]["parts"]:
 # добавляем метку времени
         data["ts"] = pd.DatetimeIndex(data["ym:s:dateTime"]).asi8
         if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
-            connection.execute(text("DELETE FROM " + config["YANDEX_METRIKA"]["TABLE_VISITS"] + " WHERE `ym:s:dateTime`>='" + yesterday_1 + "'"))
-            connection.commit()
-            data.to_sql(name=config["YANDEX_METRIKA"]["TABLE_VISITS"], con=engine, if_exists='append', chunksize=100)
+            try:
+                connection.execute(text("DELETE FROM " + config["YANDEX_METRIKA"]["TABLE_VISITS"] + " WHERE `ym:s:dateTime`>='" + yesterday_1 + "'"))
+                connection.commit()
+            except Exception as E:
+                print (E)
+                connection.rollback()
+            try:
+                data.to_sql(name=config["YANDEX_METRIKA"]["TABLE_VISITS"], con=engine, if_exists='append', chunksize=100)
+            except Exception as E:
+                print (E)
+                connection.rollback()
         elif config["DB"]["TYPE"] == "CLICKHOUSE":
 # удаляем данные за вчера
             requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/',
