@@ -49,7 +49,7 @@ for period in range(int(config["YANDEX_METRIKA"]["PERIODS"]), 0, -1):
     }
 # удаляем все текущие запросы API
     api_requests = api.allinfo().get()
-	if "requests" in api_requests:
+    if "requests" in api_requests:
         for req in api_requests["requests"]:
             api.clean(requestId=req["request_id"]).post()
 # отправляем запрос API
