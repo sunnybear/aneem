@@ -157,7 +157,6 @@ for dataset in ["crm.lead", "crm.contact"]:
                     connection.rollback()
             elif config["DB"]["TYPE"] == "CLICKHOUSE":
                 csv_file = data.to_csv(index=False).encode('utf-8')
-                data.to_csv("data.csv", index=False)
                 requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/',
                     params={"database": config["DB"]["DB"], "query": 'INSERT INTO ' + config["DB"]["DB"] + '.' + config["BITRIX24"][current_table] + ' FORMAT CSV'},
                     headers={'Content-Type':'application/octet-stream'}, data=csv_file, stream=True, verify=False)
