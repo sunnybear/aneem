@@ -1,3 +1,16 @@
+# Скрипт для первоначального получения списка установок приложения из Яндекс.Аппметрики
+# Необходимо в settings.ini указать
+# * DB.TYPE - тип базы данных (куда выгружать данные)
+# * DB.HOST - адрес (хост) базы данных
+# * DB.USER - пользователь базы данных
+# * DB.PASSWORD - пароль к базе данных
+# * DB.DB - имя базы данных
+# * YANDEX_APPMETRICA.ACCESS_TOKEN - Access Token для приложения, имеющего доступ к статистике нужного приложения
+# * YANDEX_APPMETRICA.APPLICATION_ID - ID приложения, статистику которого нужно выгрузить
+# * YANDEX_APPMETRICA.DELTA - продолжительность периода (в днях) каждой отдельной выгрузки (запроса к API)
+# * YANDEX_APPMETRICA.PERIODS - количество периодов (всех выгрузок), будут выгружены данные за DELTA*PERIODS дней
+# * YANDEX_APPMETRICA.TABLE_INSTALLS - имя результирующей таблицы для установок
+
 # импорт общих библиотек
 from datetime import datetime as dt
 from datetime import date, timedelta

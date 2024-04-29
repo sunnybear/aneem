@@ -1,3 +1,17 @@
+# Скрипт для первоначального получения вспомогательных таблиц CRM Битрикс24: crm.status, crm.dealcategory, crm.contact, crm.company
+# Необходимо в settings.ini указать
+# * DB.TYPE - тип базы данных (куда выгружать данные)
+# * DB.HOST - адрес (хост) базы данных
+# * DB.USER - пользователь базы данных
+# * DB.PASSWORD - пароль к базе данных
+# * DB.DB - имя базы данных
+# * BITRIX24.METHOD - BATCH (для пакетной загрузки) или SINGLE (для одиночной загрузки)
+# * BITRIX24.WEBHOOK - URL вебхука (интеграции) Битрикс24
+# * BITRIX24.TABLE_STATUSES - имя результирующей таблицы для crm.status
+# * BITRIX24.TABLE_DEAL_CATEGORIES - имя результирующей таблицы для crm.dealcategory
+# * BITRIX24.TABLE_CONTACTS - имя результирующей таблицы для crm.contact
+# * BITRIX24.TABLE_COMPANIES - имя результирующей таблицы для crm.company
+
 # импорт общих библиотек
 from datetime import datetime as dt
 from datetime import date, timedelta

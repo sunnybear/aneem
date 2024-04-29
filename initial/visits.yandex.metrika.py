@@ -1,3 +1,16 @@
+# Скрипт для первоначального получения списка сессий из Яндекс.Метрики
+# Необходимо в settings.ini указать
+# * DB.TYPE - тип базы данных (куда выгружать данные)
+# * DB.HOST - адрес (хост) базы данных
+# * DB.USER - пользователь базы данных
+# * DB.PASSWORD - пароль к базе данных
+# * DB.DB - имя базы данных
+# * YANDEX_METRIKA.ACCESS_TOKEN - Access Token для приложения, имеющего доступ к статистике нужного сайта
+# * YANDEX_METRIKA.COUNTER_ID - ID сайта, статистику которого нужно выгрузить
+# * YANDEX_METRIKA.DELTA - продолжительность периода (в днях) каждой отдельной выгрузки (запроса к API)
+# * YANDEX_METRIKA.PERIODS - количество периодов (всех выгрузок), будут выгружены данные за DELTA*PERIODS дней
+# * YANDEX_METRIKA.TABLE_VISITS - имя результирующей таблицы для визитов (сессий)
+
 # импорт общих библиотек
 from datetime import datetime as dt
 from datetime import date, timedelta

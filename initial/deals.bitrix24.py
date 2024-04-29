@@ -1,3 +1,14 @@
+# Скрипт для первоначального получения таблицы сделок из CRM Битрикс24: crm.deal
+# Необходимо в settings.ini указать
+# * DB.TYPE - тип базы данных (куда выгружать данные)
+# * DB.HOST - адрес (хост) базы данных
+# * DB.USER - пользователь базы данных
+# * DB.PASSWORD - пароль к базе данных
+# * DB.DB - имя базы данных
+# * BITRIX24.METHOD - BATCH (для пакетной загрузки) или SINGLE (для одиночной загрузки)
+# * BITRIX24.WEBHOOK - URL вебхука (интеграции) Битрикс24
+# * BITRIX24.TABLE_DEALS - имя результирующей таблицы для crm.deal
+
 # импорт общих библиотек
 from datetime import datetime as dt
 from datetime import date, timedelta
