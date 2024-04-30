@@ -56,6 +56,17 @@ FROM
 UNION ALL
 
 SELECT
+    'BX24LEADUF' as `source`,
+	'Битрикс24: UF лидов' as `title`,
+    count(*) as total,
+    NOW() as date_end,
+    NOW() as date_start
+FROM
+    DB.raw_bx_crm_lead_uf
+
+UNION ALL
+
+SELECT
     'BX24DEAL' as `source`,
 	'Битрикс24: сделки' as `title`,
     count(*) as total,
@@ -74,6 +85,17 @@ SELECT
     min(`DATE_CREATE`) as date_start
 FROM
     DB.raw_bx_crm_contact
+
+UNION ALL
+
+SELECT
+    'BX24CONTACTUF' as `source`,
+	'Битрикс24: телефон и email' as `title`,
+    count(*) as total,
+    NOW() as date_end,
+    NOW() as date_start
+FROM
+    DB.raw_bx_crm_contact_uf
 	
 UNION ALL
 

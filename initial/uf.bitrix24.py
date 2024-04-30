@@ -16,6 +16,7 @@ from datetime import date, timedelta
 import pandas as pd
 import numpy as np
 import requests
+import time
 from sqlalchemy import create_engine
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 # Скрытие предупреждения Unverified HTTPS request
@@ -50,8 +51,12 @@ def bitrix24_crm_uf_plain_contacts (item):
         item['im1'] = item["IM"][0]["VALUE"]
         if len(item['IM']) > 1:
             item['im2'] = item["IM"][1]["VALUE"]
+        else:
+            item['im2'] = ''
         if len(item['IM']) > 2:
             item['im3'] = item["IM"][2]["VALUE"]
+        else:
+            item['im3'] = ''
         del item['IM']
     else:
         item['im1'] = ''
@@ -84,12 +89,19 @@ for dataset in ["crm.lead", "crm.contact"]:
 # если в настройках задана таблица - загружаем данные
     if tables[dataset] in config["BITRIX24"]:
         current_table = tables[dataset]
+        parent_table = tables[dataset].replace("_UF", "")
 # создаем таблицу для данных при наличии каких-либо данных
         table_not_created = True
-# получение количества объектов
-        items = requests.get(config["BITRIX24"]["WEBHOOK"] + dataset + '.list.json?ORDER[ID]=DESC&FILDER[>ID]=0').json()
-# ID последнего элемента
-        items_last_id = int(items["result"][0]['ID'])
+# получение всех ID объектов
+        if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
+            ids = list(pd.read_sql("SELECT ID FROM " + config["DB"]["DB"] + "." + config["BITRIX24"][parent_table], connection)["ID"].values)
+        elif config["DB"]["TYPE"] == "CLICKHOUSE":
+            ids_req = requests.get('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/',
+                params={"database": config["DB"]["DB"], "query": 'SELECT ID FROM ' + config["DB"]["DB"] + '.' + config["BITRIX24"][parent_table]},
+                verify=False)
+            ids = list(ids_req.text.split("\n"))
+# количество ID
+        items_last_id = len(ids)
 # счетчик количества объектов
         last_item_id = 1
         items = {}
@@ -98,7 +110,7 @@ for dataset in ["crm.lead", "crm.contact"]:
             if config["BITRIX24"]["METHOD"] == "BATCH":
                 cmd = []
                 for i in range(50):
-                    cmd.append('cmd[' + str(i) + ']=' + dataset + '.get%3FID%3D' + str(last_item_id))
+                    cmd.append('cmd[' + str(i) + ']=' + dataset + '.get%3FID%3D' + str(ids[last_item_id]))
                     last_item_id += 1
                 items_req = requests.get(config["BITRIX24"]["WEBHOOK"] + 'batch.json?' + '&'.join(cmd)).json()
                 if "result" in items_req:
@@ -106,19 +118,19 @@ for dataset in ["crm.lead", "crm.contact"]:
                     for item in items_req["result"]["result"]:
                         if isinstance(item, str):
                             item = items_req["result"]["result"][item]
-                        last_item_id = int(item['ID'])
                         item = bitrix24_crm_uf_plain_contacts(item)
-                        items[last_item_id] = item
+                        items[int(item['ID'])] = item
+# задержка для избежания исчерпания лимита запросов
+                time.sleep(1)
             elif config["BITRIX24"]["METHOD"] == "SINGLE":
-                items_req = requests.get(config["BITRIX24"]["WEBHOOK"] + dataset + '.get.json?ID=' + str(last_item_id)).json()
+                items_req = requests.get(config["BITRIX24"]["WEBHOOK"] + dataset + '.get.json?ID=' + str(ids[last_item_id])).json()
                 if "result" in items_req:
 # разбор объектов из обычного запроса
                     item = items_req["result"]
-                    last_item_id = int(item['ID'])
                     item = bitrix24_crm_uf_plain_contacts(item)
-                    items[last_item_id] = item
-            last_item_id += 1
-            print (str(len(items)) + "/" + str(last_item_id) + "/" + str(items_last_id))
+                    items[int(item['ID'])] = item
+                last_item_id += 1
+            print (str(len(items)) + "/" + str(items_last_id))
 # формируем датафрейм
         data = pd.DataFrame.from_dict(items, orient='index')
         del items
