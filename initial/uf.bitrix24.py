@@ -109,7 +109,7 @@ for dataset in ["crm.lead", "crm.contact"]:
         while last_item_id < items_last_id:
             if config["BITRIX24"]["METHOD"] == "BATCH":
                 cmd = []
-                for i in range(50):
+                for i in range(min(50, items_last_id-last_item_id)):
                     cmd.append('cmd[' + str(i) + ']=' + dataset + '.get%3FID%3D' + str(ids[last_item_id]))
                     last_item_id += 1
                 items_req = requests.get(config["BITRIX24"]["WEBHOOK"] + 'batch.json?' + '&'.join(cmd)).json()
