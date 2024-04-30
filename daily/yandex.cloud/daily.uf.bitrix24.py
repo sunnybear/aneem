@@ -1,4 +1,4 @@
-# Скрипт для ежедневного обновления данных Битрикс24 (пользовательских полей crm.contacts)
+# Скрипт для ежедневного обновления данных Битрикс24 (пользовательских полей crm.contact, crm.lead)
 # Необходимо в переменных окружения указать
 # * DB_TYPE - тип базы данных (куда выгружать данные)
 # * DB_HOST - адрес (хост) базы данных
@@ -82,7 +82,7 @@ def handler(event, context):
 # запросы пакетами по 50 объектов до исчерпания количества для загрузки
         while last_item_id < items_last_id:
             cmd = []
-            for i in range(50):
+            for i in range(min(50, items_last_id-last_item_id)):
                 cmd.append('cmd[' + str(i) + ']=' + dataset + '.get%3FID%3D' + str(ids[last_item_id]))
                 last_item_id += 1
             items_req = requests.get(os.getenv('BITRIX24_WEBHOOK') + 'batch.json?' + '&'.join(cmd)).json()
