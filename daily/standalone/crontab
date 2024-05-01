@@ -1,1 +1,1 @@
-cd ~/aibi/daily/ && /usr/bin/python3 daily.visits.yandex.direct.py >/dev/null 2>/dev/null
+1 1 * * * cd ~/aibi/daily/standalone/ && /usr/bin/python3 daily.visits.yandex.direct.py >/dev/null 2>/dev/null

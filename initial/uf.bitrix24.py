@@ -83,7 +83,8 @@ if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"
         connection.execute(text('SET character_set_connection=utf8mb4'))
 
 # загружаем справочники и дополнительные таблицы
-for dataset in ["crm.lead", "crm.contact"]:
+#for dataset in ["crm.lead", "crm.contact"]:
+for dataset in ["crm.contact"]:
     tables = {"crm.lead": "TABLE_LEADS_UF",
         "crm.contact": "TABLE_CONTACTS_UF"}
 # если в настройках задана таблица - загружаем данные
