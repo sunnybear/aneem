@@ -8,6 +8,7 @@
 # * YANDEX_METRIKA.ACCESS_TOKEN - Access Token для приложения, имеющего доступ к статистике нужного сайта
 # * YANDEX_METRIKA.COUNTER_ID - ID сайта, статистику которого нужно выгрузить
 # * YANDEX_METRIKA.TABLE_VISITS - имя результирующей таблицы для визитов (сессий)
+# * YANDEX_METRIKA.TABLE_VISITS_GOALS - имя результирующей таблицы для целей, при необходимости
 
 # импорт общих библиотек
 from datetime import datetime as dt
@@ -18,6 +19,9 @@ import time
 from tapi_yandex_metrika import YandexMetrikaLogsapi
 import numpy as np
 from sqlalchemy import create_engine, text
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
+# Скрытие предупреждения Unverified HTTPS request
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 # импорт настроек
 import configparser
@@ -68,6 +72,9 @@ info = api.info(requestId=request_id).get()
 while info["log_request"]["status"] != "processed":
     time.sleep(10)
     info = api.info(requestId=request_id).get()
+# суммарное число сессий и целей - для статистики
+visits_total = 0
+goals_total = 0
 # обрабатываем результат запроса
 for p in info["log_request"]["parts"]:
     part = api.download(requestId=request_id, partNumber=p["part_number"]).get()
@@ -87,10 +94,26 @@ for p in info["log_request"]["parts"]:
 # приведение строк
         else:
             data[col] = data[col].fillna('')
+# извлекаем информацию о целях
+    goals = []
+    if len(data) and config["YANDEX_METRIKA"]["TABLE_VISITS_GOALS"] != "":
+        for i, row in data[data["ym:s:goalsID"] != '[]'].iterrows():
+            goals_id = row["ym:s:goalsID"].replace('[', '').replace(']', '').split(",")
+            goals_dt = row["ym:s:goalsDateTime"].replace('[', '').replace(']', '').replace("\\'", '').split(",")
+            goals_price = row["ym:s:goalsPrice"].replace('[', '').replace(']', '').replace("'", '').split(",")
+            goals_order = row["ym:s:goalsOrder"].replace('[', '').replace(']', '').replace("'", '').split(",")
+            for j, goal in enumerate(goals_id):
+                goals.append([row["ym:s:visitID"], row["ym:s:clientID"], goal, goals_dt[j], goals_price[j], goals_order[j]])
+        goals = pd.DataFrame(goals)
+        goals.columns = ['ym:s:visitID', 'ym:s:clientID', 'ym:s:goalID', 'ym:s:goalDateTime', 'ym:s:goalPrice', 'ym:s:goalOrder']
+        goals["ym:s:goalDateTime"] = pd.to_datetime(goals["ym:s:goalDateTime"])
+        goals["ym:s:goalPrice"] = goals["ym:s:goalPrice"].fillna(0.0).astype(float)
+        goals["ts"] = pd.DatetimeIndex(goals["ym:s:goalDateTime"]).asi8
     if len(data):
 # добавляем метку времени
         data["ts"] = pd.DatetimeIndex(data["ym:s:dateTime"]).asi8
         if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
+# обновление данных о визитах
             try:
                 connection.execute(text("DELETE FROM " + config["YANDEX_METRIKA"]["TABLE_VISITS"] + " WHERE `ym:s:dateTime`>='" + yesterday_1 + "'"))
                 connection.commit()
@@ -102,18 +125,42 @@ for p in info["log_request"]["parts"]:
             except Exception as E:
                 print (E)
                 connection.rollback()
+# обновление данных о целях
+            if len(goals):
+                try:
+                    connection.execute(text("DELETE FROM " + config["YANDEX_METRIKA"]["TABLE_VISITS_GOALS"] + " WHERE `ym:s:goalDateTime`>='" + yesterday_1 + "'"))
+                    connection.commit()
+                except Exception as E:
+                    print (E)
+                    connection.rollback()
+                try:
+                    goals.to_sql(name=config["YANDEX_METRIKA"]["TABLE_VISITS_GOALS"], con=engine, if_exists='append', chunksize=100)
+                except Exception as E:
+                    print (E)
+                    connection.rollback()
         elif config["DB"]["TYPE"] == "CLICKHOUSE":
-# удаляем данные за вчера
+# удаляем данные за вчера, сессии
             requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/',
                 params={"database": config["DB"]["DB"], "query": "DELETE FROM " + config["DB"]["DB"] + "." + config["YANDEX_METRIKA"]["TABLE_VISITS"] + " WHERE `ym:s:dateTime`>='" + yesterday_1 + "'"}, headers={'Content-Type':'application/octet-stream'}, verify=False)
-# добавляем новые данные
-            csv_file = data.to_csv().encode('utf-8')
+# добавляем новые данные, сессии
+            csv_file = data.to_csv(index=False).encode('utf-8')
             requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/',
                 params={"database": config["DB"]["DB"], "query": 'INSERT INTO ' + config["DB"]["DB"] + '.' + config["YANDEX_METRIKA"]["TABLE_VISITS"] + ' FORMAT CSV'},
                 headers={'Content-Type':'application/octet-stream'}, data=csv_file, stream=True, verify=False)
+            if len(goals):
+# удаляем данные за вчера, цели
+                requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/',
+                    params={"database": config["DB"]["DB"], "query": "DELETE FROM " + config["DB"]["DB"] + "." + config["YANDEX_METRIKA"]["TABLE_VISITS_GOALS"] + " WHERE `ym:s:goalDateTime`>='" + yesterday_1 + "'"}, headers={'Content-Type':'application/octet-stream'}, verify=False)
+# добавляем новые данные, цели
+                csv_file = data.to_csv(index=False).encode('utf-8')
+                requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/',
+                    params={"database": config["DB"]["DB"], "query": 'INSERT INTO ' + config["DB"]["DB"] + '.' + config["YANDEX_METRIKA"]["TABLE_VISITS_GOALS"] + ' FORMAT CSV'},
+                    headers={'Content-Type':'application/octet-stream'}, data=csv_file, stream=True, verify=False)
+    visits_total += len(data)
+    goals_total += len(goals)
 # удаляем обработанный запрос из API
     api.clean(requestId=request_id).post()
-    print (yesterday + ": " + str(len(data)))
+    print (yesterday + ": " + str(visits_total) + "/" + str(goals_total))
 
 # закрытие подключения к БД
 if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
