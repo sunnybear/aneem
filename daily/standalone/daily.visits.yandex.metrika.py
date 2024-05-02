@@ -62,7 +62,8 @@ params = {
 api_requests = api.allinfo().get()
 if "requests" in api_requests:
     for req in api_requests["requests"]:
-        api.clean(requestId=req["request_id"]).post()
+        if req["status"] == "processed":
+            api.clean(requestId=req["request_id"]).post()
 # отправляем запрос API
 result = api.create().post(params=params)
 # получаем ID в очереди

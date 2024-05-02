@@ -66,7 +66,8 @@ for period in range(int(config["YANDEX_METRIKA"]["PERIODS"]), 0, -1):
     api_requests = api.allinfo().get()
     if "requests" in api_requests:
         for req in api_requests["requests"]:
-            api.clean(requestId=req["request_id"]).post()
+            if req["status"] == "processed":
+                api.clean(requestId=req["request_id"]).post()
 # отправляем запрос API
     result = api.create().post(params=params)
 # получаем ID в очереди
@@ -157,5 +158,18 @@ for period in range(int(config["YANDEX_METRIKA"]["PERIODS"]), 0, -1):
 
 # закрытие подключения к БД
 if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
+# создаем индексы
+    connection.execute(text("ALTER TABLE " + config["YANDEX_METRIKA"]["TABLE_VISITS"] + " ADD INDEX datetime (`ym:s:dateTime`)"))
+    connection.execute(text("ALTER TABLE " + config["YANDEX_METRIKA"]["TABLE_VISITS"] + " ADD INDEX endurl (`ym:s:endURL`)"))
+    connection.execute(text("ALTER TABLE " + config["YANDEX_METRIKA"]["TABLE_VISITS"] + " ADD INDEX utmsource (`ym:s:lastUTMSource`)"))
+    connection.execute(text("ALTER TABLE " + config["YANDEX_METRIKA"]["TABLE_VISITS"] + " ADD INDEX utmmedium (`ym:s:lastUTMMedium`)"))
+    connection.execute(text("ALTER TABLE " + config["YANDEX_METRIKA"]["TABLE_VISITS"] + " ADD INDEX utmcampaign (`ym:s:lastUTMCampaign`)"))
+    connection.execute(text("ALTER TABLE " + config["YANDEX_METRIKA"]["TABLE_VISITS"] + " ADD INDEX clientid (`ym:s:clientID`)"))
+    connection.execute(text("ALTER TABLE " + config["YANDEX_METRIKA"]["TABLE_VISITS"] + " ADD INDEX visitid (`ym:s:visitID`)"))
+    if goals_total > 0:
+        connection.execute(text("ALTER TABLE " + config["YANDEX_METRIKA"]["TABLE_VISITS_GOALS"] + " ADD INDEX datetime (`ym:s:dateTime`)"))
+        connection.execute(text("ALTER TABLE " + config["YANDEX_METRIKA"]["TABLE_VISITS_GOALS"] + " ADD INDEX goalid (`ym:s:goalID`)"))
+        connection.execute(text("ALTER TABLE " + config["YANDEX_METRIKA"]["TABLE_VISITS_GOALS"] + " ADD INDEX clientid (`ym:s:clientID`)"))
+        connection.execute(text("ALTER TABLE " + config["YANDEX_METRIKA"]["TABLE_VISITS_GOALS"] + " ADD INDEX visitid (`ym:s:visitID`)"))        
     connection.commit()
     connection.close()
