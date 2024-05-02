@@ -106,7 +106,7 @@ def handler(event, context):
                 data[col] = data[col].fillna('')
 # извлекаем информацию о целях
         goals = []
-        if len(data) and os.getenv['YANDEX_METRIKA_TABLE_VISITS_GOALS') != "":
+        if len(data) and os.getenv('YANDEX_METRIKA_TABLE_VISITS_GOALS') != "":
             for i, row in data[data["ym:s:goalsID"] != '[]'].iterrows():
                 goals_id = row["ym:s:goalsID"].replace('[', '').replace(']', '').split(",")
                 goals_dt = row["ym:s:goalsDateTime"].replace('[', '').replace(']', '').replace("\\'", '').split(",")
