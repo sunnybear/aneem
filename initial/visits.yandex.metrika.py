@@ -146,7 +146,6 @@ for period in range(int(config["YANDEX_METRIKA"]["PERIODS"]), 0, -1):
                     headers={'Content-Type':'application/octet-stream'}, data=csv_file, stream=True, verify=False)
                 if len(goals):
                     csv_file = goals.to_csv(index=False).encode('utf-8')
-                    goals.to_csv("goals.csv", index=False)
                     requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/',
                         params={"database": config["DB"]["DB"], "query": 'INSERT INTO ' + config["DB"]["DB"] + '.' + config["YANDEX_METRIKA"]["TABLE_VISITS_GOALS"] + ' FORMAT CSV'},
                         headers={'Content-Type':'application/octet-stream'}, data=csv_file, stream=True, verify=False)
