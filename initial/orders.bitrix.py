@@ -72,7 +72,7 @@ while orders_current < orders_total:
 # базовый процесс очистки: приведение к нужным типам
     for col in data.columns:
 # приведение целых чисел
-        if col in ["accountNumber", "companyId", "empCanceledId", "empMarkedId", "empStatusId", "id", "id1c", "userId", "affiliateId", "recurringId"]:
+        if col in ["accountNumber", "companyId", "empCanceledId", "empMarkedId", "empStatusId", "id", "userId", "affiliateId", "recurringId"]:
             data[col] = data[col].fillna('').replace('None', '').replace('', 0).astype(np.int64)
 # приведение вещественных чисел
         elif col in ["discountValue", "price", "taxValue"]:
