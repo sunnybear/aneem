@@ -19,6 +19,8 @@ from sqlalchemy import create_engine, text
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 # Скрытие предупреждения Unverified HTTPS request
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+# Скрытие предупреждение про fillna
+pd.set_option("future.no_silent_downcasting", True)
 
 # импорт настроек
 import configparser
@@ -105,7 +107,7 @@ while orders_current < orders_total:
             requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/',
                 params={"database": config["DB"]["DB"], "query": 'INSERT INTO ' + config["DB"]["DB"] + '.' + config["BITRIX"]["TABLE_ORDERS"] + ' FORMAT CSV'},
                 headers={'Content-Type':'application/octet-stream'}, data=csv_file, stream=True, verify=False)
-    print (str(last_orders_id) + ": " + str(orders_current))
+    print (str(last_order_id) + ": " + str(orders_current))
 
 # закрытие подключения к БД
 if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
