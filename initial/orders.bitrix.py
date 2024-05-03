@@ -61,15 +61,11 @@ orders_current = 0
 # запросы пакетами по 50*50 заказов до исчерпания количества для загрузки
 while orders_current < orders_total:
     orders = {}
-    cmd = ['cmd[0]=sale.order.list%3Fstart%3D-1%26order%5Bid%5D%3DASC%26filter%5B%3Eid%5D%3D' + str(last_order_id)]
-    for i in range(1, 50):
-        cmd.append('cmd['+str(i)+']=sale.order.list%3Fstart%3D-1%26order%5Bid%5D%3DASC%26filter%5B%3Eid%5D%3D%24result%5B'+str(i-1)+'%5D%5B49%5D%5Bid%5D')
-    orders_req = requests.get(config["BITRIX"]["WEBHOOK"] + 'batch?' + '&'.join(cmd)).json()
-# разбор сделок из пакетного запроса
-    for order_group in orders_req["result"]["result"]:
-        for order in order_group["orders"]:
-            last_order_id = int(order['id'])
-            orders[last_order_id] = order
+    orders_req = requests.get(config["BITRIX"]["WEBHOOK"] + 'sale.order.list?filter[>id]=' + str(last_order_id)).json()
+# разбор заказов
+    for order in orders_req["result"]["orders"]:
+        last_order_id = int(order['id'])
+        orders[last_order_id] = order
     orders_current += len(orders)
 # формируем датафрейм
     data = pd.DataFrame.from_dict(orders, orient='index')
@@ -111,5 +107,9 @@ while orders_current < orders_total:
 
 # закрытие подключения к БД
 if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
+# создаем индексы
+    connection.execute(text("ALTER TABLE " + config["BITRIX"]["TABLE_ORDERS"] + " ADD INDEX dateinsert (`dateInsert`)"))
+    connection.execute(text("ALTER TABLE " + config["BITRIX"]["TABLE_ORDERS"] + " ADD INDEX id (`id`)"))
+    connection.execute(text("ALTER TABLE " + config["BITRIX"]["TABLE_ORDERS"] + " ADD INDEX statusid (`statusId`)"))
     connection.commit()
     connection.close()
