@@ -18,7 +18,7 @@ from datetime import date, timedelta
 import pandas as pd
 import numpy as np
 import requests
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 # Скрытие предупреждения Unverified HTTPS request
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)

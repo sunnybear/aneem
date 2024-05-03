@@ -18,7 +18,10 @@ import pandas as pd
 import requests
 import time
 import numpy as np
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
+# Скрытие предупреждения Unverified HTTPS request
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 # импорт настроек
 import configparser
