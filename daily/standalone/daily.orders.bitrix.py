@@ -64,7 +64,7 @@ while orders_next>= 50:
     for order in orders_req["result"]["orders"]:
         last_order_id = int(order['id'])
         orders[last_order_id] = order
-    if int(orders_req["total"]) < 50:
+    if int(orders_req["total"]) > 50:
         orders_next = int(orders_req["next"])
     else:
         orders_next = 0
