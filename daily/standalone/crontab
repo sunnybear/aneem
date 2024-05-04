@@ -1,2 +1,2 @@
-1 1 * * * cd ~/aibi/daily/standalone/ && /usr/bin/python3 daily.visits.yandex.direct.py >/dev/null 2>/dev/null
+1 3 * * * cd ~/aibi/daily/standalone/ && /usr/bin/python3 daily.visits.yandex.direct.py >/dev/null 2>/dev/null
 5 1 * * * cd ~/aibi/daily/standalone/ && /usr/bin/python3 daily.orders.bitrix.py >/dev/null 2>/dev/null
