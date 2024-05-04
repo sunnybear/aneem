@@ -21,6 +21,8 @@ from sqlalchemy import create_engine, text
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 # Скрытие предупреждения Unverified HTTPS request
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+# Скрытие предупреждение про fillna
+pd.set_option('future.no_silent_downcasting', True)
 
 # импорт настроек
 import configparser
@@ -53,12 +55,19 @@ yesterday = (date.today() - timedelta(days=1)).strftime('%Y-%m-%d')
 # выбираем все заказы за вчера
 orders_next = 50
 orders = {}
+last_order_id = 0
 while orders_next>= 50:
-    orders_req = requests.get(config["BITRIX"]["WEBHOOK"] + 'sale.order.list?filter[>id]=' + str(last_order_id)).json()
+    if last_order_id == 0:
+        orders_req = requests.get(config["BITRIX"]["WEBHOOK"] + 'sale.order.list?filter[>dateInsert]=' + yesterday).json()
+    else:
+        orders_req = requests.get(config["BITRIX"]["WEBHOOK"] + 'sale.order.list?filter[>id]=' + str(last_order_id)).json()
     for order in orders_req["result"]["orders"]:
         last_order_id = int(order['id'])
         orders[last_order_id] = order
-    orders_next = int(orders_req["next"])
+    if int(orders_req["total"]) < 50:
+        orders_next = int(orders_req["next"])
+    else:
+        orders_next = 0
 # формируем датафрейм
 data = pd.DataFrame.from_dict(orders, orient='index')
 # базовый процесс очистки: приведение к нужным типам

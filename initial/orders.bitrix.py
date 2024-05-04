@@ -58,7 +58,7 @@ orders_total = int(orders["total"])
 last_order_id = 0
 # счетчик количества заказов
 orders_current = 0
-# запросы пакетами по 50*50 заказов до исчерпания количества для загрузки
+# запросы пакетами по 50 заказов до исчерпания количества для загрузки
 while orders_current < orders_total:
     orders = {}
     orders_req = requests.get(config["BITRIX"]["WEBHOOK"] + 'sale.order.list?filter[>id]=' + str(last_order_id)).json()
