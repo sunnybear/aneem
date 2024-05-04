@@ -109,6 +109,7 @@ while orders_current < orders_total:
 if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
 # создаем индексы
     connection.execute(text("ALTER TABLE " + config["BITRIX"]["TABLE_ORDERS"] + " ADD INDEX dateinsert (`dateInsert`)"))
+	connection.execute(text("ALTER TABLE " + config["BITRIX"]["TABLE_ORDERS"] + " ADD INDEX dateupdate (`dateUpdate`)"))
     connection.execute(text("ALTER TABLE " + config["BITRIX"]["TABLE_ORDERS"] + " ADD INDEX id (`id`)"))
     connection.execute(text("ALTER TABLE " + config["BITRIX"]["TABLE_ORDERS"] + " ADD INDEX statusid (`statusId`)"))
     connection.commit()

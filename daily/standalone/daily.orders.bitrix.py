@@ -58,7 +58,7 @@ orders = {}
 last_order_id = 0
 while orders_next>= 50:
     if last_order_id == 0:
-        orders_req = requests.get(config["BITRIX"]["WEBHOOK"] + 'sale.order.list?filter[>dateInsert]=' + yesterday).json()
+        orders_req = requests.get(config["BITRIX"]["WEBHOOK"] + 'sale.order.list?filter[>dateUpdate]=' + yesterday).json()
     else:
         orders_req = requests.get(config["BITRIX"]["WEBHOOK"] + 'sale.order.list?filter[>id]=' + str(last_order_id)).json()
     for order in orders_req["result"]["orders"]:
@@ -89,7 +89,7 @@ if len(data):
     if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
 # удаление данных за вчера
         try:
-            connection.execute(text("DELETE FROM " + config["BITRIX"]["TABLE_ORDERS"] + " WHERE `dateInsert`>='" + yesterday + "'"))
+            connection.execute(text("DELETE FROM " + config["BITRIX"]["TABLE_ORDERS"] + " WHERE `dateUpdate`>='" + yesterday + "'"))
             connection.commit()
         except Exception as E:
             print (E)
@@ -103,7 +103,7 @@ if len(data):
     elif config["DB"]["TYPE"] == "CLICKHOUSE":
 # удаление данных за вчера
         requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/',
-            params={"database": config["DB"]["DB"], "query": "DELETE FROM " + config["DB"]["DB"] + "." + config["BITRIX"]["TABLE_ORDERS"] + " WHERE `dateInsert`>='" + yesterday + "'"}, headers={'Content-Type':'application/octet-stream'}, verify=False)
+            params={"database": config["DB"]["DB"], "query": "DELETE FROM " + config["DB"]["DB"] + "." + config["BITRIX"]["TABLE_ORDERS"] + " WHERE `dateUpdate`>='" + yesterday + "'"}, headers={'Content-Type':'application/octet-stream'}, verify=False)
 # добавление данных за вчера
         csv_file = data.to_csv().encode('utf-8')
         requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/',

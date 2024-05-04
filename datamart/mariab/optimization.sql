@@ -13,5 +13,6 @@ alter table raw_ym_visits_goals add index clientid (`ym:s:clientID`);
 alter table raw_ym_visits_goals add index visitid (`ym:s:visitID`);
 -- raw_bx_orders
 alter table raw_bx_orders add index dateinsert (`dateInsert`);
+alter table raw_bx_orders add index dateupdate (`dateUpdate`);
 alter table raw_bx_orders add index id (`id`);
 alter table raw_bx_orders add index statusid (`statusId`);
