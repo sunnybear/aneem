@@ -1,4 +1,4 @@
-CREATE VIEW DB.raw_data_status AS
+CREATE VIEW raw_data_status AS
 
 (SELECT
     'YM' as `source`,
@@ -7,7 +7,7 @@ CREATE VIEW DB.raw_data_status AS
     max(`ym:s:dateTime`) as date_end,
     min(`ym:s:dateTime`) as date_start
 FROM
-    DB.raw_ym_visits
+    raw_ym_visits
 
 UNION ALL
 	
@@ -18,7 +18,7 @@ SELECT
     max(`ym:s:goalDateTime`) as date_end,
     min(`ym:s:goalDateTime`) as date_start
 FROM
-    DB.raw_ym_visits_goals
+    raw_ym_visits_goals
 
 /*UNION ALL
 
@@ -29,7 +29,7 @@ SELECT
     max(`install_datetime`) as date_end,
     min(`install_datetime`) as date_start
 FROM
-    DB.raw_am_installs
+    raw_am_installs
 */
 /*UNION ALL
 
@@ -40,7 +40,7 @@ SELECT
     max(`event_datetime`) as date_end,
     min(`event_datetime`) as date_start
 FROM
-    DB.raw_am_events
+    raw_am_events
 */
 /*UNION ALL
 
@@ -51,7 +51,7 @@ SELECT
     max(`date`) as date_end,
     min(`date`) as date_start
 FROM
-    DB.raw_ct_calls
+    raw_ct_calls
 */
 UNION ALL
 
@@ -62,7 +62,7 @@ SELECT
     max(`DATE_CREATE`) as date_end,
     min(`DATE_CREATE`) as date_start
 FROM
-    DB.raw_bx_crm_lead
+    raw_bx_crm_lead
 
 UNION ALL
 
@@ -73,7 +73,7 @@ SELECT
     NOW() as date_end,
     NOW() as date_start
 FROM
-    DB.raw_bx_crm_lead_uf
+    raw_bx_crm_lead_uf
 
 UNION ALL
 
@@ -84,7 +84,7 @@ SELECT
     max(`DATE_CREATE`) as date_end,
     min(`DATE_CREATE`) as date_start
 FROM
-    DB.raw_bx_crm_deal
+    raw_bx_crm_deal
 	
 UNION ALL
 
@@ -95,7 +95,7 @@ SELECT
     max(`DATE_CREATE`) as date_end,
     min(`DATE_CREATE`) as date_start
 FROM
-    DB.raw_bx_crm_contact
+    raw_bx_crm_contact
 
 UNION ALL
 
@@ -106,7 +106,7 @@ SELECT
     NOW() as date_end,
     NOW() as date_start
 FROM
-    DB.raw_bx_crm_contact_uf
+    raw_bx_crm_contact_uf
 	
 UNION ALL
 
@@ -117,7 +117,7 @@ SELECT
     NOW() as date_end,
     NOW() as date_start
 FROM
-    DB.raw_bx_crm_contact_contacts
+    raw_bx_crm_contact_contacts
 	
 UNION ALL
 
@@ -128,7 +128,7 @@ SELECT
     max(`DATE_CREATE`) as date_end,
     min(`DATE_CREATE`) as date_start
 FROM
-    DB.raw_bx_crm_company
+    raw_bx_crm_company
 	
 UNION ALL
 
@@ -139,7 +139,7 @@ SELECT
     NOW() as date_end,
     NOW() as date_start
 FROM
-    DB.raw_bx_crm_status
+    raw_bx_crm_status
 
 UNION ALL
 
@@ -150,7 +150,7 @@ SELECT
     NOW() as date_end,
     NOW() as date_start
 FROM
-    DB.raw_bx_crm_category
+    raw_bx_crm_category
 
 /*UNION ALL
 
@@ -161,7 +161,7 @@ SELECT
 	max(`date`) as date_end,
     min(`date`) as date_start
 FROM
-    DB.raw_vk_costs
+    raw_vk_costs
 */
 
 /*UNION ALL
@@ -173,7 +173,7 @@ SELECT
 	max(`dateInsert`) as date_end,
     min(`dateInsert`) as date_start
 FROM
-    DB.raw_bx_orders
+    raw_bx_orders
 */
 UNION ALL
 
@@ -184,4 +184,4 @@ SELECT
 	max(`Date`) as date_end,
     min(`Date`) as date_start
 FROM
-    DB.raw_yd_costs)
+    raw_yd_costs)
