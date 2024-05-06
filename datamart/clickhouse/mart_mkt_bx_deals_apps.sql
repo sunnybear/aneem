@@ -68,7 +68,8 @@ deals_apps AS (SELECT
     UTM_CAMPAIGN AS UTM_CAMPAIGN_ID
 FROM deals
     LEFT JOIN apps ON (apps.phone=deals.phone)
-    LEFT JOIN installs ON (installs.installation_id=apps.installation_id))
+    LEFT JOIN installs ON (installs.installation_id=apps.installation_id)
+GROUP BY ID, CLOSEDATE, IS_RETURN_CUSTOMER, OPPORTUNITY, UTM_MEDIUM_PURE, UTM_SOURCE_PURE, UTM_CAMPAIGN_PURE, UTM_CAMPAIGN_ID)
 
 SELECT
     count(d.ID) as DEALS,
