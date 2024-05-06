@@ -60,7 +60,7 @@ def handler(event, context):
             connection.execute(text('SET CHARACTER SET utf8mb4'))
             connection.execute(text('SET character_set_connection=utf8mb4'))
 
-    api = YandexMetrikaLogsapi(access_token=config["YANDEX_METRIKA"]["ACCESS_TOKEN"], default_url_params={'counterId': config["YANDEX_METRIKA"]["COUNTER_ID"]})
+    api = YandexMetrikaLogsapi(access_token=os.getenv('YANDEX_METRIKA_ACCESS_TOKEN'), default_url_params={'counterId': os.getenv('YANDEX_METRIKA_COUNTER_ID')})
 # Создание запроса на выгрузку данных (вчера + позавчера)
     params = {
         "fields": "ym:s:visitID,ym:s:dateTime,ym:s:isNewUser,ym:s:startURL,ym:s:endURL,ym:s:pageViews,ym:s:visitDuration,ym:s:ipAddress,ym:s:regionCountry,ym:s:regionCity,ym:s:regionCountryID,ym:s:regionCityID,ym:s:clientID,ym:s:networkType,ym:s:goalsID,ym:s:goalsDateTime,ym:s:goalsPrice,ym:s:goalsOrder,ym:s:referer,ym:s:from,ym:s:lastTrafficSource,ym:s:lastAdvEngine,ym:s:lastReferalSource,ym:s:lastSearchEngineRoot,ym:s:lastSearchEngine,ym:s:lastSocialNetwork,ym:s:lastSocialNetworkProfile,ym:s:lastDirectClickOrder,ym:s:lastDirectPlatformType,ym:s:lastDirectPlatform,ym:s:lastUTMCampaign,ym:s:lastUTMContent,ym:s:lastUTMMedium,ym:s:lastUTMSource,ym:s:lastUTMTerm,ym:s:lastRecommendationSystem,ym:s:lastGCLID,ym:s:lastMessenger,ym:s:browser,ym:s:browserLanguage,ym:s:browserCountry,ym:s:deviceCategory,ym:s:mobilePhone,ym:s:mobilePhoneModel,ym:s:operatingSystemRoot,ym:s:operatingSystem,ym:s:browserMajorVersion,ym:s:browserMinorVersion,ym:s:browserEngine,ym:s:browserEngineVersion1,ym:s:browserEngineVersion2,ym:s:browserEngineVersion3,ym:s:browserEngineVersion4",
@@ -148,7 +148,7 @@ def handler(event, context):
                     except Exception as E:
                         print (E)
                         connection.rollback()
-            elif config["DB"]["TYPE"] == "CLICKHOUSE":
+            elif os.getenv('DB_TYPE') == "CLICKHOUSE":
 # удаляем данные за вчера, сессии
                 requests.post('https://' + os.getenv('DB_HOST') + ':8443', headers=auth_post, verify=cacert,
                     params={"database": os.getenv('DB_DB'), "query": "DELETE FROM " + os.getenv('DB_PREFIX') + "." + os.getenv('YANDEX_METRIKA_TABLE_VISITS') + " WHERE `ym:s:dateTime`>='" + yesterday_1 + "'"})

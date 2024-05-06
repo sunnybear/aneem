@@ -216,7 +216,7 @@ CREATE EVENT mart_mkt_attribution_base
 	DT as '_Дата',
 	SUM(Visits) as '_Визиты',
 	SUM(Orders) as '_Заказы',
-	Revenue as '_Выручка',
+	SUM(Revenue) as '_Выручка',
 	UTMMedium as '_Канал',
 	UTMSource as '_Источник',
 	UTMCampaign as '_Кампания'

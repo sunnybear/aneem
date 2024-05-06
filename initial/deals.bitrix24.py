@@ -81,7 +81,7 @@ while deals_current < deals_total:
 # базовый процесс очистки: приведение к нужным типам
     for col in data.columns:
 # приведение целых чисел
-        if col in ["LEAD_ID", "COMPANY_ID", "QUOTE_ID", "ASSIGNED_BY_ID", "CREATED_BY_ID", "MODIFY_BY_ID", "LOCATION_ID", "CATEGORY_ID", "MOVED_BY_ID", "LAST_ACTIVITY_BY", "ID"]:
+        if col in ["LEAD_ID", "COMPANY_ID", "CONTACT_ID", "QUOTE_ID", "ASSIGNED_BY_ID", "CREATED_BY_ID", "MODIFY_BY_ID", "LOCATION_ID", "CATEGORY_ID", "MOVED_BY_ID", "LAST_ACTIVITY_BY", "ID"]:
             data[col] = data[col].fillna('').replace('', 0).astype(np.int64)
 # приведение вещественных чисел
         elif col in ["TAX_VALUE", "OPPORTUNITY", "PROBABILITY"]:

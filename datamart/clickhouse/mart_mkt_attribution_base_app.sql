@@ -8,7 +8,7 @@ SELECT
     IFNULL(SUM(`Deals`), 0) AS `_Сделки`,
     IFNULL(SUM(`Revenue`), 0.0) AS `_Выручка`,
     IFNULL(SUM(`RepeatDeals`), 0) AS `_ПовторныеСделки`,
-    CASE
+    CASE 
 	WHEN `Channel`='app' THEN 'Мобильное приложение'
     WHEN `Channel`='sms' THEN 'СМС'
     WHEN `Channel`='mail' THEN 'Электронная почта'
@@ -89,7 +89,7 @@ FROM (SELECT
     l.UTM_CAMPAIGN_PURE AS `Campaign`
 FROM
     DB.mart_mkt_bx_leads as l
-LEFT JOIN DB.mart_mkt_bx_deals as d ON
+LEFT JOIN DB.mart_mkt_bx_deals_app as d ON
     d.UTM_MEDIUM_PURE=l.UTM_MEDIUM_PURE AND d.UTM_SOURCE_PURE=l.UTM_SOURCE_PURE AND d.UTM_CAMPAIGN_PURE=l.UTM_CAMPAIGN_PURE AND d.DT=l.DT
 LEFT JOIN DB.mart_mkt_ym_visits as v ON
     v.UTM_MEDIUM_PURE=l.UTM_MEDIUM_PURE AND v.UTM_SOURCE_PURE=l.UTM_SOURCE_PURE AND v.UTM_CAMPAIGN_PURE=l.UTM_CAMPAIGN_PURE AND v.DT=l.DT
@@ -111,7 +111,7 @@ SELECT
     IFNULL(c.UTM_SOURCE_PURE,d.UTM_SOURCE_PURE) AS `Source`,
     d.UTM_CAMPAIGN_PURE AS `Campaign`
 FROM
-    DB.mart_mkt_bx_deals as d
+    DB.mart_mkt_bx_deals_app as d
 LEFT JOIN DB.mart_mkt_bx_leads as l ON
     d.UTM_MEDIUM_PURE=l.UTM_MEDIUM_PURE AND d.UTM_SOURCE_PURE=l.UTM_SOURCE_PURE AND d.UTM_CAMPAIGN_PURE=l.UTM_CAMPAIGN_PURE AND d.DT=l.DT
 LEFT JOIN DB.mart_mkt_ym_visits as v ON
@@ -138,7 +138,7 @@ FROM
     DB.mart_mkt_ym_visits as v
 LEFT JOIN DB.mart_mkt_bx_leads as l ON
     v.UTM_MEDIUM_PURE=l.UTM_MEDIUM_PURE AND v.UTM_SOURCE_PURE=l.UTM_SOURCE_PURE AND v.UTM_CAMPAIGN_PURE=l.UTM_CAMPAIGN_PURE AND v.DT=l.DT
-LEFT JOIN DB.mart_mkt_bx_deals as d ON
+LEFT JOIN DB.mart_mkt_bx_deals_app as d ON
     v.UTM_MEDIUM_PURE=d.UTM_MEDIUM_PURE AND v.UTM_SOURCE_PURE=d.UTM_SOURCE_PURE AND v.UTM_CAMPAIGN_PURE=d.UTM_CAMPAIGN_PURE AND v.DT=d.DT
 LEFT JOIN DB.mart_mkt_yd_costs as c ON
     c.UTM_MEDIUM_PURE=v.UTM_MEDIUM_PURE AND c.UTM_CAMPAIGN_ID=v.UTM_CAMPAIGN_ID AND c.DT=v.DT AND c.COSTS>0
@@ -162,7 +162,7 @@ FROM
     DB.mart_mkt_yd_costs as c
 LEFT JOIN DB.mart_mkt_bx_leads as l ON
     c.UTM_MEDIUM_PURE=l.UTM_MEDIUM_PURE AND c.UTM_CAMPAIGN_ID=l.UTM_CAMPAIGN_ID AND c.DT=l.DT
-LEFT JOIN DB.mart_mkt_bx_deals as d ON
+LEFT JOIN DB.mart_mkt_bx_deals_app as d ON
     c.UTM_MEDIUM_PURE=d.UTM_MEDIUM_PURE AND c.UTM_CAMPAIGN_ID=d.UTM_CAMPAIGN_ID AND c.DT=d.DT
 LEFT JOIN DB.mart_mkt_ym_visits as v ON
     c.UTM_MEDIUM_PURE=v.UTM_MEDIUM_PURE AND c.UTM_CAMPAIGN_ID=v.UTM_CAMPAIGN_ID AND c.DT=v.DT AND c.COSTS>0
