@@ -1,4 +1,4 @@
-CREATE VIEW DB.mart_mkt_attribution_base AS 
+CREATE VIEW DB.mart_mkt_attribution_base_app AS 
 
 SELECT
     `Date` as `_Дата`,
