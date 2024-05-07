@@ -16,3 +16,7 @@ alter table raw_bx_orders add index dateinsert (`dateInsert`);
 alter table raw_bx_orders add index dateupdate (`dateUpdate`);
 alter table raw_bx_orders add index id (`id`);
 alter table raw_bx_orders add index statusid (`statusId`);
+-- raw_bx_orders_goods
+alter table raw_bx_orders_goods add index orderid (`orderId`);
+alter table raw_bx_orders_goods add index price (`price`);
+alter table raw_bx_orders_goods add index quantity (`quantity`);

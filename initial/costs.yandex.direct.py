@@ -22,6 +22,11 @@ from sqlalchemy import create_engine, text
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 # Скрытие предупреждения Unverified HTTPS request
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+# Скрытие предупреждение про fillna
+try:
+    pd.set_option("future.no_silent_downcasting", True)
+except Exception as E:
+    pass
 
 # импорт настроек
 import configparser
