@@ -27,7 +27,9 @@ import os
 import io
 import requests
 from tapi_yandex_metrika import YandexMetrikaLogsapi
-import datetime as dt
+from datetime import datetime as dt
+from datetime import date, timedelta
+import time
 
 def handler(event, context):
     auth = {
@@ -175,5 +177,5 @@ def handler(event, context):
 
     return {
         'statusCode': 200,
-        'body': "LoadedCosts: " + str(visits_total) + "/" + str(goals_total)
+        'body': "LoadedVisits: " + str(visits_total) + "/" + str(goals_total)
     }

@@ -28,9 +28,7 @@ installs AS (SELECT
     installation_id,
     publisher_name,
     tracker_name
-FROM DB.raw_am_installs
-WHERE tracker_name<>'unknown'
-    AND tracker_name<>''),
+FROM DB.raw_am_installs),
 
 deals_apps AS (SELECT
     ID,
