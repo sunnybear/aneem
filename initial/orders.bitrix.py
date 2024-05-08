@@ -79,8 +79,8 @@ while orders_current < orders_total:
             data[col] = data[col].fillna('').replace('None', '').replace('', 0).astype(np.int64)
 # приведение вещественных чисел
         elif col in ["discountValue", "price", "taxValue"]:
-# приведение дат
             data[col] = data[col].fillna('').replace('', 0.0).astype(float)
+# приведение дат
         elif col in ["dateCanceled", "dateInsert", "dateLock", "dateMarked", "dateStatus", "dateUpdate"]:
             data[col] = pd.to_datetime(data[col].fillna('').replace('None', '').replace('', '2000-01-01T00:00:00+03:00').apply(lambda x: dt.strptime(x, '%Y-%m-%dT%H:%M:%S%z').strftime("%Y-%m-%d %H:%M:%S").replace('202-','2020-')))
 # приведение строк
