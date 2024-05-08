@@ -7,7 +7,7 @@
 # * DB.PASSWORD - пароль к базе данных
 # * DB.DB - имя базы данных
 # * BITRIX.WEBHOOK - URL вебхука (REST API) Битрикс
-# * BITRIX.TABLE_ORDERS - имя результирующей таблицы для sale.order
+# * BITRIX.TABLE_ORDERS_GOODS - имя результирующей таблицы для sale.order.get
 
 # импорт общих библиотек
 from datetime import datetime as dt
@@ -52,9 +52,9 @@ if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"
 # Создание запроса на выгрузку данных (вчера)
 yesterday = (date.today() - timedelta(days=1)).strftime('%Y-%m-%d')
 
-# выбираем все заказы, которые обновились за вчера
+# выбираем id всех заказов, которые обновились
 orders_next = 50
-orders = {}
+ids = {}
 last_order_id = 0
 while orders_next>= 50:
     if last_order_id == 0:
@@ -63,53 +63,68 @@ while orders_next>= 50:
         orders_req = requests.get(config["BITRIX"]["WEBHOOK"] + 'sale.order.list?filter[>id]=' + str(last_order_id)).json()
     for order in orders_req["result"]["orders"]:
         last_order_id = int(order['id'])
-        orders[last_order_id] = order
+        ids.append(last_order_id)
     if int(orders_req["total"]) > 50:
         orders_next = int(orders_req["next"])
     else:
         orders_next = 0
+# получаем список товаров для заказов, которые обновились
+ids_i = 0
+orders_goods = {}
+while ids_i < len(ids):
+    cmd = ['cmd[0]=sale.order.get%3Fid%3D' + str(ids[ids_i])]
+    for i in range(1, min(50, len(ids)-ids_i)):
+        ids_i += 1
+        cmd.append('cmd[' + str(i) + ']=sale.order.get%3Fid%3D' + str(ids[ids_i]))
+    orders_req = requests.get(config["BITRIX"]["WEBHOOK"] + 'batch.json?' + '&'.join(cmd)).json()
+# разбор заказов
+    for order in orders_req["result"]["result"]:
+        if "order" in order:
+            order = order["order"]
+        if "basketItems" in order:
+            for item in order["basketItems"]:
+                orders_goods.append([order["id"], item["name"], item["price"], item["quantity"]])
+        orders_current += 1
 # формируем датафрейм
-data = pd.DataFrame.from_dict(orders, orient='index')
-# базовый процесс очистки: приведение к нужным типам
-for col in data.columns:
-# приведение целых чисел
-    if col in ["accountNumber", "companyId", "empCanceledId", "empMarkedId", "empStatusId", "id", "id1c", "userId", "affiliateId", "recurringId"]:
-        data[col] = data[col].fillna('').replace('None', '').replace('', 0).astype(np.int64)
-# приведение вещественных чисел
-    elif col in ["discountValue", "price", "taxValue"]:
-# приведение дат
-        data[col] = data[col].fillna('').replace('', 0.0).astype(float)
-    elif col in ["dateCanceled", "dateInsert", "dateLock", "dateMarked", "dateStatus", "dateUpdate"]:
-        data[col] = pd.to_datetime(data[col].fillna('').replace('None', '').replace('', '2000-01-01T00:00:00+03:00').apply(lambda x: dt.strptime(x, '%Y-%m-%dT%H:%M:%S%z').strftime("%Y-%m-%d %H:%M:%S").replace('202-','2020-')))
-# приведение строк
-    else:
-        data[col] = data[col].fillna('')
+data = pd.DataFrame(orders_goods)
 if len(data):
-    data["ts"] = pd.DatetimeIndex(data["dateInsert"]).asi8
+    data.columns=["orderId", "name", "price", "quantity"]
+# базовый процесс очистки: приведение к нужным типам
+    for col in data.columns:
+# приведение целых чисел
+        if col in ["orderId"]:
+            data[col] = data[col].fillna('').replace('None', '').replace('', 0).astype(np.int64)
+# приведение вещественных чисел
+        elif col in ["price", "quantity"]:
+# приведение дат
+            data[col] = data[col].fillna('').replace('', 0.0).astype(float)
+# приведение строк
+        else:
+            data[col] = data[col].fillna('')
     if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
 # удаление данных за вчера
         try:
-            connection.execute(text("DELETE FROM " + config["BITRIX"]["TABLE_ORDERS"] + " WHERE `dateUpdate`>='" + yesterday + "'"))
+            connection.execute(text("DELETE FROM " + config["BITRIX"]["TABLE_ORDERS_GOODS"] + " WHERE `orderId` IN (" + ','.join(ids) + ")"))
             connection.commit()
         except Exception as E:
             print (E)
             connection.rollback()
 # добавление данных за вчера
         try:
-            data.to_sql(name=config["BITRIX"]["TABLE_ORDERS"], con=engine, if_exists='append', chunksize=100)
+            data.to_sql(name=config["BITRIX"]["TABLE_ORDERS_GOODS"], con=engine, if_exists='append', chunksize=100)
         except Exception as E:
             print (E)
             connection.rollback()
     elif config["DB"]["TYPE"] == "CLICKHOUSE":
 # удаление данных за вчера
         requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/',
-            params={"database": config["DB"]["DB"], "query": "DELETE FROM " + config["DB"]["DB"] + "." + config["BITRIX"]["TABLE_ORDERS"] + " WHERE `dateUpdate`>='" + yesterday + "'"}, headers={'Content-Type':'application/octet-stream'}, verify=False)
+            params={"database": config["DB"]["DB"], "query": "DELETE FROM " + config["DB"]["DB"] + "." + config["BITRIX"]["TABLE_ORDERS_GOODS"] + " WHERE `orderId` IN (" + ','.join(ids) + ")"}, headers={'Content-Type':'application/octet-stream'}, verify=False)
 # добавление данных за вчера
         csv_file = data.to_csv().encode('utf-8')
         requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/',
-            params={"database": config["DB"]["DB"], "query": 'INSERT INTO ' + config["DB"]["DB"] + '.' + config["BITRIX"]["TABLE_ORDERS"] + ' FORMAT CSV'},
+            params={"database": config["DB"]["DB"], "query": 'INSERT INTO ' + config["DB"]["DB"] + '.' + config["BITRIX"]["TABLE_ORDERS_GOODS"] + ' FORMAT CSV'},
             headers={'Content-Type':'application/octet-stream'}, data=csv_file, stream=True, verify=False)
-    print (str(last_order_id) + ": " + str(len(orders)))
+    print (str(len(ids)) + ": " + str(len(data)))
 
 # закрытие подключения к БД
 if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:

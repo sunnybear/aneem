@@ -71,27 +71,28 @@ while orders_current < orders_total:
     orders_req = requests.get(config["BITRIX"]["WEBHOOK"] + 'batch.json?' + '&'.join(cmd)).json()
 # разбор заказов
     for order in orders_req["result"]["result"]:
-        order = order["order"]
+        if "order" in order:
+            order = order["order"]
         if "basketItems" in order:
             for item in order["basketItems"]:
                 orders_goods.append([order["id"], item["name"], item["price"], item["quantity"]])
         orders_current += 1
 # формируем датафрейм
     data = pd.DataFrame(orders_goods)
-    data.columns=["orderId", "name", "price", "quantity"]
-# базовый процесс очистки: приведение к нужным типам
-    for col in data.columns:
-# приведение целых чисел
-        if col in ["orderId"]:
-            data[col] = data[col].fillna('').replace('None', '').replace('', 0).astype(np.int64)
-# приведение вещественных чисел
-        elif col in ["price", "quantity"]:
-# приведение дат
-            data[col] = data[col].fillna('').replace('', 0.0).astype(float)
-# приведение строк
-        else:
-            data[col] = data[col].fillna('')
     if len(data):
+        data.columns=["orderId", "name", "price", "quantity"]
+# базовый процесс очистки: приведение к нужным типам
+        for col in data.columns:
+# приведение целых чисел
+            if col in ["orderId"]:
+                data[col] = data[col].fillna('').replace('None', '').replace('', 0).astype(np.int64)
+# приведение вещественных чисел
+            elif col in ["price", "quantity"]:
+# приведение дат
+                data[col] = data[col].fillna('').replace('', 0.0).astype(float)
+# приведение строк
+            else:
+                data[col] = data[col].fillna('')
 # создаем таблицу в первый раз
         if table_not_created:
             if config["DB"]["TYPE"] == "CLICKHOUSE":
