@@ -63,7 +63,7 @@ for f in os.listdir(config["1C"]["ROOT"]):
     if os.path.isfile(f):
         sales_tmp = pd.read_csv(f, encoding=config["1C"]["ENCODING"], delimiter=config["1C"]["DELIMITER"])
         sales_tmp.set_index(config["1C"]["TABLE_SALES_INDEX"], inplace=True)
-        if len(sales):
+        if len(data):
             data = pd.concat([data, sales_tmp])
         else:
             data = pd.DataFrame(sales_tmp)
@@ -75,10 +75,10 @@ if len(data):
             data[col] = data[col].fillna('').replace('None', '').replace('', 0).astype(np.int64)
 # приведение вещественных чисел
         elif col in ["Цена", "Сумма"]:
-            data[col] = data[col].fillna('').replace('', 0.0).astype(float)
+            data[col] = data[col].fillna('').replace('', 0.0).apply(lambda x: ''.join(c if c.isdigit() or c=='.' or c==',' else '' for c in x)).replace(',','.').astype(float)
         elif col in ["Дата_Заказа", "Дата_Реализации"]:
 # приведение дат
-            data[col] = pd.to_datetime(data[col].fillna('').replace('None', '').replace('', '2000-01-01T00:00:00+03:00').apply(lambda x: dt.strptime(x, '%Y-%m-%dT%H:%M:%S%z').strftime("%Y-%m-%d %H:%M:%S").replace('202-','2020-')))
+            data[col] = pd.to_datetime(data[col].fillna('').replace('None', '').replace('', '01.01.2000').apply(lambda x: dt.strptime(x, '%d.%m.%Y').strftime("%Y-%m-%d %H:%M:%S") if len(x.split("."))>2 else '2000-01-01 00:00:00'))
 # приведение строк
         else:
             data[col] = data[col].fillna('')
@@ -105,6 +105,6 @@ print (str(len(data)))
 # закрытие подключения к БД
 if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
 # создаем индексы
-    connection.execute(text("ALTER TABLE " + config["1C"]["TABKE_SALES"] + " ADD INDEX idx (`" + config["1C"]["TABLE_SALES_INDEX"] + "`)"))
+    connection.execute(text("ALTER TABLE " + config["1C"]["TABLE_SALES"] + " ADD INDEX idx (`" + config["1C"]["TABLE_SALES_INDEX"] + "`)"))
     connection.commit()
     connection.close()
