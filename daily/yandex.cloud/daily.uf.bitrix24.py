@@ -17,6 +17,7 @@
 # numpy
 # requests
 # datetime
+# sqlalchemy
 
 # timeout: 300
 # memory: 512
@@ -28,6 +29,7 @@ import io
 import requests
 from datetime import datetime as dt
 from datetime import date, timedelta
+from sqlalchemy import create_engine, text
 
 def handler(event, context):
     auth = {

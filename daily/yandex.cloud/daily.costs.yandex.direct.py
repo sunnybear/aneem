@@ -16,6 +16,7 @@
 # requests
 # datetime
 # tapi_yandex_direct
+# sqlalchemy
 
 # timeout: 300
 # memory: 512
@@ -27,6 +28,7 @@ import io
 import requests
 from tapi_yandex_direct import YandexDirect
 import datetime as dt
+from sqlalchemy import create_engine, text
 
 def handler(event, context):
     auth = {

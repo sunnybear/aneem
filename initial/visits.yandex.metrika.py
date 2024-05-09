@@ -7,6 +7,8 @@
 # * DB.DB - имя базы данных
 # * YANDEX_METRIKA.ACCESS_TOKEN - Access Token для приложения, имеющего доступ к статистике нужного сайта
 # * YANDEX_METRIKA.COUNTER_ID - ID сайта, статистику которого нужно выгрузить
+# * YANDEX_METRIKA.DELTA - продолжительность периода (в днях) каждой отдельной выгрузки (запроса к API)
+# * YANDEX_METRIKA.PERIODS - количество периодов (всех выгрузок), будут выгружены данные за DELTA*PERIODS дней
 # * YANDEX_METRIKA.TABLE_VISITS - имя результирующей таблицы для визитов (сессий)
 # * YANDEX_METRIKA.TABLE_VISITS_GOALS - имя результирующей таблицы для списка целей
 

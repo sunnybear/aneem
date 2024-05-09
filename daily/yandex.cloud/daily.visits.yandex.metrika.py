@@ -17,6 +17,7 @@
 # requests
 # datetime
 # tapi_yandex_metrika
+# sqlalchemy
 
 # timeout: 300
 # memory: 512
@@ -30,6 +31,7 @@ from tapi_yandex_metrika import YandexMetrikaLogsapi
 from datetime import datetime as dt
 from datetime import date, timedelta
 import time
+from sqlalchemy import create_engine, text
 
 def handler(event, context):
     auth = {
