@@ -40,7 +40,7 @@ def handler(event, context):
     auth_post['Content-Type'] = 'application/octet-stream'
     cacert = '/etc/ssl/certs/ca-certificates.crt'
     yesterday = (date.today() - timedelta(days=1)).strftime('%Y-%m-%d')
-    yesterday_1 = (date.today() - timedelta(days=3)).strftime('%Y-%m-%d')
+    yesterday_1 = (date.today() - timedelta(days=30)).strftime('%Y-%m-%d')
 
 # подключение к БД
     if os.getenv('DB_TYPE') == "MYSQL":
@@ -63,7 +63,7 @@ def handler(event, context):
             connection.execute(text('SET character_set_connection=utf8mb4'))
 
     api = YandexMetrikaStats(access_token=os.getenv('YANDEX_METRIKA_ACCESS_TOKEN'))
-# Создание запроса на выгрузку данных (вчера + позавчера)
+# Создание запроса на выгрузку данных (30 дней назад)
     params = {
         "ids": os.getenv('YANDEX_METRIKA_COUNTER_ID'),
         "metrics": "ym:ev:expensesRUB,ym:ev:visits,ym:ev:expenseClicks",

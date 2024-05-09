@@ -53,15 +53,15 @@ if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"
         connection.execute(text('SET character_set_connection=utf8mb4'))
 
 api = YandexMetrikaStats(access_token=os.getenv('YANDEX_METRIKA_ACCESS_TOKEN'))
-# Создание запроса на выгрузку данных (вчера + позавчера)
+# Создание запроса на выгрузку данных (30 дней назад)
 yesterday = (date.today() - timedelta(days=1)).strftime('%Y-%m-%d')
-yesterday_1 = (date.today() - timedelta(days=3)).strftime('%Y-%m-%d')
+yesterday_1 = (date.today() - timedelta(days=30)).strftime('%Y-%m-%d')
 params = {
     "ids": os.getenv('YANDEX_METRIKA_COUNTER_ID'),
     "metrics": "ym:ev:expensesRUB,ym:ev:visits,ym:ev:expenseClicks",
     "dimensions": "ym:ev:date,ym:ev:lastExpenseSource,ym:ev:lastExpenseMedium,ym:ev:lastExpenseCampaign",
-    "date1": yesterday,
-    "date2": yesterday_1,
+    "date1": yesterday_1,
+    "date2": yesterday,
     "limit": 100000
 }
 # отправляем запрос API
