@@ -83,14 +83,14 @@ if len(data):
     if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
 # обработка ошибок при добавлении данных
         try:
-            connection.execute(text("DELETE FROM " + config["1C"]["TABLE_SALES"] + " WHERE `" + config["1C"]["TABLE_SALES_INDEX"] + "`IN ('" + "','".join(list(data.index)) + "')"))
+            connection.execute(text("DELETE FROM " + config["1C"]["TABLE_SALES"] + " WHERE `" + config["1C"]["TABLE_SALES_INDEX"] + "`IN ('" + "','".join(list(data[config["1C"]["TABLE_SALES_INDEX"]].values)) + "')"))
             connection.commit()
         except Exception as E:
             print (E)
             connection.rollback()
     elif config["DB"]["TYPE"] == "CLICKHOUSE":
         requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/',
-            params={"database": config["DB"]["DB"], "query": "DELETE FROM " + config["DB"]["DB"] + "." + config["1C"]["TABLE_SALES"] + " WHERE `" + config["1C"]["TABLE_SALES_INDEX"] + "` IN ('" + "','".join(list(data.index)) + "')"}, headers={'Content-Type':'application/octet-stream'}, verify=False)
+            params={"database": config["DB"]["DB"], "query": "DELETE FROM " + config["DB"]["DB"] + "." + config["1C"]["TABLE_SALES"] + " WHERE `" + config["1C"]["TABLE_SALES_INDEX"] + "` IN ('" + "','".join(list(data[config["1C"]["TABLE_SALES_INDEX"]].values)) + "')"}, headers={'Content-Type':'application/octet-stream'}, verify=False)
 # загрузка новых данных
     if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
 # обработка ошибок при добавлении данных
