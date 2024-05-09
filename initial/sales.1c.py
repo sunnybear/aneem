@@ -64,7 +64,7 @@ for f in os.listdir(config["1C"]["ROOT"]):
         sales_tmp = pd.read_csv(f, encoding=config["1C"]["ENCODING"], delimiter=config["1C"]["DELIMITER"])
         if len(data):
 # исключаем из старых данных новые (обновленные) записи по заданному индексу
-            data = pd.concat([data.loc[not(data[config["1C"]["TABLE_SALES_INDEX"]].isin(sales_tmp[config["1C"]["TABLE_SALES_INDEX"]].values))], sales_tmp])
+            data = pd.concat([data[~data[config["1C"]["TABLE_SALES_INDEX"]].isin(sales_tmp[config["1C"]["TABLE_SALES_INDEX"]].values)], sales_tmp])
         else:
             data = pd.DataFrame(sales_tmp)
 if len(data):

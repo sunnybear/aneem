@@ -75,10 +75,10 @@ while orders_next>= 50:
 ids_i = 0
 orders_goods = []
 while ids_i < len(ids):
-    cmd = ['cmd[0]=sale.order.get%3Fid%3D' + str(ids[ids_i])]
-    for i in range(1, min(50, len(ids)-ids_i)):
-        ids_i += 1
+    cmd = []
+    for i in range(min(50, len(ids)-ids_i)):
         cmd.append('cmd[' + str(i) + ']=sale.order.get%3Fid%3D' + str(ids[ids_i]))
+        ids_i += 1
     orders_req = requests.get(config["BITRIX"]["WEBHOOK"] + 'batch.json?' + '&'.join(cmd)).json()
 # разбор заказов
     for order in orders_req["result"]["result"]:
