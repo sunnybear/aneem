@@ -57,7 +57,7 @@ yesterday = (date.today() - timedelta(days=1)).strftime('%Y-%m-%d')
 
 # выбираем id всех заказов, которые обновились
 orders_next = 50
-ids = {}
+ids = []
 last_order_id = 0
 while orders_next>= 50:
     if last_order_id == 0:
@@ -73,7 +73,7 @@ while orders_next>= 50:
         orders_next = 0
 # получаем список товаров для заказов, которые обновились
 ids_i = 0
-orders_goods = {}
+orders_goods = []
 while ids_i < len(ids):
     cmd = ['cmd[0]=sale.order.get%3Fid%3D' + str(ids[ids_i])]
     for i in range(1, min(50, len(ids)-ids_i)):
@@ -87,7 +87,6 @@ while ids_i < len(ids):
         if "basketItems" in order:
             for item in order["basketItems"]:
                 orders_goods.append([order["id"], item["name"], item["price"], item["quantity"]])
-        orders_current += 1
 # формируем датафрейм
 data = pd.DataFrame(orders_goods)
 if len(data):
