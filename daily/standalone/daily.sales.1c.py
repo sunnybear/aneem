@@ -31,7 +31,7 @@ except Exception as E:
 # импорт настроек
 import configparser
 config = configparser.ConfigParser()
-config.read("../settings.ini")
+config.read("../../settings.ini")
 
 # подключение к БД
 if config["DB"]["TYPE"] == "MYSQL":
@@ -57,11 +57,11 @@ if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"
 data = pd.DataFrame()
 for f in os.listdir(config["1C"]["ROOT"]):
     f = os.path.join(config["1C"]["ROOT"], f)
-    if os.path.isfile(f) and dt.fromtimestamp(os.path.getmtime(f)) > date.today() - timedelta(days=1):
+    if os.path.isfile(f) and dt.fromtimestamp(os.path.getmtime(f)) > dt.now() - timedelta(days=1):
         sales_tmp = pd.read_csv(f, encoding=config["1C"]["ENCODING"], delimiter=config["1C"]["DELIMITER"])
-        sales_tmp.set_index(config["1C"]["TABLE_SALES_INDEX"], inplace=True)
         if len(data):
-            data = pd.concat([data, sales_tmp])
+# исключаем из старых данных новые (обновленные) записи по заданному индексу
+            data = pd.concat([data.loc[not(data[config["1C"]["TABLE_SALES_INDEX"]].isin(sales_tmp[config["1C"]["TABLE_SALES_INDEX"]].values))], sales_tmp])
         else:
             data = pd.DataFrame(sales_tmp)
 if len(data):
@@ -95,12 +95,12 @@ if len(data):
     if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
 # обработка ошибок при добавлении данных
         try:
-            data.reset_index().to_sql(name=config["1C"]["TABLE_SALES"], con=engine, if_exists='append', chunksize=100)
+            data.to_sql(name=config["1C"]["TABLE_SALES"], con=engine, if_exists='append', chunksize=100)
         except Exception as E:
             print (E)
             connection.rollback()
     elif config["DB"]["TYPE"] == "CLICKHOUSE":
-        csv_file = data.reset_index().to_csv().encode('utf-8')
+        csv_file = data.to_csv().encode('utf-8')
         requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/',
             params={"database": config["DB"]["DB"], "query": 'INSERT INTO ' + config["DB"]["DB"] + '.' + config["1C"]["TABLE_SALES"] + ' FORMAT CSV'},
             headers={'Content-Type':'application/octet-stream'}, data=csv_file, stream=True, verify=False)

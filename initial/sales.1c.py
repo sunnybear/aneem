@@ -62,9 +62,9 @@ for f in os.listdir(config["1C"]["ROOT"]):
     f = os.path.join(config["1C"]["ROOT"], f)
     if os.path.isfile(f):
         sales_tmp = pd.read_csv(f, encoding=config["1C"]["ENCODING"], delimiter=config["1C"]["DELIMITER"])
-        sales_tmp.set_index(config["1C"]["TABLE_SALES_INDEX"], inplace=True)
         if len(data):
-            data = pd.concat([data, sales_tmp])
+# исключаем из старых данных новые (обновленные) записи по заданному индексу
+            data = pd.concat([data.loc[not(data[config["1C"]["TABLE_SALES_INDEX"]].isin(sales_tmp[config["1C"]["TABLE_SALES_INDEX"]].values))], sales_tmp])
         else:
             data = pd.DataFrame(sales_tmp)
 if len(data):
@@ -86,17 +86,17 @@ if len(data):
     if table_not_created:
         if config["DB"]["TYPE"] == "CLICKHOUSE":
             requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/', verify=False,
-                params={"database": config["DB"]["DB"], "query": (pd.io.sql.get_schema(data.reset_index(), config["1C"]["TABLE_SALES"]) + "  ENGINE=MergeTree ORDER BY (`" + config["1C"]["TABLE_SALES_INDEX"] + "`)").replace("CREATE TABLE ", "CREATE TABLE IF NOT EXISTS " + config["DB"]["DB"] + ".").replace("INTEGER", "Int64")})
+                params={"database": config["DB"]["DB"], "query": (pd.io.sql.get_schema(data, config["1C"]["TABLE_SALES"]) + "  ENGINE=MergeTree ORDER BY (`" + config["1C"]["TABLE_SALES_INDEX"] + "`)").replace("CREATE TABLE ", "CREATE TABLE IF NOT EXISTS " + config["DB"]["DB"] + ".").replace("INTEGER", "Int64")})
         table_not_created = False
     if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
 # обработка ошибок при добавлении данных
         try:
-            data.reset_index().to_sql(name=config["1C"]["TABLE_SALES"], con=engine, if_exists='append', chunksize=100)
+            data.to_sql(name=config["1C"]["TABLE_SALES"], con=engine, if_exists='append', chunksize=100)
         except Exception as E:
             print (E)
             connection.rollback()
     elif config["DB"]["TYPE"] == "CLICKHOUSE":
-        csv_file = data.reset_index().to_csv().encode('utf-8')
+        csv_file = data.to_csv().encode('utf-8')
         requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/',
             params={"database": config["DB"]["DB"], "query": 'INSERT INTO ' + config["DB"]["DB"] + '.' + config["1C"]["TABLE_SALES"] + ' FORMAT CSV'},
             headers={'Content-Type':'application/octet-stream'}, data=csv_file, stream=True, verify=False)
@@ -106,5 +106,9 @@ print (str(len(data)))
 if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
 # создаем индексы
     connection.execute(text("ALTER TABLE " + config["1C"]["TABLE_SALES"] + " ADD INDEX idx (`" + config["1C"]["TABLE_SALES_INDEX"] + "`)"))
+    if "Дата_Заказа" in data.columns:
+        connection.execute(text("ALTER TABLE " + config["1C"]["TABLE_SALES"] + " ADD INDEX idx_date1 (`Дата_Заказа`)"))
+    if "Дата_Реализации" in data.columns:
+        connection.execute(text("ALTER TABLE " + config["1C"]["TABLE_SALES"] + " ADD INDEX idx_date2 (`Дата_Реализации`)"))
     connection.commit()
     connection.close()
