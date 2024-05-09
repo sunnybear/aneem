@@ -84,11 +84,11 @@ for col in data.columns:
         data[col] = data[col].fillna('')
 if len(data):
 # добавляем метку времени
-    data["ts"] = pd.DatetimeIndex(data["ym:s:dateTime"]).asi8
+    data["ts"] = pd.DatetimeIndex(data["ym:ev:date"]).asi8
     if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
 # обновление данных о расходах
         try:
-            connection.execute(text("DELETE FROM " + config["YANDEX_METRIKA"]["TABLE_COSTS"] + " WHERE `ym:s:date`>='" + yesterday_1 + "'"))
+            connection.execute(text("DELETE FROM " + config["YANDEX_METRIKA"]["TABLE_COSTS"] + " WHERE `ym:ev:date`>='" + yesterday_1 + "'"))
             connection.commit()
         except Exception as E:
             print (E)
@@ -101,7 +101,7 @@ if len(data):
     elif config["DB"]["TYPE"] == "CLICKHOUSE":
 # удаляем данные за вчера
         requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/',
-            params={"database": config["DB"]["DB"], "query": "DELETE FROM " + config["DB"]["DB"] + "." + config["YANDEX_METRIKA"]["TABLE_COSTS"] + " WHERE `ym:s:date`>='" + yesterday_1 + "'"}, headers={'Content-Type':'application/octet-stream'}, verify=False)
+            params={"database": config["DB"]["DB"], "query": "DELETE FROM " + config["DB"]["DB"] + "." + config["YANDEX_METRIKA"]["TABLE_COSTS"] + " WHERE `ym:ev:date`>='" + yesterday_1 + "'"}, headers={'Content-Type':'application/octet-stream'}, verify=False)
 # добавляем новые данные
         csv_file = data.to_csv(index=False).encode('utf-8')
         requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/',

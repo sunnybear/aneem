@@ -92,11 +92,11 @@ def handler(event, context):
             data[col] = data[col].fillna('')
     if len(data):
 # добавляем метку времени
-        data["ts"] = pd.DatetimeIndex(data["ym:ум:date"]).asi8
+        data["ts"] = pd.DatetimeIndex(data["ym:ev:date"]).asi8
         if os.getenv('DB_TYPE') in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
 # обновление данных о визитах
             try:
-                connection.execute(text("DELETE FROM " + os.getenv('YANDEX_METRIKA_TABLE_COSTS') + " WHERE `ym:s:date`>='" + yesterday_1 + "'"))
+                connection.execute(text("DELETE FROM " + os.getenv('YANDEX_METRIKA_TABLE_COSTS') + " WHERE `ym:ev:date`>='" + yesterday_1 + "'"))
                 connection.commit()
             except Exception as E:
                 print (E)
@@ -109,7 +109,7 @@ def handler(event, context):
         elif os.getenv('DB_TYPE') == "CLICKHOUSE":
 # удаляем данные за вчера
             requests.post('https://' + os.getenv('DB_HOST') + ':8443', headers=auth_post, verify=cacert,
-                params={"database": os.getenv('DB_DB'), "query": "DELETE FROM " + os.getenv('DB_PREFIX') + "." + os.getenv('YANDEX_METRIKA_TABLE_COSTS') + " WHERE `ym:s:date`>='" + yesterday_1 + "'"})
+                params={"database": os.getenv('DB_DB'), "query": "DELETE FROM " + os.getenv('DB_PREFIX') + "." + os.getenv('YANDEX_METRIKA_TABLE_COSTS') + " WHERE `ym:ev:date`>='" + yesterday_1 + "'"})
 # добавляем новые данные
             csv_file = data.to_csv(index=False).encode('utf-8')
             requests.post('https://' + os.getenv('DB_HOST') + ':8443', headers=auth_post, verify=cacert,
