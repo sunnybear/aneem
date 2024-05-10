@@ -17,7 +17,6 @@
 # numpy
 # requests
 # datetime
-# sqlalchemy
 
 # timeout: 300
 # memory: 512
@@ -29,7 +28,7 @@ import io
 import requests
 from datetime import datetime as dt
 from datetime import date, timedelta
-from sqlalchemy import create_engine, text
+import time
 
 def handler(event, context):
     auth = {
@@ -73,9 +72,9 @@ def handler(event, context):
         if os.getenv('DB_TYPE') in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
             ids = list(pd.read_sql("SELECT ID FROM " + parent_table + " WHERE DATE_MODIFY>'" + yesterday + "'", connection)["ID"].values)
         elif os.getenv('DB_TYPE') == "CLICKHOUSE":
-            ids_req = requests.get("https://" + os.getenv('DB_HOST') + ":8443/?database=" + os.getenv('DB_DB') + "&query=SELECT ID FROM " + os.getenv('DB_DB') + "." + parent_table + " WHERE DATE_MODIFY>'" + yesterday + "'",
+            ids_req = requests.get("https://" + os.getenv('DB_HOST') + ":8443/?database=" + os.getenv('DB_DB') + "&query=SELECT ID FROM " + os.getenv('DB_PREFIX') + "." + parent_table + " WHERE DATE_MODIFY>'" + yesterday + "'",
                 headers=auth, verify=cacert)
-            ids = id_req.text.split("\n")
+            ids = ids_req.text.split("\n")
 # количество ID
         items_last_id = len(ids)
 # счетчик количества объектов
@@ -167,14 +166,14 @@ def handler(event, context):
                     connection.rollback()
             elif os.getenv('DB_TYPE') == "CLICKHOUSE":
                 csv_file = data.to_csv(index=False).encode('utf-8')
-                requests.post('https://' + os.getenv('DB_USER') + ':' + os.getenv('DB_PASSWORD') + '@' + os.getenv('DB_HOST') + ':8443/',
-                    params={"database": os.getenv('DB_DB'), "query": 'INSERT INTO ' + os.getenv('DB_DB') + '.' + current_table + ' FORMAT CSV'},
-                    headers=auth_post, data=csv_file, stream=True, verify=False)
+                requests.post('https://' + os.getenv('DB_HOST') + ':8443', headers=auth_post, verify=cacert,
+                    params={"database": os.getenv('DB_DB'), "query": 'INSERT INTO ' + os.getenv('DB_PREFIX') + '.' + current_table + ' FORMAT CSV',
+                    data=csv_file, stream=True)
         ret.append(dataset + "=" + str(len(data)))
     if os.getenv('DB_TYPE') in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
         connection.close()
 
     return {
         'statusCode': 200,
-        'body': "Modified: " + ', '.join(ret)
+        'body': "Modified: " + ', '.join(ret) + " SELECT ID FROM " + os.getenv('DB_PREFIX') + "." + parent_table + " WHERE DATE_MODIFY>'" + yesterday + "'"
     }
