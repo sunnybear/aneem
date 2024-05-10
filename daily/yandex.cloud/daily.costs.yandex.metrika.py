@@ -68,8 +68,8 @@ def handler(event, context):
         "ids": os.getenv('YANDEX_METRIKA_COUNTER_ID'),
         "metrics": "ym:ev:expensesRUB,ym:ev:visits,ym:ev:expenseClicks",
         "dimensions": "ym:ev:date,ym:ev:lastExpenseSource,ym:ev:lastExpenseMedium,ym:ev:lastExpenseCampaign",
-        "date1": yesterday,
-        "date2": yesterday_1,
+        "date1": yesterday_1,
+        "date2": yesterday,
         "limit": 100000
     }
 # отправляем запрос API

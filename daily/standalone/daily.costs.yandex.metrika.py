@@ -15,7 +15,7 @@ from datetime import date, timedelta
 import pandas as pd
 import requests
 import time
-from tapi_yandex_metrika import YandexMetrikaLogsapi
+from tapi_yandex_metrika import YandexMetrikaStats
 import numpy as np
 from sqlalchemy import create_engine, text
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
@@ -52,12 +52,12 @@ if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"
         connection.execute(text('SET CHARACTER SET utf8mb4'))
         connection.execute(text('SET character_set_connection=utf8mb4'))
 
-api = YandexMetrikaStats(access_token=os.getenv('YANDEX_METRIKA_ACCESS_TOKEN'))
+api = YandexMetrikaStats(access_token=config["YANDEX_METRIKA"]["ACCESS_TOKEN"])
 # Создание запроса на выгрузку данных (30 дней назад)
 yesterday = (date.today() - timedelta(days=1)).strftime('%Y-%m-%d')
 yesterday_1 = (date.today() - timedelta(days=30)).strftime('%Y-%m-%d')
 params = {
-    "ids": os.getenv('YANDEX_METRIKA_COUNTER_ID'),
+    "ids": config["YANDEX_METRIKA"]["COUNTER_ID"],
     "metrics": "ym:ev:expensesRUB,ym:ev:visits,ym:ev:expenseClicks",
     "dimensions": "ym:ev:date,ym:ev:lastExpenseSource,ym:ev:lastExpenseMedium,ym:ev:lastExpenseCampaign",
     "date1": yesterday_1,
