@@ -92,37 +92,37 @@ def handler(event, context):
                 for item in items_req["result"]["result"]:
                     if isinstance(item, str):
                         item = items_req["result"]["result"][item]
-                        if "PHONE" in item:
-                            item['phone1'] = item["PHONE"][0]["VALUE"]
-                            if len(item['PHONE']) > 1:
-                                item['phone2'] = item["PHONE"][1]["VALUE"]
-                            else:
-                                item['phone2'] = ''
-                            if len(item['PHONE']) > 2:
-                                item['phone3'] = item["PHONE"][2]["VALUE"]
-                            else:
-                                item['phone3'] = ''
-                            del item['PHONE']
+                    if "PHONE" in item:
+                        item['phone1'] = item["PHONE"][0]["VALUE"]
+                        if len(item['PHONE']) > 1:
+                            item['phone2'] = item["PHONE"][1]["VALUE"]
                         else:
-                            item['phone1'] = ''
-                        if "EMAIL" in item:
-                            item['email'] = item["EMAIL"][0]["VALUE"]
-                            del item['EMAIL']
+                            item['phone2'] = ''
+                        if len(item['PHONE']) > 2:
+                            item['phone3'] = item["PHONE"][2]["VALUE"]
                         else:
-                            item['email'] = ''
-                        if "IM" in item:
-                            item['im1'] = item["IM"][0]["VALUE"]
-                            if len(item['IM']) > 1:
-                                item['im2'] = item["IM"][1]["VALUE"]
-                            else:
-                                item['im2'] = ''
-                            if len(item['IM']) > 2:
-                                item['im3'] = item["IM"][2]["VALUE"]
-                            else:
-                                item['im3'] = ''
-                            del item['IM']
+                            item['phone3'] = ''
+                        del item['PHONE']
+                    else:
+                        item['phone1'] = ''
+                    if "EMAIL" in item:
+                        item['email'] = item["EMAIL"][0]["VALUE"]
+                        del item['EMAIL']
+                    else:
+                        item['email'] = ''
+                    if "IM" in item:
+                        item['im1'] = item["IM"][0]["VALUE"]
+                        if len(item['IM']) > 1:
+                            item['im2'] = item["IM"][1]["VALUE"]
                         else:
-                            item['im1'] = ''
+                            item['im2'] = ''
+                        if len(item['IM']) > 2:
+                            item['im3'] = item["IM"][2]["VALUE"]
+                        else:
+                            item['im3'] = ''
+                        del item['IM']
+                    else:
+                        item['im1'] = ''
                     items[int(item['ID'])] = item
                 time.sleep(1)
 # формируем датафрейм
@@ -167,7 +167,7 @@ def handler(event, context):
             elif os.getenv('DB_TYPE') == "CLICKHOUSE":
                 csv_file = data.to_csv(index=False).encode('utf-8')
                 requests.post('https://' + os.getenv('DB_HOST') + ':8443', headers=auth_post, verify=cacert,
-                    params={"database": os.getenv('DB_DB'), "query": 'INSERT INTO ' + os.getenv('DB_PREFIX') + '.' + current_table + ' FORMAT CSV',
+                    params={"database": os.getenv('DB_DB'), "query": 'INSERT INTO ' + os.getenv('DB_PREFIX') + '.' + current_table + ' FORMAT CSV'},
                     data=csv_file, stream=True)
         ret.append(dataset + "=" + str(len(data)))
     if os.getenv('DB_TYPE') in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
@@ -175,5 +175,5 @@ def handler(event, context):
 
     return {
         'statusCode': 200,
-        'body': "Modified: " + ', '.join(ret) + " SELECT ID FROM " + os.getenv('DB_PREFIX') + "." + parent_table + " WHERE DATE_MODIFY>'" + yesterday + "'"
+        'body': "Modified: " + ', '.join(ret)
     }
