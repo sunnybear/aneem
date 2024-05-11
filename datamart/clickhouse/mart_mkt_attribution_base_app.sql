@@ -14,6 +14,7 @@ SELECT
     WHEN `Channel`='sms' THEN 'СМС'
     WHEN `Channel`='mail' THEN 'Электронная почта'
     WHEN `Channel`='email' THEN 'Электронная почта'
+    WHEN `Channel`='3Demail' THEN 'Электронная почта'
     WHEN `Source`='e.mail.ru' THEN 'Электронная почта'
     WHEN `Source`='click.mail.ru' THEN 'Электронная почта'
     WHEN `Channel`='smm' THEN 'Социальные сети'
@@ -23,7 +24,9 @@ SELECT
     WHEN `Source`='Social network traffic' THEN 'Социальные сети'
     WHEN `Source`='m.vk.com' THEN 'Социальные сети'
     WHEN `Source`='away.vk.com' THEN 'Социальные сети'
+	WHEN `Channel`='paidsocial' THEN 'Социальные сети'
     WHEN `Channel`='messenger' THEN 'Мессенджеры'
+	WHEN `Source`='whatsapp' THEN 'Мессенджеры'
     WHEN `Source`='Messenger traffic' THEN 'Мессенджеры'
     WHEN `Channel`='Chat' THEN 'Мессенджеры'
     WHEN `Channel`='referral' THEN 'Ссылки на сайтах'
@@ -40,12 +43,15 @@ SELECT
     WHEN `Channel`='vdo.cpm' THEN 'Контекстная реклама'
     WHEN `Channel`='rtb-cpm' THEN 'Контекстная реклама'
     WHEN `Channel`='cpc' THEN 'Контекстная реклама'
+	WHEN `Channel`='cpc|DB.ru/app-2gis' THEN 'Контекстная реклама'
+	WHEN `Channel`='cpc/' THEN 'Контекстная реклама'
     WHEN `Channel`='cpc (ymclid)' THEN 'Контекстная реклама'
 	WHEN `Channel`='cpc (yclid)' THEN 'Контекстная реклама'
 	WHEN `Channel`='cpc (gclid)' THEN 'Контекстная реклама'
     WHEN `Channel`='click' THEN 'Контекстная реклама'
 	WHEN `Channel`='click_click' THEN 'Контекстная реклама'
     WHEN `Channel`='cpa' THEN 'Контекстная реклама'
+    WHEN `Channel`='ad' THEN 'Контекстная реклама'
     WHEN `Source`='Ad traffic' THEN 'Контекстная реклама'
     WHEN `Channel`='banner' THEN 'Контекстная реклама'
     WHEN `Channel`='cpc,cpc' THEN 'Контекстная реклама'
@@ -62,6 +68,8 @@ SELECT
 	WHEN `Channel`='<не заполнено>' THEN 'Прямые заходы'
     WHEN `Channel`='' THEN 'Прямые заходы'
     WHEN `Channel`='other' THEN 'Не определено'
+	WHEN `Channel`='Лид в работе' THEN 'Не определено'
+	WHEN `Channel`='avito' THEN 'Маркетплейсы'
     WHEN `Channel`='calls' THEN 'Звонки'
     WHEN `Channel`='free' THEN 'Звонки'
     WHEN `Channel`='partners' THEN 'Партнеры и рекомендации'
@@ -81,6 +89,7 @@ SELECT
     WHEN `Source`='Direct traffic' THEN 'Другие'
     WHEN `Source`='Recommendation system traffic' THEN 'Рекомендательные системы'
     WHEN `Source`='yandex_network' THEN 'РСЯ'
+	WHEN `Campaign`='rsa' THEN 'РСЯ'
     WHEN `Source`='yandex' THEN CASE WHEN `Channel`='cpc' THEN 'Яндекс.Поиск' WHEN `Channel`='cpm' THEN 'Яндекс.Поиск' ELSE CASE WHEN `Source`='' THEN 'Другие' ELSE IFNULL(`Source`, 'Другие') END END
     WHEN `Source`='google' THEN CASE WHEN `Channel`='cpc' THEN 'Google.Adwords' ELSE CASE WHEN `Source`='' THEN 'Другие' ELSE IFNULL(`Source`, 'Другие') END END
     WHEN `Source`='e.mail.ru' THEN CASE WHEN `Channel`='referral' THEN 'Почта Mail.Ru' ELSE CASE WHEN `Source`='' THEN 'Другие' ELSE IFNULL(`Source`, 'Другие') END END
@@ -94,6 +103,8 @@ SELECT
     END AS `_Источник`,
 	CASE
 		WHEN `Campaign`='<не указано>' THEN ''
+		WHEN `Channel`='organic' THEN ''
+		WHEN `Campaign`='rsa' THEN `Source`
 		ELSE IFNULL(`Campaign`, '')
 	END AS `_Кампания`
 
@@ -110,7 +121,7 @@ FROM (SELECT
     l.UTM_SOURCE_PURE AS `Source`,
     l.UTM_CAMPAIGN_PURE AS `Campaign`
 FROM
-    DB.mart_mkt_bx_leads as l
+    DB.mart_mkt_bx_leads_app as l
 GROUP BY `Channel`,`Source`,`Campaign`,`Date`
 
 UNION ALL

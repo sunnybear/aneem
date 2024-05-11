@@ -13,20 +13,20 @@ SELECT
     END as UTM_CAMPAIGN_PURE,
     CASE 
         WHEN `UTM_SOURCE`='(offline)' THEN `UTM_MEDIUM`
-        WHEN `UTM_SOURCE`='' THEN IFNULL(`s.NAME`, '')
-        WHEN `UTM_SOURCE`='(none)' THEN IFNULL(`s.NAME`, '')
-        WHEN `UTM_SOURCE`='(direct)' THEN IFNULL(`s.NAME`, '')
-        WHEN `UTM_SOURCE` IS NULL THEN IFNULL(`s.NAME`, '')
+        WHEN `UTM_SOURCE`='' THEN IFNULL(s.NAME, '')
+        WHEN `UTM_SOURCE`='(none)' THEN IFNULL(s.NAME, '')
+        WHEN `UTM_SOURCE`='(direct)' THEN IFNULL(s.NAME, '')
+        WHEN `UTM_SOURCE` IS NULL THEN IFNULL(s.NAME, '')
         ELSE IFNULL(`UTM_SOURCE`, '')
     END as UTM_SOURCE_PURE,
     CASE
-        WHEN `UTM_SOURCE`='(direct)' THEN IFNULL(`s.NAME`, 'direct')
-        WHEN `UTM_MEDIUM`='' THEN IFNULL(`s.NAME`, 'direct')
-        WHEN `UTM_MEDIUM` IS NULL THEN IFNULL(`s.NAME`, 'direct')
-        WHEN `UTM_MEDIUM`='(none)' THEN IFNULL(`s.NAME`, 'direct')
-        ELSE IFNULL(`UTM_MEDIUM`,IFNULL(`s.NAME`, 'direct'))
+        WHEN `UTM_SOURCE`='(direct)' THEN IFNULL(s.NAME, 'direct')
+        WHEN `UTM_MEDIUM`='' THEN IFNULL(s.NAME, 'direct')
+        WHEN `UTM_MEDIUM` IS NULL THEN IFNULL(s.NAME, 'direct')
+        WHEN `UTM_MEDIUM`='(none)' THEN IFNULL(s.NAME, 'direct')
+        ELSE IFNULL(`UTM_MEDIUM`,IFNULL(s.NAME, 'direct'))
     END as UTM_MEDIUM_PURE
 FROM DB.raw_bx_crm_deal as d
-    LEFT JOIN DB.raw_bx_crm_status as s ON l.SOURCE_ID=s.STATUS_ID
+    LEFT JOIN DB.raw_bx_crm_status as s ON d.SOURCE_ID=s.STATUS_ID
 
 SETTINGS join_use_nulls = 1

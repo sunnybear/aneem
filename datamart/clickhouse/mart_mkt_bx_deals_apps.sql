@@ -1,84 +1,49 @@
 CREATE VIEW DB.mart_mkt_bx_deals_app AS
 (WITH deals AS (SELECT
-    d.ID,
-	LOCATE(TITLE, 'Заказ из приложения') AS DEAL_APP,
+    d.ID as ID,
+    LOCATE(TITLE, 'Заказ из приложения') AS DEAL_APP,
     IS_RETURN_CUSTOMER,
     CLOSEDATE,
     OPPORTUNITY,
-    replace(phone1, '+', '') AS phone,
-    UTM_MEDIUM,
-    UTM_SOURCE,
-    UTM_CAMPAIGN
-FROM DB.raw_bx_crm_deal as d
-    LEFT JOIN DB.raw_bx_crm_contact_uf as c ON d.CONTACT_ID=c.ID
+    CASE 
+		WHEN d.UTM_MEDIUM_PURE = 'Веб-сайт' AND DEAL_APP THEN CASE WHEN (ca.UTM_MEDIUM='' OR ca.UTM_MEDIUM IS NULL) THEN 'app' ELSE ca.UTM_MEDIUM END
+        WHEN d.UTM_MEDIUM_PURE = '' OR d.UTM_MEDIUM_PURE IS NULL THEN CASE WHEN (ca.UTM_MEDIUM='' OR ca.UTM_MEDIUM IS NULL) AND DEAL_APP THEN 'app' ELSE ca.UTM_MEDIUM END
+        ELSE d.UTM_MEDIUM_PURE
+    END AS UTM_MEDIUM,
+    CASE
+		WHEN d.UTM_MEDIUM_PURE = 'Веб-сайт' AND DEAL_APP THEN CASE WHEN (ca.UTM_MEDIUM='' OR ca.UTM_MEDIUM IS NULL) THEN am.publisher_name ELSE ca.UTM_SOURCE END
+        WHEN d.UTM_MEDIUM_PURE = '' OR d.UTM_MEDIUM_PURE IS NULL THEN CASE WHEN (ca.UTM_MEDIUM='' OR ca.UTM_MEDIUM IS NULL) AND DEAL_APP THEN am.publisher_name ELSE ca.UTM_SOURCE END
+        ELSE d.UTM_SOURCE_PURE
+    END AS UTM_SOURCE,
+    CASE
+		WHEN d.UTM_MEDIUM_PURE = 'Веб-сайт' AND DEAL_APP THEN CASE WHEN (ca.UTM_MEDIUM='' OR ca.UTM_MEDIUM IS NULL) THEN am.tracker_name ELSE ca.UTM_CAMPAIGN END
+        WHEN d.UTM_MEDIUM_PURE = '' OR d.UTM_MEDIUM_PURE IS NULL THEN CASE WHEN (ca.UTM_MEDIUM='' OR ca.UTM_MEDIUM IS NULL) AND DEAL_APP THEN am.tracker_name ELSE ca.UTM_CAMPAIGN END
+        ELSE d.UTM_CAMPAIGN_PURE
+    END AS UTM_CAMPAIGN,
+	UTM_CAMPAIGN_ID
+FROM DB.mart_mkt_bx_crm_deal as d
+    LEFT JOIN DB.dict_bxdealid_phone as dp ON d.ID=dp.ID
+    LEFT JOIN DB.dict_yainstallationid_phone as ip ON ip.phone=dp.phone
+    LEFT JOIN DB.dict_yainstallationid_yclid as ic ON ic.installation_id=ip.installation_id
+    LEFT JOIN DB.raw_ya_installs as am ON am.installation_id=ip.installation_id
+    LEFT JOIN DB.dict_yclid_attribution_lndc as ca ON ca.yclid=ic.yclid
 WHERE
     (CASE
 WHEN POSITION(REVERSE(`STAGE_ID`), ':')>0 THEN SUBSTRING(`STAGE_ID`, LENGTH(`STAGE_ID`)-POSITION(REVERSE(`STAGE_ID`), ':')+2, LENGTH(`STAGE_ID`))
 ELSE `STAGE_ID`
 END) = 'WON'
-GROUP BY d.ID, DEAL_APP, IS_RETURN_CUSTOMER, CLOSEDATE, OPPORTUNITY, phone, UTM_MEDIUM, UTM_SOURCE, UTM_CAMPAIGN),
+GROUP BY d.ID, DEAL_APP, IS_RETURN_CUSTOMER, CLOSEDATE, OPPORTUNITY, UTM_MEDIUM, UTM_SOURCE, UTM_CAMPAIGN, UTM_CAMPAIGN_ID
 
-apps AS (SELECT
-    installation_id,
-    replace(replace(simpleJSONExtractRaw(event_json, 'phone'), '\"', ''), '+', '') AS phone
-FROM DB.raw_am_events
-WHERE phone<>''),
-
-installs AS (SELECT
-    installation_id,
-    publisher_name,
-    tracker_name
-FROM DB.raw_am_installs),
-
-deals_apps AS (SELECT
-    ID,
-    CLOSEDATE,
-    IS_RETURN_CUSTOMER,
-    OPPORTUNITY,
-    CASE
-        WHEN UTM_MEDIUM='' THEN CASE WHEN tracker_name<>'' THEN 'app' WHEN DEAL_APP>0 THEN 'app' ELSE 'direct' END
-        WHEN UTM_MEDIUM='(direct)' THEN CASE WHEN tracker_name<>'' THEN 'app' WHEN DEAL_APP>0 THEN 'app' ELSE 'direct' END
-		WHEN UTM_MEDIUM='(none)' THEN CASE WHEN tracker_name<>'' THEN 'app' WHEN DEAL_APP>0 THEN 'app' ELSE 'direct' END
-		WHEN UTM_MEDIUM='<не указано>' THEN CASE WHEN tracker_name<>'' THEN 'app' WHEN DEAL_APP>0 THEN 'app' ELSE 'direct' END
-		WHEN UTM_MEDIUM='<не заполнено>' THEN CASE WHEN tracker_name<>'' THEN 'app' WHEN DEAL_APP>0 THEN 'app' ELSE 'direct' END
-        WHEN UTM_MEDIUM IS NULL THEN CASE WHEN tracker_name<>'' THEN 'app' WHEN DEAL_APP>0 THEN 'app' ELSE 'direct' END
-        ELSE UTM_MEDIUM
-    END as UTM_MEDIUM_PURE,
-    CASE
-        WHEN UTM_MEDIUM='' THEN CASE WHEN tracker_name<>'' THEN tracker_name ELSE UTM_SOURCE END
-        WHEN UTM_MEDIUM='(direct)' THEN CASE WHEN tracker_name<>'' THEN tracker_name ELSE UTM_SOURCE END
-		WHEN UTM_MEDIUM='(none)' THEN CASE WHEN tracker_name<>'' THEN tracker_name ELSE UTM_SOURCE END
-		WHEN UTM_MEDIUM='<не указано>' THEN CASE WHEN tracker_name<>'' THEN tracker_name ELSE UTM_SOURCE END
-		WHEN UTM_MEDIUM='<не заполнено>' THEN CASE WHEN tracker_name<>'' THEN tracker_name ELSE UTM_SOURCE END
-        WHEN UTM_MEDIUM IS NULL THEN CASE WHEN tracker_name<>'' THEN tracker_name ELSE UTM_SOURCE END
-        ELSE UTM_SOURCE
-    END as UTM_SOURCE_PURE,
-    CASE
-        WHEN UTM_MEDIUM='' THEN CASE WHEN tracker_name<>'' THEN publisher_name ELSE UTM_CAMPAIGN END
-        WHEN UTM_MEDIUM='(direct)' THEN CASE WHEN tracker_name<>'' THEN publisher_name ELSE UTM_CAMPAIGN END
-		WHEN UTM_MEDIUM='(none)' THEN CASE WHEN tracker_name<>'' THEN publisher_name ELSE UTM_CAMPAIGN END
-		WHEN UTM_MEDIUM='<не указано>' THEN CASE WHEN tracker_name<>'' THEN publisher_name ELSE UTM_CAMPAIGN END
-		WHEN UTM_MEDIUM='<не заполнено>' THEN CASE WHEN tracker_name<>'' THEN publisher_name ELSE UTM_CAMPAIGN END
-        WHEN UTM_MEDIUM IS NULL THEN CASE WHEN tracker_name<>'' THEN publisher_name ELSE UTM_CAMPAIGN END
-        WHEN UTM_CAMPAIGN='<не указано>' THEN ''
-        ELSE UTM_CAMPAIGN
-    END as UTM_CAMPAIGN_PURE,
-    UTM_CAMPAIGN AS UTM_CAMPAIGN_ID
-FROM deals
-    LEFT JOIN apps ON (apps.phone=deals.phone)
-    LEFT JOIN installs ON (installs.installation_id=apps.installation_id)
-GROUP BY ID, CLOSEDATE, IS_RETURN_CUSTOMER, OPPORTUNITY, UTM_MEDIUM_PURE, UTM_SOURCE_PURE, UTM_CAMPAIGN_PURE, UTM_CAMPAIGN_ID)
+SETTINGS join_use_nulls = 1)
 
 SELECT
-    count(d.ID) as DEALS,
-    countIf(d.IS_RETURN_CUSTOMER='Y') as REPEATDEALS,
+    count(ID) as DEALS,
+    countIf(IS_RETURN_CUSTOMER='Y') as REPEATDEALS,
     toDate(CLOSEDATE) AS DT,
     sum(OPPORTUNITY) as REVENUE,
-    UTM_CAMPAIGN_ID,
-    UTM_CAMPAIGN_PURE,
-    UTM_SOURCE_PURE,
-    UTM_MEDIUM_PURE
-FROM deals_apps as d
-GROUP BY DT,UTM_CAMPAIGN_PURE,UTM_CAMPAIGN_ID,UTM_SOURCE_PURE,UTM_MEDIUM_PURE)
-
-SETTINGS join_use_nulls = 1
+    UTM_CAMPAIGN_ID AS UTM_CAMPAIGN_ID,
+    UTM_CAMPAIGN AS UTM_CAMPAIGN_PURE,
+    UTM_SOURCE AS UTM_SOURCE_PURE,
+    UTM_MEDIUM AS UTM_MEDIUM_PURE
+FROM deals
+GROUP BY DT,UTM_CAMPAIGN_ID,UTM_CAMPAIGN,UTM_SOURCE,UTM_MEDIUM)
