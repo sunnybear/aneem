@@ -92,7 +92,7 @@ if len(data):
     if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
 # удаление данных за вчера
         try:
-            connection.execute(text("DELETE FROM " + config["BITRIX"]["TABLE_ORDERS"] + " WHERE `dateUpdate`>='" + yesterday + "'"))
+            connection.execute(text("DELETE FROM " + config["BITRIX"]["TABLE_ORDERS"] + " WHERE `id` IN (" + ','.join([str(x) for x in orders.keys()]) + ")"))
             connection.commit()
         except Exception as E:
             print (E)
@@ -106,11 +106,11 @@ if len(data):
     elif config["DB"]["TYPE"] == "CLICKHOUSE":
 # удаление данных за вчера
         requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/',
-            params={"database": config["DB"]["DB"], "query": "DELETE FROM " + config["DB"]["DB"] + "." + config["BITRIX"]["TABLE_ORDERS"] + " WHERE `dateUpdate`>='" + yesterday + "'"}, headers={'Content-Type':'application/octet-stream'}, verify=False)
+            params={"database": config["DB"]["DB"], "query": "DELETE FROM " + config["DB"]["PREFIX"] + "." + config["BITRIX"]["TABLE_ORDERS"] + " WHERE `id` IN (" + ','.join([str(x) for x in orders.keys()]) + ")"}, headers={'Content-Type':'application/octet-stream'}, verify=False)
 # добавление данных за вчера
         csv_file = data.to_csv().encode('utf-8')
         requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/',
-            params={"database": config["DB"]["DB"], "query": 'INSERT INTO ' + config["DB"]["DB"] + '.' + config["BITRIX"]["TABLE_ORDERS"] + ' FORMAT CSV'},
+            params={"database": config["DB"]["DB"], "query": 'INSERT INTO ' + config["DB"]["PREFIX"] + '.' + config["BITRIX"]["TABLE_ORDERS"] + ' FORMAT CSV'},
             headers={'Content-Type':'application/octet-stream'}, data=csv_file, stream=True, verify=False)
     print (str(last_order_id) + ": " + str(len(orders)))
 
