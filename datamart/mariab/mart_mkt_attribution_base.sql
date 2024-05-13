@@ -210,6 +210,20 @@ SELECT
 	UTMMedium,
 	UTMSource,
 	UTMCampaign
+FROM mart_costs_dt
+
+UNION ALL
+
+SELECT
+	DT,
+	Visits,
+	Costs,
+	Orders,
+	Sales,
+	Revenue,
+	UTMMedium,
+	UTMSource,
+	UTMCampaign
 FROM mart_orders_dt
 
 UNION ALL 
