@@ -197,6 +197,7 @@ create view mart_mkt_e2e as (SELECT
 	UTMSource,
 	UTMCampaign
 FROM mart_visits_dt
+WHERE Visits>0
 
 UNION ALL
 
@@ -211,6 +212,7 @@ SELECT
 	UTMSource,
 	UTMCampaign
 FROM mart_costs_dt
+WHERE Costs>0
 
 UNION ALL
 
@@ -225,6 +227,7 @@ SELECT
 	UTMSource,
 	UTMCampaign
 FROM mart_orders_dt
+WHERE Orders>0
 
 UNION ALL 
 
@@ -238,14 +241,15 @@ SELECT
 	UTMMedium,
 	UTMSource,
 	UTMCampaign
-FROM mart_sales_dt);
+FROM mart_sales_dt
+WHERE Revenue>0);
 
 CREATE EVENT mart_mkt_attribution_base
   ON SCHEDULE EVERY 1 DAY STARTS '2024-01-01 04:00:00.000' DO
    CREATE OR REPLACE TABLE `mart_mkt_attribution_base` (
   `_Дата` datetime DEFAULT NULL,
   `_Визиты` bigint(20) DEFAULT NULL,
-  `_Расходы` bigint(20) DEFAULT NULL,
+  `_Расходы` double DEFAULT NULL,
   `_Заказы` bigint(20) DEFAULT NULL,
   `_Продажи` bigint(20) DEFAULT NULL,
   `_Выручка` double DEFAULT NULL,
