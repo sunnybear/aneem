@@ -102,7 +102,7 @@ for i_credentials, TOKEN in enumerate(config["YANDEX_DIRECT"]["ACCESS_TOKEN"].sp
                     "Device"
                 ],
 # Уникальное имя отчета, чтобы не было дублей с разными данными
-                "ReportName": "ActualDataInitial" + +str(i_credentials) + str(period) + str(date.today().day),
+                "ReportName": "ActualDataInitial" + str(i_credentials) + str(period) + str(date.today().day),
                 "ReportType": "CAMPAIGN_PERFORMANCE_REPORT",
                 "DateRangeType": "CUSTOM_DATE",
                 "Format": "TSV",
