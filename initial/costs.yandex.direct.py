@@ -57,7 +57,8 @@ if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"
 table_not_created = True
 # перебираем все доступы к рекламным кабинетам
 for i_credentials, TOKEN in enumerate(config["YANDEX_DIRECT"]["ACCESS_TOKEN"].split(",")):
-    LOGIN = config["YANDEX_DIRECT"]["LOGIN"].split(",")[i_credentials]
+    TOKEN = TOKEN.strip()
+    LOGIN = config["YANDEX_DIRECT"]["LOGIN"].split(",")[i_credentials].strip()
 # создание подключения к API Яндекс.Директ
     client = YandexDirect(
         access_token = TOKEN,
