@@ -72,8 +72,8 @@ for i_credentials, TOKEN in enumerate(config["YANDEX_DIRECT"]["ACCESS_TOKEN"].sp
         skip_report_summary = True
     )
 
-    date_since = (dt.date.today() - dt.timedelta(days=151)).strftime('%Y-%m-%d')
-    date_until = (dt.date.today() - dt.timedelta(days=1)).strftime('%Y-%m-%d')
+    date_since = (date.today() - timedelta(days=151)).strftime('%Y-%m-%d')
+    date_until = (date.today() - timedelta(days=1)).strftime('%Y-%m-%d')
 # Создание запроса на выгрузку данных (помесячно)
     result = client.reports().post(data={
         "params": {
