@@ -124,8 +124,10 @@ WHERE id NOT IN (SELECT id FROM mart_bx_orders_utm));
 create view mart_visits_dt as (SELECT
     DATE(`ym:s:dateTime`) AS `DT`,
 	COUNT(`ym:s:visitID`) AS 'Visits',
-	0 AS Revenue,
+	0 AS Costs,
 	0 AS Orders,
+	0 AS Sales,
+	0 AS Revenue,
     CASE
         WHEN `ym:s:lastUTMMedium`='' THEN `ym:s:lastTrafficSource`
         ELSE IFNULL(`ym:s:lastUTMMedium`, `ym:s:lastTrafficSource`)
@@ -141,11 +143,29 @@ create view mart_visits_dt as (SELECT
 FROM raw_ym_visits
 GROUP BY DATE(`ym:s:dateTime`), UTMMedium, UTMSource, UTMCampaign);
 
+create view mart_costs_dt as (SELECT
+    DATE(`Date`) AS `DT`,
+	0 'Visits',
+	SUM(`Cost`) as Costs,
+	0 AS Orders,
+	0 AS Sales,
+	0 AS Revenue,
+    'cpc' AS UTMMedium,
+    CASE
+        WHEN `AdNetworkType`='AD_NETWORK' THEN 'yandex_network'
+        WHEN `AdNetworkType`='SEARCH' THEN 'yandex'
+    END AS UTMSource,
+    `CampaignId` AS UTMCampaign
+FROM raw_yd_costs
+GROUP BY DATE(`Date`), UTMMedium, UTMSource, UTMCampaign);
+
 create view mart_orders_dt as (SELECT
 	DATE(dateInsert) AS `DT`,
 	0 as Visits,
+	0 as Costs,
 	COUNT(id) AS 'Orders',
-	0 as Revenue,
+	0 AS Sales,
+	0 AS Revenue,
 	UTMMedium,
 	UTMSource,
 	UTMCampaign
@@ -154,8 +174,10 @@ GROUP BY DATE(dateInsert), UTMMedium, UTMSource, UTMCampaign);
 
 create view mart_sales_dt as (SELECT
 	DATE(dateInsert) AS `DT`,
-	0 as Visits,
-	0 as 'Orders',
+	0 AS Visits,
+	0 AS Costs,
+	0 AS Orders,
+	COUNT(id) AS Sales,
 	SUM(price) as Revenue,
 	UTMMedium,
 	UTMSource,
@@ -167,7 +189,9 @@ GROUP BY DATE(dateInsert), UTMMedium, UTMSource, UTMCampaign);
 create view mart_mkt_e2e as (SELECT
 	DT,
 	Visits,
+	Costs,
 	Orders,
+	Sales,
 	Revenue,
 	UTMMedium,
 	UTMSource,
@@ -179,7 +203,9 @@ UNION ALL
 SELECT
 	DT,
 	Visits,
+	Costs,
 	Orders,
+	Sales,
 	Revenue,
 	UTMMedium,
 	UTMSource,
@@ -191,7 +217,9 @@ UNION ALL
 SELECT
 	DT,
 	Visits,
+	Costs,
 	Orders,
+	Sales,
 	Revenue,
 	UTMMedium,
 	UTMSource,
@@ -203,7 +231,9 @@ CREATE EVENT mart_mkt_attribution_base
    CREATE OR REPLACE TABLE `mart_mkt_attribution_base` (
   `_Дата` datetime DEFAULT NULL,
   `_Визиты` bigint(20) DEFAULT NULL,
+  `_Расходы` bigint(20) DEFAULT NULL,
   `_Заказы` bigint(20) DEFAULT NULL,
+  `_Продажи` bigint(20) DEFAULT NULL,
   `_Выручка` double DEFAULT NULL,
   `_Канал` text DEFAULT NULL,
   `_Источник` text DEFAULT NULL,
@@ -215,7 +245,9 @@ CREATE EVENT mart_mkt_attribution_base
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 SELECT
 	DT as '_Дата',
 	SUM(Visits) as '_Визиты',
+	SUM(Costs) as '_Расходы',
 	SUM(Orders) as '_Заказы',
+	SUM(Sales) as '_Продажи',
 	SUM(Revenue) as '_Выручка',
 	UTMMedium as '_Канал',
 	UTMSource as '_Источник',

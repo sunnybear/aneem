@@ -83,6 +83,8 @@ for i_credentials, TOKEN in enumerate(config["YANDEX_DIRECT"]["ACCESS_TOKEN"].sp
                 "Date",
                 "CampaignId",
                 "CampaignName",
+                "CampaignUrlPath",
+                "ClientLogin",
                 "ConversionRate",
                 "Conversions",
                 "Clicks",
