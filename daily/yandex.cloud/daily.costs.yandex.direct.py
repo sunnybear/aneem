@@ -80,7 +80,7 @@ def handler(event, context):
     result = api.reports().post(data={
         "params": {
             "SelectionCriteria": {"DateFrom": date_since, "DateTo": date_until},
-            "FieldNames": ["Date", "CampaignId", "CampaignName", "ConversionRate", "Conversions", "Clicks", "Cost", "Impressions","AdNetworkType","CampaignType","LocationOfPresenceId","LocationOfPresenceName","MobilePlatform","Device"],
+            "FieldNames": ["Date", "CampaignId", "CampaignName", "CampaignUrlPath", "ConversionRate", "Conversions", "Clicks", "Cost", "Impressions", "AdNetworkType", "CampaignType", "LocationOfPresenceId", "LocationOfPresenceName", "MobilePlatform", "Device", "ClientLogin"],
             "ReportName": "ActualData" + os.getenv('DB_PREFIX') + date_since + ':' + date_until,
             "ReportType": "CAMPAIGN_PERFORMANCE_REPORT",
             "DateRangeType": "CUSTOM_DATE", # нужно перегружать за 150 дней, иначе расходы не будут соответствовать личному кабинету Директа
