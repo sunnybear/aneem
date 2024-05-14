@@ -4,3 +4,4 @@
 1 8 * * * cd ~/aibi/daily/standalone/ && /usr/bin/python3 daily.sales.1c.py >/dev/null 2>/dev/null
 15 1 * * * cd ~/aibi/daily/standalone/ && /usr/bin/python3 daily.costs.yandex.metrika.py >/dev/null 2>/dev/null
 20 1 * * * cd ~/aibi/daily/standalone/ && /usr/bin/python3 daily.costs.yandex.direct.py >/dev/null 2>/dev/null
+25 1 * * * cd ~/aibi/initial/ && /usr/bin/python3 utms.yandex.direct.py >/dev/null 2>/dev/null

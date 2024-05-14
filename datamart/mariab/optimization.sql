@@ -41,3 +41,10 @@ IF EXISTS(SELECT raw_yd_costs FROM INFORMATION_SCHEMA.TABLES WHERE table_name LI
 	alter table raw_yd_costs add index campaign (`CampaignId`);
 	alter table raw_yd_costs add index networktype (`AdNetworkType`);
 END IF;
+-- raw_yd_campaigns_utms
+IF EXISTS(SELECT raw_yd_campaigns_utms FROM INFORMATION_SCHEMA.TABLES WHERE table_name LIKE 'raw_yd_campaigns_utms') THEN
+	alter table raw_yd_campaigns_utms add index campaignid (`CampaignId`);
+	alter table raw_yd_campaigns_utms add index medium (`UTMMedium`);
+	alter table raw_yd_campaigns_utms add index source (`UTMSource`);
+	alter table raw_yd_campaigns_utms add index campaign (`UTMCampaign`);
+END IF;
