@@ -175,6 +175,30 @@ SELECT
 FROM
     raw_bx_orders
 */
+
+/*UNION ALL
+
+SELECT
+    'BXOG' as `source`,
+	'Битрикс: товары в заказах' as `title`,
+    count(*) as total,
+	NOW() as date_end,
+    NOW() as date_start
+FROM
+    raw_bx_orders_goods
+*/
+
+/*UNION ALL
+
+SELECT
+    '1C' as `source`,
+	'1C: продажи' as `title`,
+    count(*) as total,
+	max(`Дата_Заказа`) as date_end,
+    min(`Дата_Заказа`) as date_start
+FROM
+    raw_1c_sales
+*/
 UNION ALL
 
 SELECT
@@ -184,4 +208,15 @@ SELECT
 	max(`Date`) as date_end,
     min(`Date`) as date_start
 FROM
-    raw_yd_costs)
+    raw_yd_costs
+
+UNION ALL
+
+SELECT
+    'YDU' as `source`,
+	'Яндекс.Директ: UTM метки' as `title`,
+    count(*) as total,
+	NOW() as date_end,
+    NOW() as date_start
+FROM
+    raw_yd_campaigns_utms)
