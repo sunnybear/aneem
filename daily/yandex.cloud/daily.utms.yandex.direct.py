@@ -124,7 +124,7 @@ def handler(event, context):
                         href = ad[f]["TrackingUrl"]
                 if href != '':
 # если ссылка найдена - извлекаем из нее метки
-                    for utm in ['utm_medium', 'utm_source', 'utm_campaign']:
+                    for utm in ['utm_source', 'utm_medium', 'utm_campaign']:
                         if href.find(utm) > -1:
                             utm_start = href.find(utm)
                             utm_end = href[href.find(utm):].find('&')

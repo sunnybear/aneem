@@ -118,7 +118,7 @@ for i_credentials, TOKEN in enumerate(config["YANDEX_DIRECT"]["ACCESS_TOKEN"].sp
                     href = ad[f]["TrackingUrl"]
             if href != '':
 # если ссылка найдена - извлекаем из нее метки
-                for utm in ['utm_medium', 'utm_source', 'utm_campaign']:
+                for utm in ['utm_source', 'utm_medium', 'utm_campaign']:
                     if href.find(utm) > -1:
                         utm_start = href.find(utm)
                         utm_end = href[href.find(utm):].find('&')
@@ -151,14 +151,17 @@ for i_credentials, TOKEN in enumerate(config["YANDEX_DIRECT"]["ACCESS_TOKEN"].sp
     if len(data):
 # создаем таблицу в первый раз
         if table_not_created:
-            if config["DB"]["TYPE"] == "CLICKHOUSE":
+            if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
+                connection.execute(text("DROP TABLE IF EXISTS " + config["YANDEX_DIRECT"]["TABLE_UTMS"]))
+                connection.commit()
+            elif config["DB"]["TYPE"] == "CLICKHOUSE":
                 requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/', verify=False,
                     params={"database": config["DB"]["DB"], "query": (pd.io.sql.get_schema(data.reset_index(), config["YANDEX_DIRECT"]["TABLE_UTMS"]) + "  ENGINE=MergeTree ORDER BY (`index`)").replace("CREATE TABLE ", "CREATE OR REPLACE TABLE " + config["DB"]["DB"] + ".").replace("INTEGER", "Int64")})
             table_not_created = False
         if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
 # обработка ошибок при добавлении данных
             try:
-                data.to_sql(name=config["YANDEX_DIRECT"]["TABLE_UTMS"], con=engine, if_exists='replace', chunksize=100)
+                data.to_sql(name=config["YANDEX_DIRECT"]["TABLE_UTMS"], con=engine, if_exists='append', chunksize=100)
             except Exception as E:
                 print (E)
                 connection.rollback()

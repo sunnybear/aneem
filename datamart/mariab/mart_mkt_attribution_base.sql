@@ -150,13 +150,11 @@ create view mart_costs_dt as (SELECT
 	0 AS Orders,
 	0 AS Sales,
 	0 AS Revenue,
-    'cpc' AS UTMMedium,
-    CASE
-        WHEN `AdNetworkType`='AD_NETWORK' THEN 'yandex_network'
-        WHEN `AdNetworkType`='SEARCH' THEN 'yandex'
-    END AS UTMSource,
-    `CampaignId` AS UTMCampaign
-FROM raw_yd_costs
+    IFNULL(u.UTMMedium, 'cpc') AS UTMMedium,
+	IFNULL(u.UTMSource, 'yandex') AS UTMSource,
+    IFNULL(u.UTMCampaign, c.CampaignId) AS UTMCampaign
+FROM raw_yd_costs as c
+LEFT JOIN raw_yd_campaigns_utms as u ON c.CampaignId=u.CampaignId
 GROUP BY DATE(`Date`), UTMMedium, UTMSource, UTMCampaign);
 
 create view mart_orders_dt as (SELECT
