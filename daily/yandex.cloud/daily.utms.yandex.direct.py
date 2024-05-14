@@ -142,7 +142,7 @@ def handler(event, context):
                     break
 # метки "по умолчанию" для кампании, финально применятся только после перебора всех объявлений
             if len(utm_values) == 0 or utm_values[0] == utm_values[1] == utm_values[2] == '':
-                utm_values = ['cpc', 'yandex', str(cid)]
+                utm_values = ['yandex', 'cpc', str(cid)]
             items.append([LOGIN, cid, href, utm_values[0], utm_values[1], utm_values[2]])
 
 # формируем датафрейм из полученных меток
