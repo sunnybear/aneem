@@ -152,5 +152,9 @@ for i_credentials, TOKEN in enumerate(config["YANDEX_DIRECT"]["ACCESS_TOKEN"].sp
 
 # закрытие подключения к БД
 if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
+# добавление индексов
+    connection.execute(text("ALTER TABLE " + config["YANDEX_DIRECT"]["TABLE"] + " ADD INDEX dateidx (`Date`)"))
+    connection.execute(text("ALTER TABLE " + config["YANDEX_DIRECT"]["TABLE"] + " ADD INDEX networktype (`AdNetworkType`)"))
+    connection.execute(text("ALTER TABLE " + config["YANDEX_DIRECT"]["TABLE"] + " ADD INDEX campaign (`CampaignId`)"))
     connection.commit()
     connection.close()
