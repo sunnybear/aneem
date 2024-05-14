@@ -110,10 +110,10 @@ def handler(event, context):
                 },
             }
             ads = client.ads().post(data=body)
+            href = ''
+            utm_values = []
 # перебираем все объявления, ищем первое с размеченной ссылкой
             for ad in ads().extract():
-                href = ''
-                utm_values = []
 # набор типов объявлений, где ищем Href
                 for f in ["TextAd", "TextImageAd", "TextAdBuilderAd", "CpcVideoAdBuilderAd", "CpmBannerAdBuilderAd", "CpmVideoAdBuilderAd"]:
                     if ad.get(f) is not None:
@@ -166,7 +166,7 @@ def handler(event, context):
         elif os.getenv('DB_TYPE') == "CLICKHOUSE":
             requests.post('https://' + os.getenv('DB_HOST') + ':8443/?database=' + os.getenv('DB_DB') + '&query=' + (pd.io.sql.get_schema(data.reset_index(), os.getenv('YANDEX_DIRECT_TABLE_UTMS')) + "  ENGINE=MergeTree ORDER BY (`index`)").replace("CREATE TABLE ", "CREATE OR REPLACE TABLE " + os.getenv('DB_PREFIX') + ".").replace("INTEGER", "Int64"),
                 headers=auth_post)
-            csv_file = data.to_csv().encode('utf-8')
+            csv_file = data.reset_index().to_csv().encode('utf-8')
             requests.post('https://' + os.getenv('DB_HOST') + ':8443/?database=' + os.getenv('DB_DB') + '&query=INSERT INTO ' + os.getenv('DB_PREFIX') + '.' + os.getenv('YANDEX_DIRECT_TABLE_UTMS') + ' FORMAT CSV',
                 headers=auth_post, data=csv_file, stream=True)
     if os.getenv('DB_TYPE') in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:

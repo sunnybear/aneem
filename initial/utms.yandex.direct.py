@@ -104,10 +104,10 @@ for i_credentials, TOKEN in enumerate(config["YANDEX_DIRECT"]["ACCESS_TOKEN"].sp
             },
         }
         ads = client.ads().post(data=body)
+		utm_values = []
+        href = ''
 # перебираем все объявления, ищем первое с размеченной ссылкой
         for ad in ads().extract():
-            href = ''
-            utm_values = []
 # набор типов объявлений, где ищем Href
             for f in ["TextAd", "TextImageAd", "TextAdBuilderAd", "CpcVideoAdBuilderAd", "CpmBannerAdBuilderAd", "CpmVideoAdBuilderAd"]:
                 if ad.get(f) is not None:
