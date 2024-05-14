@@ -173,7 +173,7 @@ SELECT
     0 AS `RepeatDeals`,
     c.UTM_MEDIUM_PURE AS `Channel`,
     c.UTM_SOURCE_PURE AS `Source`,
-    replaceAll(c.CAMPAIGN_NAME, ' ', '_') AS `Campaign`
+    c.UTM_CAMPAIGN_PURE AS `Campaign`
 FROM
     DB.mart_mkt_yd_costs as c
 GROUP BY `Channel`,`Source`,`Campaign`,`Date`
