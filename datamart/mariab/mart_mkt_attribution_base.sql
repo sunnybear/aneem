@@ -152,7 +152,7 @@ create view mart_costs_dt as (SELECT
 	0 AS Revenue,
     IFNULL(u.UTMMedium, 'cpc') AS UTMMedium,
 	IFNULL(u.UTMSource, 'yandex') AS UTMSource,
-    IFNULL(u.UTMCampaign, c.CampaignId) AS UTMCampaign
+    IFNULL(u.CampaignName, c.CampaignId) AS UTMCampaign
 FROM raw_yd_costs as c
 LEFT JOIN raw_yd_campaigns_utms as u ON c.CampaignId=u.CampaignId
 GROUP BY DATE(`Date`), UTMMedium, UTMSource, UTMCampaign);
@@ -265,8 +265,10 @@ CREATE EVENT mart_mkt_attribution_base
 	SUM(Orders) as '_Заказы',
 	SUM(Sales) as '_Продажи',
 	SUM(Revenue) as '_Выручка',
-	UTMMedium as '_Канал',
-	UTMSource as '_Источник',
-	UTMCampaign as '_Кампания'
-FROM mart_mkt_e2e
-GROUP BY DT, UTMMedium, UTMSource, UTMCampaign;
+	e.UTMMedium as '_Канал',
+	e.UTMSource as '_Источник',
+	IFNULL(cuid.CampaignName, IFNULL(cucamp.CampaignName, e.UTMCampaign)) as '_Кампания'
+FROM mart_mkt_e2e as e
+    LEFT JOIN raw_yd_campaigns_utms as cuid ON CAST(cuid.CampaignId AS CHAR)=e.UTMCampaign
+    LEFT JOIN raw_yd_campaigns_utms as cucamp ON cucamp.UTMCampaign=e.UTMCampaign
+GROUP BY DT, e.UTMMedium, e.UTMSource, e.UTMCampaign;
