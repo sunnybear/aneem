@@ -7,7 +7,7 @@ CREATE VIEW DB.mart_mkt_yd_costs AS SELECT
     END AS UTM_SOURCE_PURE,
     toString(c.CampaignId) AS UTM_CAMPAIGN_ID,
     IFNULL(u.UTMMedium, 'cpc') AS UTM_MEDIUM_PURE,
-	IFNULL(u.UTMCampaign, toString(c.CampaignId)) AS UTM_CAMPAIGN_PURE,
+	IFNULL(CampaignName, toString(c.CampaignId)) AS UTM_CAMPAIGN_PURE,
     `CampaignName` AS CAMPAIGN_NAME
 FROM DB.raw_yd_costs as c
 	LEFT JOIN DB.raw_yd_campaigns_utms as u ON c.CampaignId=u.CampaignId
