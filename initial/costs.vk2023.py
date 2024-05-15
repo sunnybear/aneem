@@ -70,7 +70,7 @@ for period in range(int(config["VK_2023"]["PERIODS"]), 0, -1):
 # Задержка в 1 секунду для избежания превышения лимитов по запросам
     time.sleep(1)
     date_since = (date.today() - timedelta(days=period*int(config["VK_2023"]["DELTA"]))).strftime('%Y-%m-%d')
-    date_until = (date.today() - timedelta(days=(period-1)*int(config["VK_2023"]["DELTA"]))+1).strftime('%Y-%m-%d')
+    date_until = (date.today() - timedelta(days=(period-1)*int(config["VK_2023"]["DELTA"])+1)).strftime('%Y-%m-%d')
 # Создание запроса на выгрузку данных (помесячно)
     r = requests.get("https://ads.vk.com/api/v2/statistics/ad_plans/day.json", params={
         'date_from': date_since,

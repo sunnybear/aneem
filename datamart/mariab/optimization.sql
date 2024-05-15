@@ -48,3 +48,12 @@ IF EXISTS(SELECT raw_yd_campaigns_utms FROM INFORMATION_SCHEMA.TABLES WHERE tabl
 	alter table raw_yd_campaigns_utms add index source (`UTMSource`);
 	alter table raw_yd_campaigns_utms add index campaign (`UTMCampaign`);
 END IF;
+-- raw_ct_calls
+IF EXISTS(SELECT raw_ct_calltouch_calls FROM INFORMATION_SCHEMA.TABLES WHERE table_name LIKE 'raw_ct_calltouch_calls') THEN
+	alter table raw_ct_calltouch_calls add index dateidx (`date`);
+	alter table raw_ct_calltouch_calls add index callerNumber (`callerNumber`);
+	alter table raw_ct_calltouch_calls add index yaClientId (`yaClientId`);
+	alter table raw_ct_calltouch_calls add index utmSource (`utmSource`);
+	alter table raw_ct_calltouch_calls add index utmMedium (`utmMedium`);
+	alter table raw_ct_calltouch_calls add index utmCampaign (`utmCampaign`);
+END IF;
