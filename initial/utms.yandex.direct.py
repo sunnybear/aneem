@@ -153,7 +153,7 @@ for i_credentials, TOKEN in enumerate(config["YANDEX_DIRECT"]["ACCESS_TOKEN"].sp
 # метки "по умолчанию" для кампании, финально применятся только после перебора всех объявлений
         if len(utm_values) == 0 or utm_values[0] == utm_values[1] == utm_values[2] == '':
             utm_values = ['yandex', 'cpc', str(cid)]
-        items.append([LOGIN, cid, href, utm_values[0], utm_values[1], utm_values[2]])
+        items.append([LOGIN, cid, href, utm_values[0], utm_values[1], utm_values[2], cname])
 
 # формируем датафрейм из полученных меток
     data = pd.DataFrame(items, columns=["ClientLogin", "CampaignId", "CampaignHref", "UTMSource", "UTMMedium", "UTMCampaign", "CampaignName"])
