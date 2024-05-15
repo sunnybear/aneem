@@ -1,4 +1,4 @@
-# Скрипт для получения полного списка кампаний и UTM меток объявлений кабинета Яндекс.Директа
+# Скрипт для получения +-*полного списка кампаний и UTM меток объявлений кабинета Яндекс.Директа
 # Необходимо в settings.ini указать
 # * DB.TYPE - тип базы данных (куда выгружать данные)
 # * DB.HOST - адрес (хост) базы данных
@@ -18,6 +18,7 @@ import numpy as np
 import requests
 from sqlalchemy import create_engine, text
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
+from io import StringIO
 # Скрытие предупреждения Unverified HTTPS request
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 # Скрытие предупреждение про fillna
@@ -74,25 +75,38 @@ for i_credentials, TOKEN in enumerate(config["YANDEX_DIRECT"]["ACCESS_TOKEN"].sp
         skip_report_summary = True
     )
 
-# получаем все кампании из аккаунта
+    campaigns = []
+# Основной способ: получаем CampaignId из текущих расходов
+    if "TABLE" in config["YANDEX_DIRECT"]:
+        if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
+            campaigns = pd.read_sql("SELECT distinct CampaignId, CampaignName FROM " + config["YANDEX_DIRECT"]["TABLE"], connection)
+        elif config["DB"]["TYPE"] == "CLICKHOUSE":
+            campaigns = pd.read_csv(StringIO(requests.get("https://" + config["DB"]["USER"] + ":" + config["DB"]["PASSWORD"] + "@" + config["DB"]["HOST"] + ":8443/?database=" + config["DB"]["DB"] + "&query=SELECT distinct CampaignId, CampaignName FROM " + config["YANDEX_DIRECT"]["TABLE"],
+                verify=False).text), delimiter="\t")
+        campaigns.columns = ["Id", "Name"]
+
+# Дополнительный способ: получаем все кампании из аккаунта
     body = {
         "method": "get",
         "params": {"SelectionCriteria": {}, "FieldNames": ["Id", "Name"]}
     }
-    campaigns = client.campaigns().post(data=body)
-    campaigns = pd.DataFrame(campaigns().items())
+    campaigns_yd = client.campaigns().post(data=body)
+# удаляем дубли
+    campaigns = pd.concat([campaigns, pd.DataFrame(campaigns_yd().items())]).drop_duplicates('Id').reset_index()
 
 # исходный список кампаний с UTM метками
     items = []
 # получаем все объявления для данной кампании, интересует только ссылка в объявлении
     for cid in campaigns["Id"].values:
+        cname = campaigns.loc[campaigns["Id"]==cid]["Name"].values[0]
         body = {
             "method": "get",
             "params": {
                 "SelectionCriteria": {"CampaignIds": [int(cid)]},
-                "FieldNames": ["Id"],
+                "FieldNames": ["Id", "Type", "Subtype"],
                 "TextAdFieldNames": ["Href"],
-                "MobileAppAdFieldNames": ["TrackingUrl"],
+				"MobileAppAdFieldNames": ["TrackingUrl"],
+				"DynamicTextAdFieldNames": ["SitelinkSetId"],
                 "TextImageAdFieldNames": ["Href"],
                 "MobileAppImageAdFieldNames": ["TrackingUrl"],
                 "TextAdBuilderAdFieldNames": ["Href"],
@@ -100,7 +114,9 @@ for i_credentials, TOKEN in enumerate(config["YANDEX_DIRECT"]["ACCESS_TOKEN"].sp
                 "MobileAppCpcVideoAdBuilderAdFieldNames": ["TrackingUrl"],
                 "CpcVideoAdBuilderAdFieldNames": ["Href"],
                 "CpmBannerAdBuilderAdFieldNames": ["Href"],
-                "CpmVideoAdBuilderAdFieldNames": ["Href"]
+                "CpmVideoAdBuilderAdFieldNames": ["Href"],
+                "ShoppingAdFieldNames": ["SitelinkSetId"],
+                "ListingAdFieldNames": ["SitelinkSetId"]
             },
         }
         ads = client.ads().post(data=body)
@@ -128,7 +144,7 @@ for i_credentials, TOKEN in enumerate(config["YANDEX_DIRECT"]["ACCESS_TOKEN"].sp
                         else:
                             utm_end += utm_start
 # подменяем в метках переменные Яндекс.Директа
-                        utm_values.append(href[utm_start + len(utm) + 1:utm_end].replace('{campaign_id}', str(cid)).replace('{campaign_name}', campaigns.loc[campaigns["Id"]==cid]["Name"].values[0]))
+                        utm_values.append(href[utm_start + len(utm) + 1:utm_end].replace('{campaign_id}', str(cid)).replace('{campaign_name}', cname))
                     else:
                         utm_values.append('')
 # останавливаемся, как только нашли полный набор меток
@@ -140,7 +156,7 @@ for i_credentials, TOKEN in enumerate(config["YANDEX_DIRECT"]["ACCESS_TOKEN"].sp
         items.append([LOGIN, cid, href, utm_values[0], utm_values[1], utm_values[2]])
 
 # формируем датафрейм из полученных меток
-    data = pd.DataFrame(items, columns=["ClientLogin", "CampaignId", "CampaignHref", "UTMSource", "UTMMedium", "UTMCampaign"])
+    data = pd.DataFrame(items, columns=["ClientLogin", "CampaignId", "CampaignHref", "UTMSource", "UTMMedium", "UTMCampaign", "CampaignName"])
 # базовый процесс очистки: приведение к нужным типам
     for col in data.columns:
 # приведение целых чисел

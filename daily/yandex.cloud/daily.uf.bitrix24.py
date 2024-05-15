@@ -72,9 +72,8 @@ def handler(event, context):
         if os.getenv('DB_TYPE') in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
             ids = list(pd.read_sql("SELECT ID FROM " + parent_table + " WHERE DATE_MODIFY>'" + yesterday + "'", connection)["ID"].values)
         elif os.getenv('DB_TYPE') == "CLICKHOUSE":
-            ids_req = requests.get("https://" + os.getenv('DB_HOST') + ":8443/?database=" + os.getenv('DB_DB') + "&query=SELECT ID FROM " + os.getenv('DB_PREFIX') + "." + parent_table + " WHERE DATE_MODIFY>'" + yesterday + "'",
-                headers=auth, verify=cacert)
-            ids = ids_req.text.split("\n")
+            ids = requests.get("https://" + os.getenv('DB_HOST') + ":8443/?database=" + os.getenv('DB_DB') + "&query=SELECT ID FROM " + os.getenv('DB_PREFIX') + "." + parent_table + " WHERE DATE_MODIFY>'" + yesterday + "'",
+                headers=auth, verify=cacert).text.split("\n")
 # количество ID
         items_last_id = len(ids)
 # счетчик количества объектов

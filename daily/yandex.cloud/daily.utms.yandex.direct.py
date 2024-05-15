@@ -8,6 +8,7 @@
 # * DB_PREFIX - префикс базы данных (может отличаться от имени при облачном подключении)
 # * YANDEX_DIRECT_ACCESS_TOKEN - Access Token для приложения, имеющего доступ к статистике кампаний
 # * YANDEX_DIRECT_ACCESS_EMAIL - Email, имеющий доступ к статистике кампаний
+# * YANDEX_DIRECT_TABLE - имя результирующей таблицы для расходов Яндекс.Директ
 # * YANDEX_DIRECT_TABLE_UTMS - имя результирующей таблицы для UTM меток
 
 # requirements.txt:
@@ -29,6 +30,7 @@ import requests
 from tapi_yandex_direct import YandexDirect
 import datetime as dt
 from sqlalchemy import create_engine, text
+from io import StringIO
 
 def handler(event, context):
     auth = {
@@ -80,18 +82,29 @@ def handler(event, context):
             skip_report_summary = True
         )
 
-# получаем все кампании из аккаунта
+        campaigns = []
+# Основной способ: получаем CampaignId из текущих расходов
+        if os.getenv('DB_TYPE') in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
+            campaigns = pd.read_sql("SELECT distinct CampaignId, CampaignName FROM " + os.getenv('YANDEX_DIRECT_TABLE'), connection)
+        elif os.getenv('DB_TYPE') == "CLICKHOUSE":
+            campaigns = pd.read_csv(StringIO(requests.get('https://' + os.getenv('DB_HOST') + ':8443/?database=' + os.getenv('DB_DB') + '&query=SELECT distinct CampaignId, CampaignName FROM ' + os.getenv('YANDEX_DIRECT_TABLE'),
+                verify=cacert, headers=auth).text), delimiter="\t")
+        campaigns.columns = ["Id", "Name"]
+
+# Дополнительный способ: получаем все кампании из аккаунта
         body = {
             "method": "get",
             "params": {"SelectionCriteria": {}, "FieldNames": ["Id", "Name"]}
         }
-        campaigns = client.campaigns().post(data=body)
-        campaigns = pd.DataFrame(campaigns().items())
+        campaigns_yd = client.campaigns().post(data=body)
+# удаляем дубли
+        campaigns = pd.concat([campaigns, pd.DataFrame(campaigns_yd().items())]).drop_duplicates('Id').reset_index()
 
 # исходный список кампаний с UTM метками
         items = []
 # получаем все объявления для данной кампании, интересует только ссылка в объявлении
         for cid in campaigns["Id"].values:
+            cname = campaigns.loc[campaigns["Id"]==cid]["Name"].values[0]
             body = {
                 "method": "get",
                 "params": {
@@ -134,7 +147,7 @@ def handler(event, context):
                             else:
                                 utm_end += utm_start
 # подменяем в метках переменные Яндекс.Директа
-                            utm_values.append(href[utm_start + len(utm) + 1:utm_end].replace('{campaign_id}', str(cid)).replace('{campaign_name}', campaigns.loc[campaigns["Id"]==cid]["Name"].values[0]))
+                            utm_values.append(href[utm_start + len(utm) + 1:utm_end].replace('{campaign_id}', str(cid)).replace('{campaign_name}', cname))
                         else:
                             utm_values.append('')
 # останавливаемся, как только нашли полный набор меток
@@ -143,10 +156,10 @@ def handler(event, context):
 # метки "по умолчанию" для кампании, финально применятся только после перебора всех объявлений
             if len(utm_values) == 0 or utm_values[0] == utm_values[1] == utm_values[2] == '':
                 utm_values = ['yandex', 'cpc', str(cid)]
-            items.append([LOGIN, cid, href, utm_values[0], utm_values[1], utm_values[2]])
+            items.append([LOGIN, cid, href, utm_values[0], utm_values[1], utm_values[2], cname])
 
 # формируем датафрейм из полученных меток
-    data = pd.DataFrame(items, columns=["ClientLogin", "CampaignId", "CampaignHref", "UTMSource", "UTMMedium", "UTMCampaign"])
+    data = pd.DataFrame(items, columns=["ClientLogin", "CampaignId", "CampaignHref", "UTMSource", "UTMMedium", "UTMCampaign", "CampaignName"])
 # базовый процесс очистки: приведение к нужным типам
     for col in data.columns:
 # приведение целых чисел

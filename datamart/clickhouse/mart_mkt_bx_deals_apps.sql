@@ -17,7 +17,7 @@ CREATE VIEW DB.mart_mkt_bx_deals_app AS
     END AS UTM_SOURCE,
     CASE
 		WHEN d.UTM_MEDIUM_PURE = 'Веб-сайт' AND DEAL_APP THEN CASE WHEN (ca.UTM_MEDIUM='' OR ca.UTM_MEDIUM IS NULL) THEN am.tracker_name ELSE ca.UTM_CAMPAIGN END
-        WHEN d.UTM_MEDIUM_PURE = '' OR d.UTM_MEDIUM_PURE IS NULL THEN CASE WHEN (ca.UTM_MEDIUM='' OR ca.UTM_MEDIUM IS NULL) AND DEAL_APP THEN am.tracker_name ELSE ca.UTM_CAMPAIGN END
+        WHEN d.UTM_MEDIUM_PURE = '' OR d.UTM_MEDIUM_PURE IS NULL THEN CASE WHEN (ca.UTM_MEDIUM='' OR ca.UTM_MEDIUM IS NULL) AND DEAL_APP THEN am.tracker_name ELSE IFNULL(cuid.CampaignName, IFNULL(cucamp.CampaignName, ca.UTM_CAMPAIGN)) END
         ELSE d.UTM_CAMPAIGN_PURE
     END AS UTM_CAMPAIGN,
 	UTM_CAMPAIGN_ID
@@ -27,6 +27,8 @@ FROM DB.mart_mkt_bx_crm_deal as d
     LEFT JOIN DB.dict_yainstallationid_yclid as ic ON ic.installation_id=ip.installation_id
     LEFT JOIN DB.raw_ya_installs as am ON am.installation_id=ip.installation_id
     LEFT JOIN DB.dict_yclid_attribution_lndc as ca ON ca.yclid=ic.yclid
+	LEFT JOIN DB.raw_yd_campaigns_utms as cuid ON cu.CampaignId=ca.UTM_CAMPAIGN
+	LEFT JOIN DB.raw_yd_campaigns_utms as cucamp ON cu.UTMCampaign=ca.UTM_CAMPAIGN
 WHERE
     (CASE
 WHEN POSITION(REVERSE(`STAGE_ID`), ':')>0 THEN SUBSTRING(`STAGE_ID`, LENGTH(`STAGE_ID`)-POSITION(REVERSE(`STAGE_ID`), ':')+2, LENGTH(`STAGE_ID`))
