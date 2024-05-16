@@ -272,3 +272,32 @@ FROM mart_mkt_e2e as e
     LEFT JOIN raw_yd_campaigns_utms as cuid ON CAST(cuid.CampaignId AS CHAR)=e.UTMCampaign
     LEFT JOIN raw_yd_campaigns_utms as cucamp ON cucamp.UTMCampaign=e.UTMCampaign
 GROUP BY DT, e.UTMMedium, e.UTMSource, e.UTMCampaign;
+
+CREATE OR REPLACE TABLE `mart_mkt_attribution_base` (
+  `_Дата` datetime DEFAULT NULL,
+  `_Визиты` bigint(20) DEFAULT NULL,
+  `_Расходы` double DEFAULT NULL,
+  `_Заказы` bigint(20) DEFAULT NULL,
+  `_Продажи` bigint(20) DEFAULT NULL,
+  `_Выручка` double DEFAULT NULL,
+  `_Канал` text DEFAULT NULL,
+  `_Источник` text DEFAULT NULL,
+  `_Кампания` text DEFAULT NULL,
+  KEY `ix_datetime` (`_Дата`),
+  KEY `ix_channel` (`_Канал`(768)),
+  KEY `ix_source` (`_Источник`(768)),
+  KEY `ix_campaign` (`_Кампания`(768))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 SELECT
+	DT as '_Дата',
+	SUM(Visits) as '_Визиты',
+	SUM(Costs) as '_Расходы',
+	SUM(Orders) as '_Заказы',
+	SUM(Sales) as '_Продажи',
+	SUM(Revenue) as '_Выручка',
+	e.UTMMedium as '_Канал',
+	e.UTMSource as '_Источник',
+	IFNULL(cuid.CampaignName, IFNULL(cucamp.CampaignName, e.UTMCampaign)) as '_Кампания'
+FROM mart_mkt_e2e as e
+    LEFT JOIN raw_yd_campaigns_utms as cuid ON CAST(cuid.CampaignId AS CHAR)=e.UTMCampaign
+    LEFT JOIN raw_yd_campaigns_utms as cucamp ON cucamp.UTMCampaign=e.UTMCampaign
+GROUP BY DT, e.UTMMedium, e.UTMSource, e.UTMCampaign;
