@@ -1,9 +1,9 @@
-create view mart_ym_goals_purchase as (SELECT
+create or replace view mart_ym_goals_purchase as (SELECT
     `ym:s:goalDateTime` as gdt, `ym:s:clientID` as cid
 FROM raw_ym_visits_goals
 WHERE `ym:s:goalID` in ('40707328', '40707301') AND `ym:s:clientID`>0);
 
-create view mart_ym_clients as (select
+create or replace view mart_ym_clients as (select
 	`ym:s:clientID` as cid,
     `ym:s:dateTime` as vdt,
     CASE
@@ -21,7 +21,7 @@ create view mart_ym_clients as (select
 FROM raw_ym_visits
 WHERE `ym:s:clientID`>0);
 
-create view mart_ym_goals_close as (select
+create or replace view mart_ym_goals_close as (select
 	YEAR(goals.gdt) as gdt_year,
     MONTH(goals.gdt) as gdt_month,
     DAYOFMONTH(goals.gdt) as gdt_day,
@@ -33,11 +33,11 @@ from mart_ym_goals_purchase as goals
     left join mart_ym_clients as clients on goals.cid=clients.cid
 WHERE goals.gdt > clients.vdt);
 
-create view mart_ym_goals_utm as (select *
+create or replace view mart_ym_goals_utm as (select *
 from mart_ym_goals_close
 WHERE rowNum=1);
 
-create view mart_bx_orders_datetime as (select
+create or replace view mart_bx_orders_datetime as (select
 	id,
     YEAR(dateInsert) as odt_year,
 	MONTH(dateInsert) as odt_month,
@@ -47,7 +47,7 @@ create view mart_bx_orders_datetime as (select
 	price, dateInsert, canceled, statusId
 from raw_bx_orders);
 
-create view mart_bx_orders_datetime_1 as (select
+create or replace view mart_bx_orders_datetime_1 as (select
 	id,
     YEAR(dateInsert) as odt_year,
 	MONTH(dateInsert) as odt_month,
@@ -60,7 +60,7 @@ create view mart_bx_orders_datetime_1 as (select
 	price, dateInsert, canceled, statusId
 from raw_bx_orders);
 
-create view mart_bx_orders_utm as (select
+create or replace view mart_bx_orders_utm as (select
 	id,
 	price,
 	dateInsert,
@@ -88,7 +88,7 @@ from mart_ym_goals_utm
 left join mart_bx_orders_datetime_1 on odt_year=gdt_year and odt_month=gdt_month and odt_day=gdt_day and odt_hour=gdt_hour and odt_minute=gdt_minute
 where odt_minute IS NOT NULL);
 
-create view mart_bx_orders_all as (SELECT
+create or replace view mart_bx_orders_all as (SELECT
 	id,
 	price,
 	dateInsert,
@@ -121,7 +121,7 @@ SELECT
 FROM raw_bx_orders
 WHERE id NOT IN (SELECT id FROM mart_bx_orders_utm));
 
-create view mart_visits_dt as (SELECT
+create or replace view mart_visits_dt as (SELECT
     DATE(`ym:s:dateTime`) AS `DT`,
 	COUNT(`ym:s:visitID`) AS 'Visits',
 	0 AS Costs,
@@ -143,7 +143,7 @@ create view mart_visits_dt as (SELECT
 FROM raw_ym_visits
 GROUP BY DATE(`ym:s:dateTime`), UTMMedium, UTMSource, UTMCampaign);
 
-create view mart_costs_dt as (SELECT
+create or replace view mart_costs_dt as (SELECT
     DATE(`Date`) AS `DT`,
 	0 'Visits',
 	SUM(`Cost`) as Costs,
@@ -157,7 +157,7 @@ FROM raw_yd_costs as c
 LEFT JOIN raw_yd_campaigns_utms as u ON c.CampaignId=u.CampaignId
 GROUP BY DATE(`Date`), UTMMedium, UTMSource, UTMCampaign);
 
-create view mart_orders_dt as (SELECT
+create or replace view mart_orders_dt as (SELECT
 	DATE(dateInsert) AS `DT`,
 	0 as Visits,
 	0 as Costs,
@@ -170,7 +170,7 @@ create view mart_orders_dt as (SELECT
 FROM mart_bx_orders_all
 GROUP BY DATE(dateInsert), UTMMedium, UTMSource, UTMCampaign);
 
-create view mart_sales_dt as (SELECT
+create or replace view mart_sales_dt as (SELECT
 	DATE(dateInsert) AS `DT`,
 	0 AS Visits,
 	0 AS Costs,
@@ -184,7 +184,7 @@ FROM mart_bx_orders_all
 WHERE statusId IN ('D', 'F', 'G', 'OG', 'P', 'YA')
 GROUP BY DATE(dateInsert), UTMMedium, UTMSource, UTMCampaign);
 
-create view mart_mkt_e2e as (SELECT
+create or replace view mart_mkt_e2e as (SELECT
 	DT,
 	Visits,
 	Costs,
@@ -242,7 +242,7 @@ SELECT
 FROM mart_sales_dt
 WHERE Revenue>0);
 
-CREATE EVENT mart_mkt_attribution_base
+CREATE OR REPLACE EVENT mart_mkt_attribution_base
   ON SCHEDULE EVERY 1 DAY STARTS '2024-01-01 04:00:00.000' DO
    CREATE OR REPLACE TABLE `mart_mkt_attribution_base` (
   `_Дата` datetime DEFAULT NULL,

@@ -1,4 +1,4 @@
-create view mart_ym_goals_close_lndc as (select
+create or replace view mart_ym_goals_close_lndc as (select
 	YEAR(goals.gdt) as gdt_year,
     MONTH(goals.gdt) as gdt_month,
     DAYOFMONTH(goals.gdt) as gdt_day,
@@ -10,13 +10,13 @@ from mart_ym_goals_purchase as goals
     left join mart_ym_clients as clients on goals.cid=clients.cid
 WHERE
 	goals.gdt > clients.vdt AND
-	`UTMMedium`<>'direct');
+	`UTMMedium`NOT IN ('direct', 'internal'));
 
-create view mart_ym_goals_utm_lndc as (select *
+create or replace view mart_ym_goals_utm_lndc as (select *
 from mart_ym_goals_close_lndc
 WHERE rowNum=1);
 
-create view mart_bx_orders_utm_lndc as (select
+create or replace view mart_bx_orders_utm_lndc as (select
 	id,
 	price,
 	dateInsert,
@@ -44,7 +44,7 @@ from mart_ym_goals_utm_lndc
 left join mart_bx_orders_datetime_1 on odt_year=gdt_year and odt_month=gdt_month and odt_day=gdt_day and odt_hour=gdt_hour and odt_minute=gdt_minute
 where odt_minute IS NOT NULL);
 
-create view mart_bx_orders_all_lndc as (SELECT
+create or replace view mart_bx_orders_all_lndc as (SELECT
 	id,
 	price,
 	dateInsert,
@@ -77,7 +77,7 @@ SELECT
 FROM raw_bx_orders
 WHERE id NOT IN (SELECT id FROM mart_bx_orders_utm_lndc));
 
-create view mart_orders_dt_lndc as (SELECT
+create or replace view mart_orders_dt_lndc as (SELECT
 	DATE(dateInsert) AS `DT`,
 	0 as Visits,
 	0 as Costs,
@@ -90,7 +90,7 @@ create view mart_orders_dt_lndc as (SELECT
 FROM mart_bx_orders_all_lndc
 GROUP BY DATE(dateInsert), UTMMedium, UTMSource, UTMCampaign);
 
-create view mart_sales_dt_lndc as (SELECT
+create or replace view mart_sales_dt_lndc as (SELECT
 	DATE(dateInsert) AS `DT`,
 	0 AS Visits,
 	0 AS Costs,
@@ -104,7 +104,7 @@ FROM mart_bx_orders_all_lndc
 WHERE statusId IN ('D', 'F', 'G', 'OG', 'P', 'YA')
 GROUP BY DATE(dateInsert), UTMMedium, UTMSource, UTMCampaign);
 
-create view mart_mkt_e2e_lndc as (SELECT
+create or replace view mart_mkt_e2e_lndc as (SELECT
 	DT,
 	Visits,
 	Costs,
@@ -162,7 +162,7 @@ SELECT
 FROM mart_sales_dt_lndc
 WHERE Revenue>0);
 
-CREATE EVENT mart_mkt_attribution_lndc
+CREATE OR REPLACE EVENT mart_mkt_attribution_lndc
   ON SCHEDULE EVERY 1 DAY STARTS '2024-01-01 08:10:00.000' DO
    CREATE OR REPLACE TABLE `mart_mkt_attribution_lndc` (
   `_Дата` datetime DEFAULT NULL,
@@ -188,7 +188,7 @@ CREATE EVENT mart_mkt_attribution_lndc
 	e.UTMMedium as '_Канал',
 	e.UTMSource as '_Источник',
 	IFNULL(cuid.CampaignName, IFNULL(cucamp.CampaignName, e.UTMCampaign)) as '_Кампания'
-FROM mart_mkt_e2e as e
+FROM mart_mkt_e2e_lndc as e
     LEFT JOIN raw_yd_campaigns_utms as cuid ON CAST(cuid.CampaignId AS CHAR)=e.UTMCampaign
     LEFT JOIN raw_yd_campaigns_utms as cucamp ON cucamp.UTMCampaign=e.UTMCampaign
 GROUP BY DT, e.UTMMedium, e.UTMSource, e.UTMCampaign;
@@ -217,7 +217,7 @@ CREATE OR REPLACE TABLE `mart_mkt_attribution_lndc` (
 	e.UTMMedium as '_Канал',
 	e.UTMSource as '_Источник',
 	IFNULL(cuid.CampaignName, IFNULL(cucamp.CampaignName, e.UTMCampaign)) as '_Кампания'
-FROM mart_mkt_e2e as e
+FROM mart_mkt_e2e_lndc as e
     LEFT JOIN raw_yd_campaigns_utms as cuid ON CAST(cuid.CampaignId AS CHAR)=e.UTMCampaign
     LEFT JOIN raw_yd_campaigns_utms as cucamp ON cucamp.UTMCampaign=e.UTMCampaign
 GROUP BY DT, e.UTMMedium, e.UTMSource, e.UTMCampaign;
