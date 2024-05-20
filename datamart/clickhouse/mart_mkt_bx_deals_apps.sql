@@ -1,5 +1,5 @@
 -- 1. ground table
-CREATE TABLE DB.mart_mkt_bx_deals_app
+CREATE OR REPLACE TABLE DB.mart_mkt_bx_deals_app
 (
     `DEALS` Int64,
 	`REPEATDEALS` Int64,
@@ -14,6 +14,7 @@ ENGINE = SummingMergeTree
 ORDER BY (DEALS, REPEATDEALS, DT, REVENUE, UTM_CAMPAIGN_ID, UTM_CAMPAIGN_PURE, UTM_SOURCE_PURE, UTM_MEDIUM_PURE);
 
 -- 2. materialized view (updates data rom now)
+DROP VIEW IF EXISTS DB.mart_mkt_bx_deals_app_mv;
 CREATE MATERIALIZED VIEW DB.mart_mkt_bx_deals_app_mv TO DB.mart_mkt_bx_deals_app AS
 (WITH deals AS (SELECT
     d.ID as ID,
@@ -54,7 +55,7 @@ CREATE MATERIALIZED VIEW DB.mart_mkt_bx_deals_app_mv TO DB.mart_mkt_bx_deals_app
 	UTM_CAMPAIGN_ID
 FROM DB.mart_mkt_bx_crm_deal as d
     LEFT JOIN DB.dict_bxdealid_phone as dp ON d.ID=dp.ID
-    LEFT JOIN DB.dict_yainstallationid_phone as ip ON ip.phone=dp.phone
+    LEFT JOIN DB.dict_yainstallationid_phone_all as ip ON ip.phone=dp.phone
     LEFT JOIN DB.dict_yainstallationid_yclid as ic ON ic.installation_id=ip.installation_id
     LEFT JOIN DB.raw_ya_installs as am ON am.installation_id=ip.installation_id
     LEFT JOIN DB.dict_yclid_attribution_lndc as ca ON ca.yclid=ic.yclid
@@ -135,7 +136,7 @@ FROM (SELECT
 	UTM_CAMPAIGN_ID
 FROM DB.mart_mkt_bx_crm_deal as d
     LEFT JOIN DB.dict_bxdealid_phone as dp ON d.ID=dp.ID
-    LEFT JOIN DB.dict_yainstallationid_phone as ip ON ip.phone=dp.phone
+    LEFT JOIN DB.dict_yainstallationid_phone_all as ip ON ip.phone=dp.phone
     LEFT JOIN DB.dict_yainstallationid_yclid as ic ON ic.installation_id=ip.installation_id
     LEFT JOIN DB.raw_ya_installs as am ON am.installation_id=ip.installation_id
     LEFT JOIN DB.dict_yclid_attribution_lndc as ca ON ca.yclid=ic.yclid
@@ -152,4 +153,4 @@ GROUP BY d.ID, DEAL_APP, IS_RETURN_CUSTOMER, CLOSEDATE, OPPORTUNITY, UTM_MEDIUM,
     LEFT JOIN DB.raw_yd_campaigns_utms as cucamp ON cucamp.UTMCampaign=d.UTM_CAMPAIGN
 GROUP BY DT,UTM_CAMPAIGN_ID,UTM_CAMPAIGN,UTM_SOURCE,UTM_MEDIUM,cuid.CampaignName,cucamp.CampaignName
 
-SETTINGS join_use_nulls = 1
+SETTINGS join_use_nulls = 1;
