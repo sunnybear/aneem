@@ -1,4 +1,4 @@
-CREATE VIEW DB.mart_mkt_ym_visits as
+CREATE OR REPLACE VIEW DB.mart_mkt_ym_visits as
 SELECT
     count(`ym:s:visitID`) as VISITS,
     toDate(`ym:s:dateTime`) AS DT,
@@ -6,7 +6,7 @@ SELECT
         WHEN `ym:s:lastUTMCampaign`='(not set)' THEN ''
         WHEN `ym:s:lastUTMCampaign`='(referral)' THEN ''
         WHEN `ym:s:lastUTMCampaign`='(organic)' THEN ''
-        ELSE `ym:s:lastUTMCampaign`
+        ELSE IFNULL(ctui.CampaignName, IFNULL(uc.CampaignName, IFNULL(ui.CampaignName, `ym:s:lastUTMCampaign`)))
     END as UTM_CAMPAIGN_PURE,
     CASE 
         WHEN toUInt64OrNull(SUBSTRING(`ym:s:lastUTMCampaign`, LENGTH(`ym:s:lastUTMCampaign`) - POSITION(REVERSE(`ym:s:lastUTMCampaign`), '_')+2, LENGTH(`ym:s:lastUTMCampaign`))) IS NOT NULL THEN SUBSTRING(`ym:s:lastUTMCampaign`, LENGTH(`ym:s:lastUTMCampaign`) - POSITION(REVERSE(`ym:s:lastUTMCampaign`), '_')+2, LENGTH(`ym:s:lastUTMCampaign`))
@@ -112,7 +112,10 @@ SELECT
         WHEN `ym:s:lastUTMSource`='banner' THEN 'cpc'
         ELSE `ym:s:lastUTMSource`
     END as UTM_SOURCE_PURE
-FROM DB.raw_ym_visits
+FROM DB.raw_ym_visits as v
+	LEFT JOIN DB.raw_yd_campaigns_utms as uc ON `ym:s:lastUTMCampaign`=uc.UTMCampaign
+	LEFT JOIN DB.raw_yd_campaigns_utms as ui ON `ym:s:lastUTMCampaign`=toString(ui.CampaignId)
+	LEFT JOIN DB.raw_yd_campaigns_utms as ctui ON SUBSTRING(SUBSTRING(`ym:s:startURL`, POSITION(`ym:s:startURL`, 'calltouch_tm=yd_c:')+18), 1, POSITION(SUBSTRING(`ym:s:startURL`, POSITION(`ym:s:startURL`, 'calltouch_tm=yd_c:')+18), '_')-1)=toString(ctui.CampaignId)
 GROUP BY UTM_CAMPAIGN_PURE,UTM_CAMPAIGN_ID,UTM_MEDIUM_PURE,UTM_SOURCE_PURE,DT
 
 SETTINGS join_use_nulls = 1
