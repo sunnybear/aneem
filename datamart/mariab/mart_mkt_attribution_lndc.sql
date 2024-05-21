@@ -72,7 +72,7 @@ SELECT
 	canceled,
 	statusId,
 	CASE
-		WHEN LOCATE('YAMARKET_', xmlId)>0 THEN 'Yandex.Market'
+		WHEN LOCATE('YAMARKET_', xmlId)>0 THEN 'Яндекс.Маркет'
 		WHEN LOCATE('Заказ поступил с Озона', userDescription)>0 THEN 'Озон'
 		ELSE 'direct'
 	END AS UTMMedium,
