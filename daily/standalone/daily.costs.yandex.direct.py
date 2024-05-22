@@ -5,6 +5,7 @@
 # * DB.USER - пользователь базы данных
 # * DB.PASSWORD - пароль к базе данных
 # * DB.DB - имя базы данных
+# * YANDEX_DIRECT.DAYS_UPDATE - период обновления (в днях): 30-90
 # * YANDEX_DIRECT.ACCESS_TOKEN - Access Token для приложения, имеющего доступ к статистике нужного сайта (или несколько - через запятую, порядок как у логина)
 # * YANDEX_DIRECT.LOGIN - Логин аккаунта Яндекс.Директа, для которого разрешен доступ к статистике (или несколько - через запятую в том же порядке)
 # * YANDEX_DIRECT.TABLE - имя результирующей таблицы для статистики (расходов)
@@ -72,7 +73,7 @@ for i_credentials, TOKEN in enumerate(config["YANDEX_DIRECT"]["ACCESS_TOKEN"].sp
         skip_report_summary = True
     )
 
-    date_since = (date.today() - timedelta(days=91)).strftime('%Y-%m-%d')
+    date_since = (date.today() - timedelta(days=int(config["YANDEX_DIRECT"]["DAYS_UPDATE"]) + 1)).strftime('%Y-%m-%d')
     date_until = (date.today() - timedelta(days=1)).strftime('%Y-%m-%d')
 # Создание запроса на выгрузку данных (помесячно)
     result = client.reports().post(data={
