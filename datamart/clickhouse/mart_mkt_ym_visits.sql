@@ -111,11 +111,12 @@ SELECT
         WHEN `ym:s:lastUTMMedium`='Ad traffic' THEN 'cpc'
         WHEN `ym:s:lastUTMSource`='banner' THEN 'cpc'
         ELSE `ym:s:lastUTMSource`
-    END as UTM_SOURCE_PURE
+    END as UTM_SOURCE_PURE,
+	`ym:s:lastUTMTerm` as UTM_TERM_PURE
 FROM DB.raw_ym_visits as v
 	LEFT JOIN DB.raw_yd_campaigns_utms as uc ON `ym:s:lastUTMCampaign`=uc.UTMCampaign
 	LEFT JOIN DB.raw_yd_campaigns_utms as ui ON `ym:s:lastUTMCampaign`=toString(ui.CampaignId)
 	LEFT JOIN DB.raw_yd_campaigns_utms as ctui ON SUBSTRING(SUBSTRING(`ym:s:startURL`, POSITION(`ym:s:startURL`, 'calltouch_tm=yd_c:')+18), 1, POSITION(SUBSTRING(`ym:s:startURL`, POSITION(`ym:s:startURL`, 'calltouch_tm=yd_c:')+18), '_')-1)=toString(ctui.CampaignId)
-GROUP BY UTM_CAMPAIGN_PURE,UTM_CAMPAIGN_ID,UTM_MEDIUM_PURE,UTM_SOURCE_PURE,DT
+GROUP BY UTM_TERM_PURE, UTM_CAMPAIGN_PURE, UTM_CAMPAIGN_ID, UTM_MEDIUM_PURE, UTM_SOURCE_PURE, DT
 
 SETTINGS join_use_nulls = 1

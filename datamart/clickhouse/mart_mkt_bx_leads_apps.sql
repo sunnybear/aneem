@@ -6,10 +6,11 @@ CREATE OR REPLACE TABLE DB.mart_mkt_bx_leads_app
     `UTM_CAMPAIGN_ID` String,
 	`UTM_CAMPAIGN_PURE` String,
 	`UTM_SOURCE_PURE` String,
-	`UTM_MEDIUM_PURE` String
+	`UTM_MEDIUM_PURE` String,
+	`UTM_TERM_PURE` String
 )
 ENGINE = SummingMergeTree
-ORDER BY (LEADS, DT, UTM_CAMPAIGN_ID, UTM_CAMPAIGN_PURE, UTM_SOURCE_PURE, UTM_MEDIUM_PURE);
+ORDER BY (LEADS, DT, UTM_CAMPAIGN_ID, UTM_CAMPAIGN_PURE, UTM_SOURCE_PURE, UTM_MEDIUM_PURE, UTM_TERM_PURE);
 
 -- 2. materialized view (updates data rom now)
 DROP VIEW IF EXISTS DB.mart_mkt_bx_leads_app_mv;
@@ -48,7 +49,8 @@ CREATE MATERIALIZED VIEW DB.mart_mkt_bx_leads_app_mv TO DB.mart_mkt_bx_leads_app
 			ELSE l.UTM_CAMPAIGN_PURE END
         ELSE l.UTM_CAMPAIGN_PURE
     END AS UTM_CAMPAIGN,
-	UTM_CAMPAIGN_ID
+	UTM_CAMPAIGN_ID,
+	l.UTM_TERM as UTM_TERM
 FROM DB.mart_mkt_bx_crm_lead as l
     LEFT JOIN DB.dict_bxleadid_phone as lp ON l.ID=lp.ID
     LEFT JOIN DB.dict_yainstallationid_phone_all as ip ON ip.phone=lp.phone
@@ -58,7 +60,7 @@ FROM DB.mart_mkt_bx_crm_lead as l
 	LEFT JOIN DB.dict_ctphone_yclid as ct ON ct.phone=lp.phone
 	LEFT JOIN DB.dict_yclid_attribution_lndc as cact ON cact.yclid=ct.yclid
 	LEFT JOIN DB.dict_ctphone_attribution_lndc as ctlndc ON ctlndc.phone=lp.phone
-GROUP BY ID, LEAD_APP, DATE_CREATE, UTM_MEDIUM, UTM_SOURCE, UTM_CAMPAIGN, UTM_CAMPAIGN_ID
+GROUP BY ID, LEAD_APP, DATE_CREATE, UTM_MEDIUM, UTM_SOURCE, UTM_CAMPAIGN, UTM_CAMPAIGN_ID, UTM_TERM
 
 SETTINGS join_use_nulls = 1)
 
@@ -68,11 +70,12 @@ SELECT
     UTM_CAMPAIGN_ID AS UTM_CAMPAIGN_ID,
     IFNULL(cuid.CampaignName, IFNULL(cucamp.CampaignName, UTM_CAMPAIGN)) AS UTM_CAMPAIGN_PURE,
     UTM_SOURCE AS UTM_SOURCE_PURE,
-    UTM_MEDIUM AS UTM_MEDIUM_PURE
+    UTM_MEDIUM AS UTM_MEDIUM_PURE,
+	UTM_TERM AS UTM_TERM_PURE
 FROM leads as l
 	LEFT JOIN DB.raw_yd_campaigns_utms as cuid ON toString(cuid.CampaignId)=l.UTM_CAMPAIGN
     LEFT JOIN DB.raw_yd_campaigns_utms as cucamp ON cucamp.UTMCampaign=l.UTM_CAMPAIGN
-GROUP BY DT,UTM_CAMPAIGN_ID,UTM_CAMPAIGN,UTM_SOURCE,UTM_MEDIUM,cuid.CampaignName,cucamp.CampaignName
+GROUP BY DT, UTM_CAMPAIGN_ID, UTM_CAMPAIGN, UTM_SOURCE, UTM_MEDIUM, UTM_TERM, cuid.CampaignName, cucamp.CampaignName
 
 SETTINGS join_use_nulls = 1);
 
@@ -83,7 +86,8 @@ INSERT INTO DB.mart_mkt_bx_leads_app SELECT
     UTM_CAMPAIGN_ID AS UTM_CAMPAIGN_ID,
     IFNULL(cuid.CampaignName, IFNULL(cucamp.CampaignName, UTM_CAMPAIGN)) AS UTM_CAMPAIGN_PURE,
     UTM_SOURCE AS UTM_SOURCE_PURE,
-    UTM_MEDIUM AS UTM_MEDIUM_PURE
+    UTM_MEDIUM AS UTM_MEDIUM_PURE,
+	UTM_TERM AS UTM_TERM_PURE
 FROM (SELECT
     l.ID as ID,
     LOCATE(TITLE, 'Заказ из приложения') AS LEAD_APP,
@@ -118,7 +122,8 @@ FROM (SELECT
 			ELSE l.UTM_CAMPAIGN_PURE END
         ELSE l.UTM_CAMPAIGN_PURE
     END AS UTM_CAMPAIGN,
-	UTM_CAMPAIGN_ID
+	UTM_CAMPAIGN_ID,
+	l.UTM_TERM as UTM_TERM
 FROM DB.mart_mkt_bx_crm_lead as l
     LEFT JOIN DB.dict_bxleadid_phone as lp ON l.ID=lp.ID
     LEFT JOIN DB.dict_yainstallationid_phone_all as ip ON ip.phone=lp.phone
@@ -128,9 +133,9 @@ FROM DB.mart_mkt_bx_crm_lead as l
 	LEFT JOIN DB.dict_ctphone_yclid as ct ON ct.phone=lp.phone
 	LEFT JOIN DB.dict_yclid_attribution_lndc as cact ON cact.yclid=ct.yclid
 	LEFT JOIN DB.dict_ctphone_attribution_lndc as ctlndc ON ctlndc.phone=lp.phone
-GROUP BY ID, LEAD_APP, DATE_CREATE, UTM_MEDIUM, UTM_SOURCE, UTM_CAMPAIGN, UTM_CAMPAIGN_ID) as l
+GROUP BY ID, LEAD_APP, DATE_CREATE, UTM_MEDIUM, UTM_SOURCE, UTM_CAMPAIGN, UTM_CAMPAIGN_ID, UTM_TERM) as l
 	LEFT JOIN DB.raw_yd_campaigns_utms as cuid ON toString(cuid.CampaignId)=l.UTM_CAMPAIGN
     LEFT JOIN DB.raw_yd_campaigns_utms as cucamp ON cucamp.UTMCampaign=l.UTM_CAMPAIGN
-GROUP BY DT,UTM_CAMPAIGN_ID,UTM_CAMPAIGN,UTM_SOURCE,UTM_MEDIUM,cuid.CampaignName,cucamp.CampaignName
+GROUP BY DT, UTM_CAMPAIGN_ID, UTM_CAMPAIGN, UTM_SOURCE, UTM_MEDIUM, UTM_TERM, cuid.CampaignName, cucamp.CampaignName
 
 SETTINGS join_use_nulls = 1;
