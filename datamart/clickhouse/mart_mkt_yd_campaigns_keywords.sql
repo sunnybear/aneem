@@ -171,10 +171,65 @@ INSERT INTO DB.mart_mkt_yd_campaigns_keywords_visits SELECT
 	v.UTM_TERM_PURE AS `Term`
 FROM DB.mart_mkt_ym_visits as v
 	LEFT JOIN DB.mart_mkt_yd_cpv as c ON c.UTM_CAMPAIGN_PURE=v.UTM_CAMPAIGN_PURE AND c.DT=v.DT
-WHERE v.UTM_MEDIUM_PURE='cpc'
 GROUP BY `Term`, `Campaign`, `Source`, `Date`
 
 SETTINGS join_use_nulls = 1;
+
+-- costs w/o visits --
+
+-- 1. ground table
+CREATE OR REPLACE TABLE DB.mart_mkt_yd_campaigns_keywords_costs
+(
+	`Date` Date,
+    `Visits` Int64,
+	`Costs` Float64,
+	`Installs` Int64,
+	`Leads` Int64,
+	`Deals` Int64,
+	`Revenue` Float64,
+	`RepeatDeals` Int64,	
+	`Source` String,
+	`Campaign` String,
+	`Term` String
+)
+ENGINE = SummingMergeTree
+ORDER BY (Date, Visits, Costs, Installs, Leads, Deals, Revenue, RepeatDeals, Source, Campaign, Term);
+
+-- 2. materialized view (updates data rom now)
+DROP VIEW IF EXISTS DB.mart_mkt_yd_campaigns_keywords_costs_mv;
+CREATE MATERIALIZED VIEW DB.mart_mkt_yd_campaigns_keywords_costs_mv TO DB.mart_mkt_yd_campaigns_keywords_costs AS
+SELECT
+    c.DT AS `Date`,
+    0 AS `Visits`,
+    SUM(c.C) AS `Costs`,
+	0 AS `Installs`,
+    0 AS `Leads`,
+    0 AS `Deals`,
+    0 AS `Revenue`,
+    0 AS `RepeatDeals`,
+    '' AS `Source`,
+    c.UTM_CAMPAIGN_PURE AS `Campaign`,
+	'' AS `Term`
+FROM DB.mart_mkt_yd_cpv as c
+WHERE c.V=0
+GROUP BY `Campaign`, `Source`, `Date`;
+
+-- 3. initial data upload
+INSERT INTO DB.mart_mkt_yd_campaigns_keywords_costs SELECT
+    c.DT AS `Date`,
+    0 AS `Visits`,
+    SUM(c.C) AS `Costs`,
+	0 AS `Installs`,
+    0 AS `Leads`,
+    0 AS `Deals`,
+    0 AS `Revenue`,
+    0 AS `RepeatDeals`,
+    '' AS `Source`,
+    c.UTM_CAMPAIGN_PURE AS `Campaign`,
+	'' AS `Term`
+FROM DB.mart_mkt_yd_cpv as c
+WHERE c.V=0
+GROUP BY `Campaign`, `Source`, `Date`;
 
 -- installs --
 
@@ -264,6 +319,8 @@ FROM
 	SELECT * FROM DB.mart_mkt_yd_campaigns_keywords_deals
 	UNION ALL
 	SELECT * FROM DB.mart_mkt_yd_campaigns_keywords_visits
+	UNION ALL
+	SELECT * FROM DB.mart_mkt_yd_campaigns_keywords_costs
 	UNION ALL
 	SELECT * FROM DB.mart_mkt_yd_campaigns_keywords_installs)
 GROUP BY `Source`, `Campaign`, `Term`, `Date`
