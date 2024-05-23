@@ -27,7 +27,13 @@ FROM (SELECT
         ELSE `ym:s:lastUTMMedium`
     END as UTM_MEDIUM,
     CASE
-        WHEN `ym:s:lastUTMMedium`='' THEN CASE WHEN `ym:s:lastTrafficSource`='organic' THEN `ym:s:lastSearchEngine` WHEN `ym:s:lastTrafficSource`='referral' THEN `ym:s:lastReferalSource` WHEN `ym:s:lastTrafficSource`='ad' THEN `ym:s:lastAdvEngine` WHEN `ym:s:lastTrafficSource`='social' THEN `ym:s:lastSocialNetwork` WHEN `ym:s:lastTrafficSource`='messenger' THEN `ym:s:lastMessenger` ELSE `ym:s:from` END
+        WHEN `ym:s:lastUTMMedium`='' THEN CASE
+			WHEN `ym:s:lastTrafficSource`='organic' THEN `ym:s:lastSearchEngine`
+			WHEN `ym:s:lastTrafficSource`='referral' THEN `ym:s:lastReferalSource`
+			WHEN `ym:s:lastTrafficSource`='ad' THEN `ym:s:lastAdvEngine`
+			WHEN `ym:s:lastTrafficSource`='social' THEN `ym:s:lastSocialNetwork`
+			WHEN `ym:s:lastTrafficSource`='messenger' THEN `ym:s:lastMessenger`
+			ELSE `ym:s:from` END
         ELSE `ym:s:lastUTMSource`
     END as UTM_SOURCE,
     `ym:s:lastUTMCampaign` as UTM_CAMPAIGN,
@@ -52,7 +58,13 @@ FROM (SELECT
         ELSE `ym:s:lastUTMMedium`
     END as UTM_MEDIUM,
     CASE
-        WHEN `ym:s:lastUTMMedium`='' THEN CASE WHEN `ym:s:lastTrafficSource`='organic' THEN `ym:s:lastSearchEngine` WHEN `ym:s:lastTrafficSource`='referral' THEN `ym:s:lastReferalSource` WHEN `ym:s:lastTrafficSource`='ad' THEN `ym:s:lastAdvEngine` WHEN `ym:s:lastTrafficSource`='social' THEN `ym:s:lastSocialNetwork` WHEN `ym:s:lastTrafficSource`='messenger' THEN `ym:s:lastMessenger` ELSE `ym:s:from` END
+        WHEN `ym:s:lastUTMMedium`='' THEN CASE
+			WHEN `ym:s:lastTrafficSource`='organic' THEN `ym:s:lastSearchEngine`
+			WHEN `ym:s:lastTrafficSource`='referral' THEN `ym:s:lastReferalSource`
+			WHEN `ym:s:lastTrafficSource`='ad' THEN `ym:s:lastAdvEngine`
+			WHEN `ym:s:lastTrafficSource`='social' THEN `ym:s:lastSocialNetwork`
+			WHEN `ym:s:lastTrafficSource`='messenger' THEN `ym:s:lastMessenger`
+			ELSE `ym:s:from` END
         ELSE `ym:s:lastUTMSource`
     END as UTM_SOURCE,
     `ym:s:lastUTMCampaign` as UTM_CAMPAIGN,

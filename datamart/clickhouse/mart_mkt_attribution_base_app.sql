@@ -89,7 +89,6 @@ SELECT
     WHEN `Source`='Direct traffic' THEN 'Другие'
     WHEN `Source`='Recommendation system traffic' THEN 'Рекомендательные системы'
     WHEN `Source`='yandex_network' THEN 'РСЯ'
-	WHEN `Campaign`='rsa' THEN 'РСЯ'
     WHEN `Source`='yandex' THEN CASE WHEN `Channel`='cpc' THEN 'Яндекс.Поиск' WHEN `Channel`='cpm' THEN 'Яндекс.Поиск' ELSE CASE WHEN `Source`='' THEN 'Другие' ELSE IFNULL(`Source`, 'Другие') END END
     WHEN `Source`='google' THEN CASE WHEN `Channel`='cpc' THEN 'Google.Adwords' ELSE CASE WHEN `Source`='' THEN 'Другие' ELSE IFNULL(`Source`, 'Другие') END END
     WHEN `Source`='e.mail.ru' THEN CASE WHEN `Channel`='referral' THEN 'Почта Mail.Ru' ELSE CASE WHEN `Source`='' THEN 'Другие' ELSE IFNULL(`Source`, 'Другие') END END
@@ -99,12 +98,13 @@ SELECT
     WHEN `Source`='ya.ru' THEN CASE WHEN `Channel`='referral' THEN 'yandex' ELSE CASE WHEN `Source`='' THEN 'Другие' ELSE IFNULL(`Source`, 'Другие') END END
     WHEN `Source`='yandex.com' THEN CASE WHEN `Channel`='referral' THEN 'yandex' ELSE CASE WHEN `Source`='' THEN 'Другие' ELSE IFNULL(`Source`, 'Другие') END END
     WHEN `Source`='duckduckgo.com' THEN CASE WHEN `Channel`='referral' THEN 'duckduckgo' ELSE CASE WHEN `Source`='' THEN 'Другие' ELSE IFNULL(`Source`, 'Другие') END END
+	WHEN `Source`='<не указано>' THEN 'Другие'
+	WHEN `Source`='<не заполнено>' THEN 'Другие'
     ELSE CASE WHEN `Source`='' THEN 'Другие' ELSE IFNULL(`Source`, 'Другие') END
     END AS `_Источник`,
 	CASE
 		WHEN `Campaign`='<не указано>' THEN ''
-		WHEN `Channel`='organic' THEN ''
-		WHEN `Campaign`='rsa' THEN `Source`
+		WHEN `Campaign`='<не заполнено>' THEN ''
 		ELSE IFNULL(`Campaign`, '')
 	END AS `_Кампания`
 

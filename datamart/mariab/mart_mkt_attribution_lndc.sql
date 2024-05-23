@@ -210,7 +210,7 @@ CREATE OR REPLACE EVENT mart_mkt_attribution_lndc
 	SUM(Revenue) as '_Выручка',
 	e.UTMMedium as '_Канал',
 	e.UTMSource as '_Источник',
-	IFNULL(cuid.CampaignName, IFNULL(cucamp.CampaignName, e.UTMCampaign)) as '_Кампания',
+	REPLACE(IFNULL(cuid.CampaignName, IFNULL(cucamp.CampaignName, e.UTMCampaign)), " ", " ") as '_Кампания',
 	Region as '_Регион'
 FROM mart_mkt_e2e_lndc as e
     LEFT JOIN raw_yd_campaigns_utms as cuid ON CAST(cuid.CampaignId AS CHAR)=e.UTMCampaign
@@ -242,7 +242,7 @@ CREATE OR REPLACE TABLE `mart_mkt_attribution_lndc` (
 	SUM(Revenue) as '_Выручка',
 	e.UTMMedium as '_Канал',
 	e.UTMSource as '_Источник',
-	IFNULL(cuid.CampaignName, IFNULL(cucamp.CampaignName, e.UTMCampaign)) as '_Кампания',
+	REPLACE(IFNULL(cuid.CampaignName, IFNULL(cucamp.CampaignName, e.UTMCampaign)), " ", " ") as '_Кампания',
 	Region as '_Регион'
 FROM mart_mkt_e2e_lndc as e
     LEFT JOIN raw_yd_campaigns_utms as cuid ON CAST(cuid.CampaignId AS CHAR)=e.UTMCampaign

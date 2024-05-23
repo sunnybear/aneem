@@ -246,9 +246,15 @@ SELECT
 	IFNULL(SUM(`Installs`), 0) AS `_Установки`,
     IFNULL(SUM(`Revenue`), 0.0) AS `_Выручка`,
     IFNULL(SUM(`RepeatDeals`), 0) AS `_ПовторныеСделки`,
-	IFNULL(`Source`, '') AS `_Источник`,
+	CASE
+		WHEN `Source`='<не указано>' THEN ''
+		WHEN `Source`='<не заполнено>' THEN ''
+		ELSE IFNULL(`Source`, '')
+	END  AS `_Источник`,
 	CASE
 		WHEN `Campaign`='rsa' THEN 'Общая РСЯ'
+		WHEN `Campaign`='<не указано>' THEN ''
+		WHEN `Campaign`='<не заполнено>' THEN ''
 		ELSE IFNULL(`Campaign`, '') 
 	END AS `_Кампания`,
 	IFNULL(`Term`, '') AS `_Ключевое слово`
@@ -260,4 +266,4 @@ FROM
 	SELECT * FROM DB.mart_mkt_yd_campaigns_keywords_visits
 	UNION ALL
 	SELECT * FROM DB.mart_mkt_yd_campaigns_keywords_installs)
-GROUP BY `Source`, `Campaign`, `Term`, `Date`;
+GROUP BY `Source`, `Campaign`, `Term`, `Date`

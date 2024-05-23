@@ -11,11 +11,14 @@ create or replace view mart_ym_clients as (select
         ELSE IFNULL(`ym:s:lastUTMMedium`, `ym:s:lastTrafficSource`)
     END AS UTMMedium,
     CASE
-        WHEN `ym:s:lastTrafficSource`='organic' THEN CASE
-            WHEN `ym:s:lastUTMMedium`='' THEN  `ym:s:lastSearchEngine`
-            ELSE IFNULL(`ym:s:lastUTMSource`, `ym:s:lastSearchEngine`)
-        END
-        ELSE `ym:s:lastUTMSource`
+		WHEN `ym:s:lastUTMMedium`='' OR `ym:s:lastUTMMedium` IS NULL THEN CASE
+			WHEN `ym:s:lastTrafficSource`='organic' THEN `ym:s:lastSearchEngine`
+			WHEN `ym:s:lastTrafficSource`='referral' THEN `ym:s:lastReferalSource`
+			WHEN `ym:s:lastTrafficSource`='ad' THEN `ym:s:lastAdvEngine`
+			WHEN `ym:s:lastTrafficSource`='social' THEN `ym:s:lastSocialNetwork`
+			WHEN `ym:s:lastTrafficSource`='messenger' THEN `ym:s:lastMessenger`
+			ELSE `ym:s:from` END
+        ELSE IFNULL(`ym:s:lastUTMSource`, '')
     END AS UTMSource,
     `ym:s:lastUTMCampaign` AS UTMCampaign,
 	CASE
@@ -320,7 +323,7 @@ CREATE OR REPLACE EVENT mart_mkt_attribution_base
 	SUM(Revenue) as '_Выручка',
 	e.UTMMedium as '_Канал',
 	e.UTMSource as '_Источник',
-	IFNULL(cuid.CampaignName, IFNULL(cucamp.CampaignName, e.UTMCampaign)) as '_Кампания',
+	REPLACE(IFNULL(cuid.CampaignName, IFNULL(cucamp.CampaignName, e.UTMCampaign)), " ", " ") as '_Кампания',
 	Region as '_Регион'
 FROM mart_mkt_e2e as e
     LEFT JOIN raw_yd_campaigns_utms as cuid ON CAST(cuid.CampaignId AS CHAR)=e.UTMCampaign
@@ -352,7 +355,7 @@ CREATE OR REPLACE TABLE `mart_mkt_attribution_base` (
 	SUM(Revenue) as '_Выручка',
 	e.UTMMedium as '_Канал',
 	e.UTMSource as '_Источник',
-	IFNULL(cuid.CampaignName, IFNULL(cucamp.CampaignName, e.UTMCampaign)) as '_Кампания',
+	REPLACE(IFNULL(cuid.CampaignName, IFNULL(cucamp.CampaignName, e.UTMCampaign)), " ", " ") as '_Кампания',
 	Region as '_Регион'
 FROM mart_mkt_e2e as e
     LEFT JOIN raw_yd_campaigns_utms as cuid ON CAST(cuid.CampaignId AS CHAR)=e.UTMCampaign
