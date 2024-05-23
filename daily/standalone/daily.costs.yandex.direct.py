@@ -128,14 +128,14 @@ for i_credentials, TOKEN in enumerate(config["YANDEX_DIRECT"]["ACCESS_TOKEN"].sp
 # удаление старых данных
         if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
             try:
-                connection.execute(text("DELETE FROM " + config["YANDEX_DIRECT"]["TABLE"] + " WHERE `Date`>='" + date_since + "' AND ClientLogin='" + LOGIN "'"))
+                connection.execute(text("DELETE FROM " + config["YANDEX_DIRECT"]["TABLE"] + " WHERE `Date`>='" + date_since + "' AND ClientLogin='" + LOGIN + "'"))
                 connection.commit()
             except Exception as E:
                 print (E)
                 connection.rollback()
         elif config["DB"]["TYPE"] == "CLICKHOUSE":
             requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/',
-                params={"database": config["DB"]["DB"], "query": "DELETE FROM " + config["DB"]["DB"] + "." + config["YANDEX_DIRECT"]["TABLE"] + " WHERE `Date`>='" + date_since + "' AND ClientLogin='" + LOGIN "'"},
+                params={"database": config["DB"]["DB"], "query": "DELETE FROM " + config["DB"]["DB"] + "." + config["YANDEX_DIRECT"]["TABLE"] + " WHERE `Date`>='" + date_since + "' AND ClientLogin='" + LOGIN + "'"},
                 headers={'Content-Type':'application/octet-stream'}, verify=False)
 # добавление новых данных
         if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
