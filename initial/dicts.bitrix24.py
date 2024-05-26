@@ -1,4 +1,4 @@
-# Скрипт для первоначального получения пользовательских полей (UF) в дополнение к основным объектам из Битрикс24
+# Скрипт для первоначального получения таблиц справочников из CRM Битрикс24: crm.status, crm.dealcategory, crm.dealcategory.stage
 # Необходимо в settings.ini указать
 # * DB.TYPE - тип базы данных (куда выгружать данные)
 # * DB.HOST - адрес (хост) базы данных
@@ -7,8 +7,9 @@
 # * DB.DB - имя базы данных
 # * BITRIX24.METHOD - BATCH (для пакетной загрузки) или SINGLE (для одиночной загрузки)
 # * BITRIX24.WEBHOOK - URL вебхука (интеграции) Битрикс24
-# * BITRIX24.TABLE_LEADS_UF - имя результирующей таблицы для пользовательских полей crm.lead
-# * BITRIX24.TABLE_CONTACTS_UF - имя результирующей таблицы для пользовательских полей crm.contact
+# * BITRIX24.TABLE_STATUSES - имя результирующей таблицы для crm.status
+# * BITRIX24.TABLE_DEAL_CATEGORIES - имя результирующей таблицы для crm.dealcategory
+# * BITRIX24.TABLE_DEAL_CATEGORY_STAGES - имя результирующей таблицы для crm.dealcategory.stage
 
 # импорт общих библиотек
 from datetime import datetime as dt
@@ -16,7 +17,6 @@ from datetime import date, timedelta
 import pandas as pd
 import numpy as np
 import requests
-import time
 from sqlalchemy import create_engine, text
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 # Скрытие предупреждения Unverified HTTPS request
@@ -31,41 +31,6 @@ except Exception as E:
 import configparser
 config = configparser.ConfigParser()
 config.read("../settings.ini")
-
-# выделение телефона, email, мессенджера в плоскую структуру
-def bitrix24_crm_uf_plain_contacts (item):
-    if "PHONE" in item:
-        item['phone1'] = item["PHONE"][0]["VALUE"]
-        if len(item['PHONE']) > 1:
-            item['phone2'] = item["PHONE"][1]["VALUE"]
-        else:
-            item['phone2'] = ''
-        if len(item['PHONE']) > 2:
-            item['phone3'] = item["PHONE"][2]["VALUE"]
-        else:
-            item['phone3'] = ''
-        del item['PHONE']
-    else:
-        item['phone1'] = ''
-    if "EMAIL" in item:
-        item['email'] = item["EMAIL"][0]["VALUE"]
-        del item['EMAIL']
-    else:
-        item['email'] = ''
-    if "IM" in item:
-        item['im1'] = item["IM"][0]["VALUE"]
-        if len(item['IM']) > 1:
-            item['im2'] = item["IM"][1]["VALUE"]
-        else:
-            item['im2'] = ''
-        if len(item['IM']) > 2:
-            item['im3'] = item["IM"][2]["VALUE"]
-        else:
-            item['im3'] = ''
-        del item['IM']
-    else:
-        item['im1'] = ''
-    return item
 
 # подключение к БД
 if config["DB"]["TYPE"] == "MYSQL":
@@ -88,67 +53,52 @@ if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"
         connection.execute(text('SET character_set_connection=utf8mb4'))
 
 # словарь таблиц для обновления
-tables = {"crm.lead": "TABLE_LEADS_UF", "crm.contact": "TABLE_CONTACTS_UF", "crm.deal": "TABLE_DEALS_UF"}
-# загружаем справочники и дополнительные таблицы
-for dataset in list(tables.keys()):
-# если в настройках задана таблица - загружаем данные
-    if tables[dataset] in config["BITRIX24"]:
-        current_table = tables[dataset]
-        parent_table = tables[dataset].replace("_UF", "")
+table = {"crm.status": "TABLE_STATUSES", "crm.dealcategory": "TABLE_DEAL_CATEGORIES", "crm.dealcategory.stage": "TABLE_DEAL_CATEGORY_STAGES"}
+
+for dataset in list(table.keys()):
+    current_table = table[dataset]
 # создаем таблицу для данных при наличии каких-либо данных
-        table_not_created = True
-# получение всех ID объектов
-        if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
-            ids = list(pd.read_sql("SELECT ID FROM " + config["DB"]["DB"] + "." + config["BITRIX24"][parent_table], connection)["ID"].values)
-        elif config["DB"]["TYPE"] == "CLICKHOUSE":
-            ids_req = requests.get('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/',
-                params={"database": config["DB"]["DB"], "query": 'SELECT ID FROM ' + config["DB"]["DB"] + '.' + config["BITRIX24"][parent_table]},
-                verify=False)
-            ids = list(ids_req.text.split("\n"))
-# количество ID
-        items_last_id = len(ids)
-# счетчик количества объектов
-        last_item_id = 1
+    table_not_created = True
+# получение количества элементов
+    items = requests.get(config["BITRIX24"]["WEBHOOK"] + dataset + '.list.json?ORDER[ID]=ASC&FILDER[>ID]=0').json()
+# общее количество элементов
+    items_total = int(items["total"])
+# текущий ID элемента - для следующего запроса
+    last_item_id = 0
+# счетчик количества элементов
+    items_current = 0
+# запросы пакетами по 50*50 элементов до исчерпания количества для загрузки
+    while items_current < items_total:
         items = {}
-# запросы пакетами по 50 объектов до исчерпания количества для загрузки
-        while last_item_id < items_last_id:
-            if config["BITRIX24"]["METHOD"] == "BATCH":
-                cmd = []
-                for i in range(min(50, items_last_id-last_item_id)):
-                    cmd.append('cmd[' + str(i) + ']=' + dataset + '.get%3FID%3D' + str(ids[last_item_id]))
-                    last_item_id += 1
-                items_req = requests.get(config["BITRIX24"]["WEBHOOK"] + 'batch.json?' + '&'.join(cmd)).json()
-                if "result" in items_req:
-# разбор объектов из пакетного запроса
-                    for item in items_req["result"]["result"]:
-                        if isinstance(item, str):
-                            item = items_req["result"]["result"][item]
-                        item = bitrix24_crm_uf_plain_contacts(item)
-                        items[int(item['ID'])] = item
-# задержка для избежания исчерпания лимита запросов
-                time.sleep(1)
-            elif config["BITRIX24"]["METHOD"] == "SINGLE":
-                items_req = requests.get(config["BITRIX24"]["WEBHOOK"] + dataset + '.get.json?ID=' + str(ids[last_item_id])).json()
-                if "result" in items_req:
-# разбор объектов из обычного запроса
-                    item = items_req["result"]
-                    item = bitrix24_crm_uf_plain_contacts(item)
-                    items[int(item['ID'])] = item
-                last_item_id += 1
-            print (dataset + ": " + str(len(items)) + "/" + str(items_last_id))
+        if config["BITRIX24"]["METHOD"] == "BATCH":
+            cmd = ['cmd[0]=' + dataset + '.list%3Fstart%3D-1%26order%5BID%5D%3DASC%26filter%5B%3EID%5D%3D' + str(last_item_id)]
+            for i in range(1, 50):
+                cmd.append('cmd['+str(i)+']=' + dataset + '.list%3Fstart%3D-1%26order%5BID%5D%3DASC%26filter%5B%3EID%5D%3D%24result%5B'+str(i-1)+'%5D%5B49%5D%5BID%5D')
+            items_req = requests.get(config["BITRIX24"]["WEBHOOK"] + 'batch.json?' + '&'.join(cmd)).json()
+# разбор элементов из пакетного запроса
+        for item_group in items_req["result"]["result"]:
+            for item in item_group:
+                last_item_id = int(item['ID'])
+                items[last_item_id] = item
+        elif config["BITRIX24"]["METHOD"] == "SINGLE":
+            items_req = requests.get(config["BITRIX24"]["WEBHOOK"] + 'crm.item.list.json?ORDER[ID]=ASC&FILDER[>ID]=' + str(last_item_id)).json()
+# разбор элементов из обычного запроса
+            for item in items_req["result"]:
+                last_item_id = int(item['ID'])
+                items[last_item_id] = item
+        items_current += len(items)
 # формируем датафрейм
         data = pd.DataFrame.from_dict(items, orient='index')
-        del items
 # базовый процесс очистки: приведение к нужным типам
-        for i,col in enumerate(data.columns):
+        for col in data.columns:
 # приведение целых чисел
-            if col in ["ID", "ASSIGNED_BY_ID", "CREATED_BY_ID", "MODIFY_BY_ID", "LEAD_ID", "ADDRESS_LOC_ADDR_ID", "ADDRESS_COUNTRY_CODE", "REG_ADDRESS_COUNTRY_CODE", "REG_ADDRESS_LOC_ADDR_ID", "LAST_ACTIVITY_BY", "SORT", "CATEGORY_ID", "COMPANY_ID", "CONTACT_ID"] or data.dtypes[i] in ["bool", "int64", "int32"]:
+            if col in ["ID", "ASSIGNED_BY_ID", "CREATED_BY_ID", "MODIFY_BY_ID", "LEAD_ID", "ADDRESS_LOC_ADDR_ID", "ADDRESS_COUNTRY_CODE", "REG_ADDRESS_COUNTRY_CODE", "REG_ADDRESS_LOC_ADDR_ID", "LAST_ACTIVITY_BY", "SORT", "CATEGORY_ID"]:
                 data[col] = data[col].fillna('').replace('', 0).astype(np.int64)
 # приведение вещественных чисел
-            elif col in ["REVENUE", "OPPORTUNITY"] or data.dtypes[i] in ["float32", "float64"]:
+            elif col in ["REVENUE"]:
 # приведение дат
                 data[col] = data[col].fillna('').replace('', 0.0).astype(float)
-            elif col in ["DATE_CREATE", "DATE_MODIFY", "LAST_ACTIVITY_TIME", "CREATED_DATE", "DATE_CLOSED", "MOVED_TIME"] or data.dtypes[i] == "datetime64":
+            elif col in ["DATE_CREATE", "DATE_MODIFY", "DATE_CLOSED", "MOVED_TIME", "LAST_ACTIVITY_TIME"]:
                 data[col] = pd.to_datetime(data[col].fillna('').replace('', '2000-01-01T00:00:00+03:00').apply(lambda x: dt.strptime(x, '%Y-%m-%dT%H:%M:%S%z').strftime("%Y-%m-%d %H:%M:%S").replace('202-','2024-')))
 # приведение строк
             else:
@@ -156,9 +106,9 @@ for dataset in list(tables.keys()):
         if len(data):
             if "DATE_CREATE" in data.columns:
                 data["ts"] = pd.DatetimeIndex(data["DATE_CREATE"]).asi8
-                index = 'ts'
+                index = "ts"
             else:
-                index = 'ID'
+                index = "ID"
 # создаем таблицу в первый раз
             if table_not_created:
                 if config["DB"]["TYPE"] == "CLICKHOUSE":
@@ -173,11 +123,11 @@ for dataset in list(tables.keys()):
                     print (E)
                     connection.rollback()
             elif config["DB"]["TYPE"] == "CLICKHOUSE":
-                csv_file = data.to_csv(index=False).encode('utf-8')
+                csv_file = data.to_csv().encode('utf-8')
                 requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/',
                     params={"database": config["DB"]["DB"], "query": 'INSERT INTO ' + config["DB"]["DB"] + '.' + config["BITRIX24"][current_table] + ' FORMAT CSV'},
                     headers={'Content-Type':'application/octet-stream'}, data=csv_file, stream=True, verify=False)
-        print (dataset + " UF = " + str(items_last_id))
+        print (dataset + "=" + str(last_item_id) + ": " + str(items_current))
 
 # закрытие подключения к БД
 if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
