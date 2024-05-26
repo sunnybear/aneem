@@ -1,4 +1,4 @@
-# Скрипт для ежедневного обновления данных Битрикс24 (пользовательских полей crm.contact, crm.lead) для облачных функций Яндекс.Облака
+# Скрипт для ежедневного обновления данных Битрикс24 (пользовательских полей crm.contact, crm.lead, crm.deal) для облачных функций Яндекс.Облака
 # Необходимо в переменных окружения указать
 # * DB_TYPE - тип базы данных (куда выгружать данные)
 # * DB_HOST - адрес (хост) базы данных
@@ -67,7 +67,7 @@ def handler(event, context):
 # возвращаемая статистика
     ret = []
 
-    for dataset in ["crm.lead", "crm.contact"]:
+    for dataset in list(tables.keys()):
         current_table = os.getenv('BITRIX24_' + tables[dataset])
         parent_table =  os.getenv('BITRIX24_' + tables[dataset].replace("_UF", ""))
 # Получение данных для обновления
