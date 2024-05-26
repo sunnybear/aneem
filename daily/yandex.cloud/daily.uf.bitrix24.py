@@ -11,6 +11,8 @@
 # * BITRIX24_TABLE_CONTACTS_UF - имя таблицы с пользовательскими полями контактов
 # * BITRIX24_TABLE_LEADS - имя таблицы с лидами
 # * BITRIX24_TABLE_LEADS_UF - имя таблицы с пользовательскими полями лидов
+# * BITRIX24_TABLE_DEALS - имя таблицы со сделками
+# * BITRIX24_TABLE_DEALS_UF - имя таблицы с пользовательскими полями сделок
 
 # requirements.txt:
 # pandas
@@ -61,7 +63,7 @@ def handler(event, context):
             connection.execute(text('SET character_set_connection=utf8mb4'))
 
 # словарь таблиц для обновления
-    tables = {"crm.lead": "TABLE_LEADS_UF", "crm.contact": "TABLE_CONTACTS_UF"}
+    tables = {"crm.lead": "TABLE_LEADS_UF", "crm.contact": "TABLE_CONTACTS_UF", "crm.deal": "TABLE_DEALS_UF"}
 # возвращаемая статистика
     ret = []
 

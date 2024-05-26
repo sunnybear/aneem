@@ -88,10 +88,10 @@ if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"
         connection.execute(text('SET character_set_connection=utf8mb4'))
 
 # загружаем справочники и дополнительные таблицы
-#for dataset in ["crm.lead", "crm.contact"]:
-for dataset in ["crm.contact"]:
+for dataset in ["crm.lead", "crm.contact", "crm.deal"]:
     tables = {"crm.lead": "TABLE_LEADS_UF",
-        "crm.contact": "TABLE_CONTACTS_UF"}
+        "crm.contact": "TABLE_CONTACTS_UF",
+		"crm.deal": "TABLE_DEALS_UF"}
 # если в настройках задана таблица - загружаем данные
     if tables[dataset] in config["BITRIX24"]:
         current_table = tables[dataset]
@@ -136,7 +136,7 @@ for dataset in ["crm.contact"]:
                     item = bitrix24_crm_uf_plain_contacts(item)
                     items[int(item['ID'])] = item
                 last_item_id += 1
-            print (str(len(items)) + "/" + str(items_last_id))
+            print (dataset + ": " + str(len(items)) + "/" + str(items_last_id))
 # формируем датафрейм
         data = pd.DataFrame.from_dict(items, orient='index')
         del items
