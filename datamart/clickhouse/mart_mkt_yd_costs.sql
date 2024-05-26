@@ -1,5 +1,7 @@
-CREATE VIEW DB.mart_mkt_yd_costs AS SELECT
+CREATE OR REPLACE VIEW DB.mart_mkt_yd_costs AS SELECT
     SUM(IFNULL(`Cost`,0)) AS COSTS,
+	SUM(IFNULL(`Clicks`,0)) AS CLICKS,
+	SUM(IFNULL(`Impressions`,0)) AS IMPRESSIONS,
     toDate(`Date`) AS DT,
     CASE
         WHEN `AdNetworkType`='AD_NETWORK' THEN IFNULL(u.UTMSource, 'yandex_network')
@@ -7,7 +9,7 @@ CREATE VIEW DB.mart_mkt_yd_costs AS SELECT
     END AS UTM_SOURCE_PURE,
     toString(c.CampaignId) AS UTM_CAMPAIGN_ID,
     IFNULL(u.UTMMedium, 'cpc') AS UTM_MEDIUM_PURE,
-	IFNULL(CampaignName, toString(c.CampaignId)) AS UTM_CAMPAIGN_PURE,
+	IFNULL(REPLACE(CampaignName, ' ', ' '), toString(c.CampaignId)) AS UTM_CAMPAIGN_PURE,
     `CampaignName` AS CAMPAIGN_NAME
 FROM DB.raw_yd_costs as c
 	LEFT JOIN DB.raw_yd_campaigns_utms as u ON c.CampaignId=u.CampaignId

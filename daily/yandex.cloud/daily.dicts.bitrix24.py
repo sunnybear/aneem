@@ -60,28 +60,33 @@ def handler(event, context):
 
 # словарь таблиц для обновления
     table = {"crm.status": "TABLE_STATUSES", "crm.dealcategory": "TABLE_DEAL_CATEGORIES", "crm.dealcategory.stage": "TABLE_DEAL_CATEGORY_STAGES"}
+    id_name = {"crm.status": "ID", "crm.dealcategory": "ID", "crm.dealcategory.stage": "SORT"}
 # возвращаемая статистика
     ret = []
 
     for dataset in list(table.keys()):
         current_table = table[dataset]
+        current_id_name = id_name[dataset]
 # формируем запрос для получения общего количества измененных компаний
-        items_req = requests.get(os.getenv('BITRIX24_WEBHOOK') + dataset + '.list.json?ORDER[ID]=ASC&FILTER[>DATE_MODIFY]=' + yesterday).json()
+        items_req = requests.get(os.getenv('BITRIX24_WEBHOOK') + dataset + '.list.json?ORDER[' + current_id_name + ']=ASC&FILTER[>' + current_id_name + ']=0').json()
         items = {}
         last_item_id = '0'
 # разбираем текущий запрос
         for item in items_req["result"]:
-            items[item['ID']] = item
-            last_item_id = item['ID']
+            last_item_id = item[current_id_name]
+            items[last_item_id] = item
 # получаем количество компаний для следующего запроса
-        items_next = int(items_req["next"])
+        if "next" in items_req:
+            items_next = int(items_req["next"])
+        else:
+            items_next = 0
 # получаем компании пакетами по 50, начиная с последнего измененного вчера
         while items_next > 0:
-            items_req = requests.get(os.getenv('BITRIX24_WEBHOOK') + dataset + '.list.json?ORDER[ID]=ASC&FILTER[>ID]=' + last_item_id).json()
+            items_req = requests.get(os.getenv('BITRIX24_WEBHOOK') + dataset + '.list.json?ORDER[' + current_id_name + ']=ASC&FILTER[>' + current_id_name + ']=' + last_item_id).json()
 # разбираем текущий запрос
             for item in items_req["result"]:
-                items[item['ID']] = item
-                last_item_id = item['ID']
+                last_item_id = item[current_id_name]
+                items[last_item_id] = item
 # получаем количество компаний для следующего запроса
             if "next" in items_req:
                 items_next = int(items_req["next"])
@@ -112,10 +117,10 @@ def handler(event, context):
                 data['ts'] = pd.DatetimeIndex(data["DATE_CREATE"]).asi8
 # удаление старых данных
                 if os.getenv('DB_TYPE') in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
-                    connection.execute(text("DELETE FROM " + os.getenv('BITRIX24_' + current_table) + " WHERE ID IN (" + ",".join(ids) + ")"))
+                    connection.execute(text("DELETE FROM " + os.getenv('BITRIX24_' + current_table) + " WHERE " + current_id_name + " IN (" + ",".join(ids) + ")"))
                     connection.commit()
                 elif os.getenv('DB_TYPE') == "CLICKHOUSE":
-                    requests.post("https://" + os.getenv('DB_HOST') + ":8443/?database=" + os.getenv('DB_DB') + "&query=DELETE FROM " + os.getenv('DB_PREFIX') + "." + os.getenv('BITRIX24_' + current_table) + " WHERE ID IN (" + ",".join(ids) + ")",
+                    requests.post("https://" + os.getenv('DB_HOST') + ":8443/?database=" + os.getenv('DB_DB') + "&query=DELETE FROM " + os.getenv('DB_PREFIX') + "." + os.getenv('BITRIX24_' + current_table) + " WHERE " + current_id_name + " IN (" + ",".join(ids) + ")",
                         headers=auth_post, verify=cacert)
 # добавление новых данных
                 if os.getenv('DB_TYPE') in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:

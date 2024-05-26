@@ -54,13 +54,15 @@ if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"
 
 # словарь таблиц для обновления
 table = {"crm.status": "TABLE_STATUSES", "crm.dealcategory": "TABLE_DEAL_CATEGORIES", "crm.dealcategory.stage": "TABLE_DEAL_CATEGORY_STAGES"}
+id_name = {"crm.status": "ID", "crm.dealcategory": "ID", "crm.dealcategory.stage": "SORT"}
 
 for dataset in list(table.keys()):
     current_table = table[dataset]
+    current_id_name = id_name[dataset]
 # создаем таблицу для данных при наличии каких-либо данных
     table_not_created = True
 # получение количества элементов
-    items = requests.get(config["BITRIX24"]["WEBHOOK"] + dataset + '.list.json?ORDER[ID]=ASC&FILDER[>ID]=0').json()
+    items = requests.get(config["BITRIX24"]["WEBHOOK"] + dataset + '.list.json?ORDER[' + current_id_name + ']=ASC&FILDER[>' + current_id_name + ']=0').json()
 # общее количество элементов
     items_total = int(items["total"])
 # текущий ID элемента - для следующего запроса
@@ -71,20 +73,20 @@ for dataset in list(table.keys()):
     while items_current < items_total:
         items = {}
         if config["BITRIX24"]["METHOD"] == "BATCH":
-            cmd = ['cmd[0]=' + dataset + '.list%3Fstart%3D-1%26order%5BID%5D%3DASC%26filter%5B%3EID%5D%3D' + str(last_item_id)]
+            cmd = ['cmd[0]=' + dataset + '.list%3Fstart%3D-1%26order%5B' + current_id_name + '%5D%3DASC%26filter%5B%3E' + current_id_name + '%5D%3D' + str(last_item_id)]
             for i in range(1, 50):
-                cmd.append('cmd['+str(i)+']=' + dataset + '.list%3Fstart%3D-1%26order%5BID%5D%3DASC%26filter%5B%3EID%5D%3D%24result%5B'+str(i-1)+'%5D%5B49%5D%5BID%5D')
+                cmd.append('cmd['+str(i)+']=' + dataset + '.list%3Fstart%3D-1%26order%5B' + current_id_name + '%5D%3DASC%26filter%5B%3E' + current_id_name + '%5D%3D%24result%5B'+str(i-1)+'%5D%5B49%5D%5B' + current_id_name + '%5D')
             items_req = requests.get(config["BITRIX24"]["WEBHOOK"] + 'batch.json?' + '&'.join(cmd)).json()
 # разбор элементов из пакетного запроса
         for item_group in items_req["result"]["result"]:
             for item in item_group:
-                last_item_id = int(item['ID'])
+                last_item_id = int(item[current_id_name])
                 items[last_item_id] = item
         elif config["BITRIX24"]["METHOD"] == "SINGLE":
-            items_req = requests.get(config["BITRIX24"]["WEBHOOK"] + 'crm.item.list.json?ORDER[ID]=ASC&FILDER[>ID]=' + str(last_item_id)).json()
+            items_req = requests.get(config["BITRIX24"]["WEBHOOK"] + dataset + '.list.json?ORDER[' + current_id_name + ']=ASC&FILDER[>' + current_id_name + ']=' + str(last_item_id)).json()
 # разбор элементов из обычного запроса
             for item in items_req["result"]:
-                last_item_id = int(item['ID'])
+                last_item_id = int(item[current_id_name])
                 items[last_item_id] = item
         items_current += len(items)
 # формируем датафрейм
@@ -107,8 +109,10 @@ for dataset in list(table.keys()):
             if "DATE_CREATE" in data.columns:
                 data["ts"] = pd.DatetimeIndex(data["DATE_CREATE"]).asi8
                 index = "ts"
-            else:
+            elif "ID" in data.columns:
                 index = "ID"
+            else
+                index = "SORT"
 # создаем таблицу в первый раз
             if table_not_created:
                 if config["DB"]["TYPE"] == "CLICKHOUSE":

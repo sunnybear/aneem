@@ -65,7 +65,10 @@ def handler(event, context):
         companies[company['ID']] = company
         last_company_id = company['ID']
 # получаем количество компаний для следующего запроса
-    companies_next = int(companies_req["next"])
+    if "next" in companies_req:
+        companies_next = int(companies_req["next"])
+    else:
+        companies_next = 0
 # получаем компании пакетами по 50, начиная с последнего измененного вчера
     while companies_next > 0:
         companies_req = requests.get(os.getenv('BITRIX24_WEBHOOK') + 'crm.company.list.json?ORDER[ID]=ASC&FILTER[>ID]=' + last_company_id).json()
