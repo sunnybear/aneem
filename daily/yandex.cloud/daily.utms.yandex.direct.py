@@ -136,7 +136,7 @@ def handler(event, context):
                 for f in ["MobileAppAd", "MobileAppImageAd", "MobileAppAdBuilderAd", "MobileAppCpcVideoAdBuilderAd"]:
                     if ad.get(f) is not None:
                         href = ad[f]["TrackingUrl"]
-                if href != '':
+                if href != '' and href is not None:
 # если ссылка найдена - извлекаем из нее метки
                     for utm in ['utm_source', 'utm_medium', 'utm_campaign']:
                         if href.find(utm) > -1:
