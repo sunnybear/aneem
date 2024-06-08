@@ -21,6 +21,7 @@ create or replace view mart_ym_clients as (select
         ELSE IFNULL(`ym:s:lastUTMSource`, '')
     END AS UTMSource,
     `ym:s:lastUTMCampaign` AS UTMCampaign,
+	`ym:s:lastUTMTerm` AS UTMTerm,
 	CASE
 		WHEN `ym:s:regionCity`='Saint Petersburg' THEN 'SPB'
 		WHEN `ym:s:regionCity`='Moscow' THEN 'MSK'
@@ -40,6 +41,7 @@ create or replace view mart_ym_goals_close as (select
 	`UTMMedium`,
 	`UTMSource`,
 	`UTMCampaign`,
+	`UTMTerm`,
 	region,
 	ROW_NUMBER() OVER (PARTITION BY goals.gdt ORDER BY DATEDIFF(goals.gdt, clients.vdt)) AS rowNum
 from mart_ym_goals_purchase as goals
@@ -82,6 +84,7 @@ create or replace view mart_bx_orders_utm as (select
 	UTMMedium,
 	UTMSource,
 	UTMCampaign,
+	UTMTerm,
 	region
 from mart_ym_goals_utm
 left join mart_bx_orders_datetime on odt_year=gdt_year and odt_month=gdt_month and odt_day=gdt_day and odt_hour=gdt_hour and odt_minute=gdt_minute
@@ -98,6 +101,7 @@ select
 	UTMMedium,
 	UTMSource,
 	UTMCampaign,
+	UTMTerm,
 	region
 from mart_ym_goals_utm
 left join mart_bx_orders_datetime_1 on odt_year=gdt_year and odt_month=gdt_month and odt_day=gdt_day and odt_hour=gdt_hour and odt_minute=gdt_minute
@@ -112,6 +116,7 @@ create or replace view mart_bx_orders_all as (SELECT
 	UTMMedium,
 	UTMSource,
 	UTMCampaign,
+	UTMTerm,
 	region
 FROM mart_bx_orders_utm
 
@@ -134,6 +139,7 @@ SELECT
 		ELSE ''
 	END AS UTMSource,
 	'' AS UTMCampaign,
+	'' AS UTMTerm,
 	'MSK' AS region
 FROM raw_bx_orders
 WHERE id NOT IN (SELECT id FROM mart_bx_orders_utm));
@@ -157,13 +163,14 @@ create or replace view mart_visits_dt as (SELECT
         ELSE `ym:s:lastUTMSource`
     END AS UTMSource,
     `ym:s:lastUTMCampaign` AS UTMCampaign,
+	`ym:s:lastUTMTerm` AS UTMTerm,
 	CASE
 		WHEN `ym:s:regionCity`='Saint Petersburg' THEN 'SPB'
 		WHEN `ym:s:regionCity`='Moscow' THEN 'MSK'
 		ELSE 'REGIONS'
 	END as Region
 FROM raw_ym_visits
-GROUP BY DATE(`ym:s:dateTime`), UTMMedium, UTMSource, UTMCampaign, Region);
+GROUP BY DATE(`ym:s:dateTime`), UTMMedium, UTMSource, UTMCampaign, UTMTerm, Region);
 
 create or replace view mart_costs_dt as (SELECT
     DATE(`Date`) AS `DT`,
@@ -175,10 +182,11 @@ create or replace view mart_costs_dt as (SELECT
     IFNULL(u.UTMMedium, 'cpc') AS UTMMedium,
 	IFNULL(u.UTMSource, 'yandex') AS UTMSource,
     IFNULL(u.CampaignName, c.CampaignId) AS UTMCampaign,
+	'' AS UTMTerm,
 	'MSK' AS Region
 FROM raw_yd_costs as c
 LEFT JOIN raw_yd_campaigns_utms as u ON c.CampaignId=u.CampaignId
-GROUP BY DATE(`Date`), UTMMedium, UTMSource, UTMCampaign, Region);
+GROUP BY DATE(`Date`), UTMMedium, UTMSource, UTMCampaign, UTMTerm, Region);
 
 create or replace view mart_orders_dt as (SELECT
 	DATE(dateInsert) AS `DT`,
@@ -190,9 +198,10 @@ create or replace view mart_orders_dt as (SELECT
 	UTMMedium,
 	UTMSource,
 	UTMCampaign,
+	UTMTerm,
 	region AS Region
 FROM mart_bx_orders_all
-GROUP BY DATE(dateInsert), UTMMedium, UTMSource, UTMCampaign, Region);
+GROUP BY DATE(dateInsert), UTMMedium, UTMSource, UTMCampaign, UTMTerm, Region);
 
 create or replace view mart_sales_dt as (SELECT
 	DATE(dateInsert) AS `DT`,
@@ -204,10 +213,11 @@ create or replace view mart_sales_dt as (SELECT
 	UTMMedium,
 	UTMSource,
 	UTMCampaign,
+	UTMTerm,
 	region AS Region
 FROM mart_bx_orders_all
 WHERE statusId IN ('D', 'F', 'G', 'OG', 'P', 'YA')
-GROUP BY DATE(dateInsert), UTMMedium, UTMSource, UTMCampaign, Region);
+GROUP BY DATE(dateInsert), UTMMedium, UTMSource, UTMCampaign, UTMTerm, Region);
 
 create or replace view mart_sales_1c_dt as (SELECT
 	DATE(`Дата_Реализации`) AS `DT`,
@@ -219,6 +229,7 @@ create or replace view mart_sales_1c_dt as (SELECT
 	'store' as UTMMedium,
 	`Организация` as UTMSource,
 	`Контрагент` as UTMCampaign,
+	'' as UTMTerm,
 	CASE
 		WHEN `Организация`='Магазин МСК' THEN 'MSK'
 		WHEN `Организация`='Магазин СПБ' THEN 'SPB'
@@ -226,7 +237,7 @@ create or replace view mart_sales_1c_dt as (SELECT
 	END AS Region
 FROM raw_1c_sales
 	WHERE `Контрагент` not in ('Покупатель Маркета', 'Покупатель Ozon', 'Интернет покупатель', 'Покупатель Авито', 'Яндекс.Маркет')
-GROUP BY DATE(`Дата_Реализации`), UTMMedium, UTMSource, UTMCampaign, Region);
+GROUP BY DATE(`Дата_Реализации`), UTMMedium, UTMSource, UTMCampaign, UTMTerm, Region);
 
 create or replace view mart_sales_dt_all as (
 SELECT * FROM mart_sales_dt
@@ -297,7 +308,7 @@ FROM mart_sales_dt_all
 WHERE Revenue>0);
 
 CREATE OR REPLACE EVENT mart_mkt_attribution_base
-  ON SCHEDULE EVERY 1 DAY STARTS '2024-01-01 04:00:00.000' DO
+  ON SCHEDULE EVERY 1 DAY STARTS '2024-01-01 08:00:00.000' DO
    CREATE OR REPLACE TABLE `mart_mkt_attribution_base` (
   `_Дата` datetime DEFAULT NULL,
   `_Визиты` bigint(20) DEFAULT NULL,

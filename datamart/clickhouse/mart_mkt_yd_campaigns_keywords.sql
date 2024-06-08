@@ -234,7 +234,7 @@ SELECT
 	'' AS `Term`
 FROM DB.mart_mkt_yd_cpv as c
 WHERE c.V=0
-GROUP BY `Campaign`, `Source`, `Date`;
+GROUP BY `Term`, `Campaign`, `Source`, `Date`;
 
 -- 3. initial data upload
 INSERT INTO DB.mart_mkt_yd_campaigns_keywords_costs SELECT
@@ -253,7 +253,7 @@ INSERT INTO DB.mart_mkt_yd_campaigns_keywords_costs SELECT
 	'' AS `Term`
 FROM DB.mart_mkt_yd_cpv as c
 WHERE c.V=0
-GROUP BY `Campaign`, `Source`, `Date`;
+GROUP BY `Term`, `Campaign`, `Source`, `Date`;
 
 -- clicks/impressions visits --
 
@@ -295,7 +295,7 @@ SELECT
     UTM_CAMPAIGN_PURE AS `Campaign`,
 	'' AS `Term`
 FROM DB.mart_mkt_yd_costs
-GROUP BY `Campaign`, `Source`, `Date`;
+GROUP BY `Term`, `Campaign`, `Source`, `Date`;
 
 -- 3. initial data upload
 INSERT INTO DB.mart_mkt_yd_campaigns_keywords_clicks SELECT
@@ -313,7 +313,7 @@ INSERT INTO DB.mart_mkt_yd_campaigns_keywords_clicks SELECT
     UTM_CAMPAIGN_PURE AS `Campaign`,
 	'' AS `Term`
 FROM DB.mart_mkt_yd_costs
-GROUP BY `Campaign`, `Source`, `Date`;
+GROUP BY `Term`, `Campaign`, `Source`, `Date`;
 
 -- installs --
 
