@@ -52,19 +52,19 @@ GROUP BY Term, Campaign, Source, Date, Region;
 CREATE OR REPLACE VIEW mart_mkt_yd_campaigns_keywords_visits AS
 SELECT
     v.DT AS 'Date',
-0 AS 'Impressions',
-0 AS 'Clicks',
+    0 AS 'Impressions',
+    0 AS 'Clicks',
     SUM(v.VISITS) AS 'Visits',
     SUM(v.VISITS*c.CPV) AS 'Costs',
-0 AS 'Orders',
-0 AS 'Sales',
+    0 AS 'Orders',
+    0 AS 'Sales',
     0.0 AS 'Revenue',
     v.UTMSource AS 'Source',
     v.UTMCampaign AS 'Campaign',
-v.UTMTerm AS 'Term',
-Region
+    v.UTMTerm AS 'Term',
+    Region
 FROM mart_visits_dt as v
-LEFT JOIN mart_mkt_yd_cpv as c ON c.UTMCampaign=v.UTMCampaign AND c.DT=v.DT
+    LEFT JOIN mart_mkt_yd_cpv as c ON c.UTMCampaign=v.UTMCampaign AND c.DT=v.DT
 WHERE v.UTMMedium='cpc'
 GROUP BY Term, Campaign, Source, Date;
 
@@ -99,7 +99,7 @@ SELECT
     0 AS 'Sales',
     0.0 AS 'Revenue',
     'yandex' AS 'Source',
-    IFNULL(u.CampaignName, c.CampaignId) AS 'Campaign',
+    REPLACE(IFNULL(u.CampaignName, c.CampaignName), ' ', ' ') AS 'Campaign',
     '' AS 'Term',
     'MSK' AS Region
 FROM raw_yd_costs as c

@@ -144,7 +144,27 @@ SELECT
 FROM raw_bx_orders
 WHERE id NOT IN (SELECT id FROM mart_bx_orders_utm));
 
-create or replace view mart_visits_dt as (SELECT
+CREATE OR REPLACE EVENT mart_visits_dt
+  ON SCHEDULE EVERY 1 DAY STARTS '2024-01-01 04:00:00.000' DO
+CREATE OR REPLACE TABLE `mart_visits_dt` (
+  `DT` datetime DEFAULT NULL,
+  `Visits` bigint(20) DEFAULT NULL,
+  `Costs` double DEFAULT NULL,
+  `Orders` bigint(20) DEFAULT NULL,
+  `Sales` bigint(20) DEFAULT NULL,
+  `Revenue` double DEFAULT NULL,
+  `UTMMedium` text DEFAULT NULL,
+  `UTMSource` text DEFAULT NULL,
+  `UTMCampaign` text DEFAULT NULL,
+  `UTMTerm` text DEFAULT NULL,
+  `Region` text DEFAULT NULL,
+  KEY `ix_datetime` (`DT`),
+  KEY `ix_channel` (`UTMMedium`(768)),
+  KEY `ix_source` (`UTMSource`(768)),
+  KEY `ix_campaign` (`UTMCampaign`(768)),
+  KEY `ix_term` (`UTMTerm`(768)),
+  KEY `ix_region` (`Region`(768))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 SELECT
     DATE(`ym:s:dateTime`) AS `DT`,
 	COUNT(`ym:s:visitID`) AS 'Visits',
 	0 AS Costs,
@@ -170,12 +190,75 @@ create or replace view mart_visits_dt as (SELECT
 		ELSE 'REGIONS'
 	END as Region
 FROM raw_ym_visits
-	LEFT JOIN raw_yd_campaigns_utms as uc ON `ym:s:lastUTMCampaign`=uc.UTMCampaign
-	LEFT JOIN raw_yd_campaigns_utms as ui ON `ym:s:lastUTMCampaign`=CAST(ui.CampaignId AS CHAR)
-	LEFT JOIN raw_yd_campaigns_utms as ctui ON SUBSTRING(SUBSTRING(`ym:s:startURL`, POSITION('calltouch_tm=yd_c:' IN `ym:s:startURL`)+18), 1, POSITION('_' IN SUBSTRING(`ym:s:startURL`, POSITION('calltouch_tm=yd_c:' IN `ym:s:startURL`)+18))-1)=CAST(ctui.CampaignId AS CHAR)
-GROUP BY DATE(`ym:s:dateTime`), UTMMedium, UTMSource, UTMCampaign, UTMTerm, Region);
+GROUP BY DATE(`ym:s:dateTime`), UTMMedium, UTMSource, UTMCampaign, UTMTerm, Region;
 
-create or replace view mart_costs_dt as (SELECT
+CREATE OR REPLACE TABLE `mart_visits_dt` (
+  `DT` datetime DEFAULT NULL,
+  `Visits` bigint(20) DEFAULT NULL,
+  `Costs` double DEFAULT NULL,
+  `Orders` bigint(20) DEFAULT NULL,
+  `Sales` bigint(20) DEFAULT NULL,
+  `Revenue` double DEFAULT NULL,
+  `UTMMedium` text DEFAULT NULL,
+  `UTMSource` text DEFAULT NULL,
+  `UTMCampaign` text DEFAULT NULL,
+  `UTMTerm` text DEFAULT NULL,
+  `Region` text DEFAULT NULL,
+  KEY `ix_datetime` (`DT`),
+  KEY `ix_channel` (`UTMMedium`(768)),
+  KEY `ix_source` (`UTMSource`(768)),
+  KEY `ix_campaign` (`UTMCampaign`(768)),
+  KEY `ix_term` (`UTMTerm`(768)),
+  KEY `ix_region` (`Region`(768))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 SELECT
+    DATE(`ym:s:dateTime`) AS `DT`,
+	COUNT(`ym:s:visitID`) AS 'Visits',
+	0 AS Costs,
+	0 AS Orders,
+	0 AS Sales,
+	0 AS Revenue,
+    CASE
+        WHEN `ym:s:lastUTMMedium`='' THEN `ym:s:lastTrafficSource`
+        ELSE IFNULL(`ym:s:lastUTMMedium`, `ym:s:lastTrafficSource`)
+    END AS UTMMedium,
+    CASE
+        WHEN `ym:s:lastTrafficSource`='organic' THEN CASE
+            WHEN `ym:s:lastUTMMedium`='' THEN  `ym:s:lastSearchEngine`
+            ELSE IFNULL(`ym:s:lastUTMSource`, `ym:s:lastSearchEngine`)
+        END
+        ELSE `ym:s:lastUTMSource`
+    END AS UTMSource,
+    `ym:s:lastUTMCampaign` AS UTMCampaign,
+	`ym:s:lastUTMTerm` AS UTMTerm,
+	CASE
+		WHEN `ym:s:regionCity`='Saint Petersburg' THEN 'SPB'
+		WHEN `ym:s:regionCity`='Moscow' THEN 'MSK'
+		ELSE 'REGIONS'
+	END as Region
+FROM raw_ym_visits
+GROUP BY DATE(`ym:s:dateTime`), UTMMedium, UTMSource, UTMCampaign, UTMTerm, Region;
+
+CREATE OR REPLACE EVENT mart_costs_dt
+  ON SCHEDULE EVERY 1 DAY STARTS '2024-01-01 04:20:00.000' DO
+CREATE OR REPLACE TABLE `mart_costs_dt` (
+  `DT` datetime DEFAULT NULL,
+  `Visits` bigint(20) DEFAULT NULL,
+  `Costs` double DEFAULT NULL,
+  `Orders` bigint(20) DEFAULT NULL,
+  `Sales` bigint(20) DEFAULT NULL,
+  `Revenue` double DEFAULT NULL,
+  `UTMMedium` text DEFAULT NULL,
+  `UTMSource` text DEFAULT NULL,
+  `UTMCampaign` text DEFAULT NULL,
+  `UTMTerm` text DEFAULT NULL,
+  `Region` text DEFAULT NULL,
+  KEY `ix_datetime` (`DT`),
+  KEY `ix_channel` (`UTMMedium`(768)),
+  KEY `ix_source` (`UTMSource`(768)),
+  KEY `ix_campaign` (`UTMCampaign`(768)),
+  KEY `ix_term` (`UTMTerm`(768)),
+  KEY `ix_region` (`Region`(768))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 SELECT
     DATE(`Date`) AS `DT`,
 	0 AS 'Visits',
 	SUM(`Cost`) as Costs,
@@ -184,12 +267,46 @@ create or replace view mart_costs_dt as (SELECT
 	0 AS Revenue,
     IFNULL(u.UTMMedium, 'cpc') AS UTMMedium,
 	IFNULL(u.UTMSource, 'yandex') AS UTMSource,
-    IFNULL(u.CampaignName, c.CampaignId) AS UTMCampaign,
+    c.CampaignName as UTMCampaign,
 	'' AS UTMTerm,
 	'MSK' AS Region
 FROM raw_yd_costs as c
-LEFT JOIN raw_yd_campaigns_utms as u ON c.CampaignId=u.CampaignId
-GROUP BY DATE(`Date`), UTMMedium, UTMSource, UTMCampaign, UTMTerm, Region);
+    LEFT JOIN raw_yd_campaigns_utms as u ON c.CampaignId=u.CampaignId
+GROUP BY DATE(`Date`), UTMMedium, UTMSource, UTMCampaign, UTMTerm, Region;
+
+CREATE OR REPLACE TABLE `mart_costs_dt` (
+  `DT` datetime DEFAULT NULL,
+  `Visits` bigint(20) DEFAULT NULL,
+  `Costs` double DEFAULT NULL,
+  `Orders` bigint(20) DEFAULT NULL,
+  `Sales` bigint(20) DEFAULT NULL,
+  `Revenue` double DEFAULT NULL,
+  `UTMMedium` text DEFAULT NULL,
+  `UTMSource` text DEFAULT NULL,
+  `UTMCampaign` text DEFAULT NULL,
+  `UTMTerm` text DEFAULT NULL,
+  `Region` text DEFAULT NULL,
+  KEY `ix_datetime` (`DT`),
+  KEY `ix_channel` (`UTMMedium`(768)),
+  KEY `ix_source` (`UTMSource`(768)),
+  KEY `ix_campaign` (`UTMCampaign`(768)),
+  KEY `ix_term` (`UTMTerm`(768)),
+  KEY `ix_region` (`Region`(768))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 SELECT
+    DATE(`Date`) AS `DT`,
+	0 AS 'Visits',
+	SUM(`Cost`) as Costs,
+	0 AS Orders,
+	0 AS Sales,
+	0 AS Revenue,
+    IFNULL(u.UTMMedium, 'cpc') AS UTMMedium,
+	IFNULL(u.UTMSource, 'yandex') AS UTMSource,
+    c.CampaignName as UTMCampaign,
+	'' AS UTMTerm,
+	'MSK' AS Region
+FROM raw_yd_costs as c
+    LEFT JOIN raw_yd_campaigns_utms as u ON c.CampaignId=u.CampaignId
+GROUP BY DATE(`Date`), UTMMedium, UTMSource, UTMCampaign, UTMTerm, Region;
 
 create or replace view mart_orders_dt as (SELECT
 	DATE(dateInsert) AS `DT`,
