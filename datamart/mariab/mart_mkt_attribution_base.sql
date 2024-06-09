@@ -170,11 +170,14 @@ create or replace view mart_visits_dt as (SELECT
 		ELSE 'REGIONS'
 	END as Region
 FROM raw_ym_visits
+	LEFT JOIN raw_yd_campaigns_utms as uc ON `ym:s:lastUTMCampaign`=uc.UTMCampaign
+	LEFT JOIN raw_yd_campaigns_utms as ui ON `ym:s:lastUTMCampaign`=CAST(ui.CampaignId AS CHAR)
+	LEFT JOIN raw_yd_campaigns_utms as ctui ON SUBSTRING(SUBSTRING(`ym:s:startURL`, POSITION('calltouch_tm=yd_c:' IN `ym:s:startURL`)+18), 1, POSITION('_' IN SUBSTRING(`ym:s:startURL`, POSITION('calltouch_tm=yd_c:' IN `ym:s:startURL`)+18))-1)=CAST(ctui.CampaignId AS CHAR)
 GROUP BY DATE(`ym:s:dateTime`), UTMMedium, UTMSource, UTMCampaign, UTMTerm, Region);
 
 create or replace view mart_costs_dt as (SELECT
     DATE(`Date`) AS `DT`,
-	0 'Visits',
+	0 AS 'Visits',
 	SUM(`Cost`) as Costs,
 	0 AS Orders,
 	0 AS Sales,
