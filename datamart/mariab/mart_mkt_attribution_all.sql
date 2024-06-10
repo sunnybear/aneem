@@ -39,4 +39,18 @@ SELECT
 	`_Кампания`,
 	`_Регион`,
 	'LNDC' as '_Атрибуция'
-FROM mart_mkt_attribution_lndc;
+FROM mart_mkt_attribution_lndc
+UNION ALL
+SELECT 
+	`_Дата`,
+	`_Визиты`,
+	`_Расходы`,
+	`_Заказы`,
+	`_Продажи`,
+	`_Выручка`,
+	`_Канал`,
+	`_Источник`,
+	`_Кампания`,
+	`_Регион`,
+	'LAC' as '_Атрибуция'
+FROM mart_mkt_attribution_lac;

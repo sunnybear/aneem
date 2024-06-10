@@ -176,11 +176,14 @@ CREATE OR REPLACE TABLE `mart_visits_dt` (
         ELSE IFNULL(`ym:s:lastUTMMedium`, `ym:s:lastTrafficSource`)
     END AS UTMMedium,
     CASE
-        WHEN `ym:s:lastTrafficSource`='organic' THEN CASE
-            WHEN `ym:s:lastUTMMedium`='' THEN  `ym:s:lastSearchEngine`
-            ELSE IFNULL(`ym:s:lastUTMSource`, `ym:s:lastSearchEngine`)
-        END
-        ELSE `ym:s:lastUTMSource`
+        WHEN `ym:s:lastUTMMedium`='' OR `ym:s:lastUTMMedium` IS NULL THEN CASE
+            WHEN `ym:s:lastTrafficSource`='organic' THEN `ym:s:lastSearchEngine`
+            WHEN `ym:s:lastTrafficSource`='referral' THEN `ym:s:lastReferalSource`
+            WHEN `ym:s:lastTrafficSource`='ad' THEN `ym:s:lastAdvEngine`
+            WHEN `ym:s:lastTrafficSource`='social' THEN `ym:s:lastSocialNetwork`
+            WHEN `ym:s:lastTrafficSource`='messenger' THEN `ym:s:lastMessenger`
+            ELSE `ym:s:from` END
+        ELSE IFNULL(`ym:s:lastUTMSource`, '')
     END AS UTMSource,
     `ym:s:lastUTMCampaign` AS UTMCampaign,
 	`ym:s:lastUTMTerm` AS UTMTerm,
@@ -222,11 +225,14 @@ CREATE OR REPLACE TABLE `mart_visits_dt` (
         ELSE IFNULL(`ym:s:lastUTMMedium`, `ym:s:lastTrafficSource`)
     END AS UTMMedium,
     CASE
-        WHEN `ym:s:lastTrafficSource`='organic' THEN CASE
-            WHEN `ym:s:lastUTMMedium`='' THEN  `ym:s:lastSearchEngine`
-            ELSE IFNULL(`ym:s:lastUTMSource`, `ym:s:lastSearchEngine`)
-        END
-        ELSE `ym:s:lastUTMSource`
+        WHEN `ym:s:lastUTMMedium`='' OR `ym:s:lastUTMMedium` IS NULL THEN CASE
+            WHEN `ym:s:lastTrafficSource`='organic' THEN `ym:s:lastSearchEngine`
+            WHEN `ym:s:lastTrafficSource`='referral' THEN `ym:s:lastReferalSource`
+            WHEN `ym:s:lastTrafficSource`='ad' THEN `ym:s:lastAdvEngine`
+            WHEN `ym:s:lastTrafficSource`='social' THEN `ym:s:lastSocialNetwork`
+            WHEN `ym:s:lastTrafficSource`='messenger' THEN `ym:s:lastMessenger`
+            ELSE `ym:s:from` END
+        ELSE IFNULL(`ym:s:lastUTMSource`, '')
     END AS UTMSource,
     `ym:s:lastUTMCampaign` AS UTMCampaign,
 	`ym:s:lastUTMTerm` AS UTMTerm,
