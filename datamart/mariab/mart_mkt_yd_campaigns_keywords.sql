@@ -84,7 +84,7 @@ SELECT
     '' AS 'Term',
     'MSK' AS Region
 FROM mart_mkt_yd_cpv as c
-WHERE c.V=0
+WHERE c.V=0 OR c.V IS NULL
 GROUP BY Term, Campaign, Source, Date;
 
 -- clicks/impressions visits --
