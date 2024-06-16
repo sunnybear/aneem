@@ -143,7 +143,7 @@ from mart_ym_goals_purchase as goals
     left join mart_ym_clients_lac as clients on goals.cid=clients.cid
 WHERE
     goals.gdt > clients.vdt AND
-    `UTMMedium`NOT IN ('direct', 'internal'));
+    `UTMMedium` NOT IN ('direct', 'internal'));
 
 create or replace view mart_ym_goals_utm_lac as (select *
 from mart_ym_goals_close_lac
@@ -204,11 +204,13 @@ SELECT
     statusId,
     CASE
         WHEN LOCATE('YAMARKET_', xmlId)>0 THEN 'Яндекс.Маркет'
+        WHEN LOCATE('AVITO_', xmlId)>0 THEN 'Авито'
         WHEN LOCATE('Заказ поступил с Озона', userDescription)>0 THEN 'Озон'
         ELSE 'direct'
     END AS UTMMedium,
     CASE 
         WHEN LOCATE('YAMARKET_', xmlId)>0 THEN 'Yandex.Market'
+        WHEN LOCATE('AVITO_', xmlId)>0 THEN 'Avito'
         WHEN LOCATE('Заказ поступил с Озона', userDescription)>0 THEN 'OZON'
         ELSE ''
     END AS UTMSource,
