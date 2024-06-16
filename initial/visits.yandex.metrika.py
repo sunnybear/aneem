@@ -164,7 +164,7 @@ for i_credentials, TOKEN in enumerate(config["YANDEX_METRIKA"]["ACCESS_TOKEN"].s
             goals_total += len(goals)
 # удаляем обработанный запрос из API
         api.clean(requestId=request_id).post()
-        print (LOGIN + " | " + date_since + "=>" + date_until + ": " + str(visits_total) + "/" + str(goals_total))
+        print (COUNTER_ID + " | " + date_since + "=>" + date_until + ": " + str(visits_total) + "/" + str(goals_total))
 
 # закрытие подключения к БД
 if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
