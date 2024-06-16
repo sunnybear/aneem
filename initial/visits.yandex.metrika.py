@@ -177,7 +177,7 @@ if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"
     connection.execute(text("ALTER TABLE " + config["YANDEX_METRIKA"]["TABLE_VISITS"] + " ADD INDEX clientid (`ym:s:clientID`)"))
     connection.execute(text("ALTER TABLE " + config["YANDEX_METRIKA"]["TABLE_VISITS"] + " ADD INDEX visitid (`ym:s:visitID`)"))
     if goals_total > 0:
-        connection.execute(text("ALTER TABLE " + config["YANDEX_METRIKA"]["TABLE_VISITS_GOALS"] + " ADD INDEX datetime (`ym:s:dateTime`)"))
+        connection.execute(text("ALTER TABLE " + config["YANDEX_METRIKA"]["TABLE_VISITS_GOALS"] + " ADD INDEX datetime (`ym:s:goalDateTime`)"))
         connection.execute(text("ALTER TABLE " + config["YANDEX_METRIKA"]["TABLE_VISITS_GOALS"] + " ADD INDEX goalid (`ym:s:goalID`)"))
         connection.execute(text("ALTER TABLE " + config["YANDEX_METRIKA"]["TABLE_VISITS_GOALS"] + " ADD INDEX clientid (`ym:s:clientID`)"))
         connection.execute(text("ALTER TABLE " + config["YANDEX_METRIKA"]["TABLE_VISITS_GOALS"] + " ADD INDEX visitid (`ym:s:visitID`)"))        
