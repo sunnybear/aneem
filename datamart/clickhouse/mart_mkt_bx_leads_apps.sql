@@ -60,17 +60,17 @@ FROM (SELECT
 	UTM_CAMPAIGN_ID,
 	l.UTM_TERM as UTM_TERM
 FROM DB.mart_mkt_bx_crm_lead as l
-    LEFT JOIN DB.dict_bxleadid_phone as lp ON l.ID=lp.ID
-    LEFT JOIN DB.dict_yainstallationid_phone_all as ip ON ip.phone=lp.phone
-    LEFT JOIN DB.dict_yainstallationid_yclid as ic ON ic.installation_id=ip.installation_id
-    LEFT JOIN DB.raw_ya_installs as am ON am.installation_id=ip.installation_id
-    LEFT JOIN DB.dict_yclid_attribution_lndc as ca ON ca.yclid=ic.yclid
-	LEFT JOIN DB.dict_ctphone_yclid as ct ON ct.phone=lp.phone
-	LEFT JOIN DB.dict_yclid_attribution_lndc as cact ON cact.yclid=ct.yclid
-	LEFT JOIN DB.dict_ctphone_attribution_lndc as ctlndc ON ctlndc.phone=lp.phone
+    LEFT ANY JOIN DB.dict_bxleadid_phone as lp ON l.ID=lp.ID
+    LEFT ANY JOIN DB.dict_yainstallationid_phone_all as ip ON ip.phone=lp.phone
+    LEFT ANY JOIN DB.dict_yainstallationid_yclid as ic ON ic.installation_id=ip.installation_id
+    LEFT ANY JOIN DB.raw_ya_installs as am ON am.installation_id=ip.installation_id
+    LEFT ANY JOIN DB.dict_yclid_attribution_lndc as ca ON ca.yclid=ic.yclid
+	LEFT ANY JOIN DB.dict_ctphone_yclid as ct ON ct.phone=lp.phone
+	LEFT ANY JOIN DB.dict_yclid_attribution_lndc as cact ON cact.yclid=ct.yclid
+	LEFT ANY JOIN DB.dict_ctphone_attribution_lndc as ctlndc ON ctlndc.phone=lp.phone
 GROUP BY ID, LEAD_APP, DATE_CREATE, UTM_MEDIUM, UTM_SOURCE, UTM_CAMPAIGN, UTM_CAMPAIGN_ID, UTM_TERM) as l
-	LEFT JOIN DB.raw_yd_campaigns_utms as cuid ON toString(cuid.CampaignId)=l.UTM_CAMPAIGN
-    LEFT JOIN DB.raw_yd_campaigns_utms as cucamp ON cucamp.UTMCampaign=l.UTM_CAMPAIGN
+	LEFT ANY JOIN DB.raw_yd_campaigns_utms as cuid ON toString(cuid.CampaignId)=l.UTM_CAMPAIGN
+    LEFT ANY JOIN DB.raw_yd_campaigns_utms as cucamp ON cucamp.UTMCampaign=l.UTM_CAMPAIGN
 GROUP BY DT, UTM_CAMPAIGN_ID, UTM_CAMPAIGN, UTM_SOURCE, UTM_MEDIUM, UTM_TERM, cuid.CampaignName, cucamp.CampaignName
 
 SETTINGS join_use_nulls = 1;
@@ -121,17 +121,17 @@ FROM (SELECT
 	UTM_CAMPAIGN_ID,
 	l.UTM_TERM as UTM_TERM
 FROM DB.mart_mkt_bx_crm_lead as l
-    LEFT JOIN DB.dict_bxleadid_phone as lp ON l.ID=lp.ID
-    LEFT JOIN DB.dict_yainstallationid_phone_all as ip ON ip.phone=lp.phone
-    LEFT JOIN DB.dict_yainstallationid_yclid as ic ON ic.installation_id=ip.installation_id
-    LEFT JOIN DB.raw_ya_installs as am ON am.installation_id=ip.installation_id
-    LEFT JOIN DB.dict_yclid_attribution_lndc as ca ON ca.yclid=ic.yclid
-	LEFT JOIN DB.dict_ctphone_yclid as ct ON ct.phone=lp.phone
-	LEFT JOIN DB.dict_yclid_attribution_lndc as cact ON cact.yclid=ct.yclid
-	LEFT JOIN DB.dict_ctphone_attribution_lndc as ctlndc ON ctlndc.phone=lp.phone
+    LEFT ANY JOIN DB.dict_bxleadid_phone as lp ON l.ID=lp.ID
+    LEFT ANY JOIN DB.dict_yainstallationid_phone_all as ip ON ip.phone=lp.phone
+    LEFT ANY JOIN DB.dict_yainstallationid_yclid as ic ON ic.installation_id=ip.installation_id
+    LEFT ANY JOIN DB.raw_ya_installs as am ON am.installation_id=ip.installation_id
+    LEFT ANY JOIN DB.dict_yclid_attribution_lndc as ca ON ca.yclid=ic.yclid
+	LEFT ANY JOIN DB.dict_ctphone_yclid as ct ON ct.phone=lp.phone
+	LEFT ANY JOIN DB.dict_yclid_attribution_lndc as cact ON cact.yclid=ct.yclid
+	LEFT ANY JOIN DB.dict_ctphone_attribution_lndc as ctlndc ON ctlndc.phone=lp.phone
 GROUP BY ID, LEAD_APP, DATE_CREATE, UTM_MEDIUM, UTM_SOURCE, UTM_CAMPAIGN, UTM_CAMPAIGN_ID, UTM_TERM) as l
-	LEFT JOIN DB.raw_yd_campaigns_utms as cuid ON toString(cuid.CampaignId)=l.UTM_CAMPAIGN
-    LEFT JOIN DB.raw_yd_campaigns_utms as cucamp ON cucamp.UTMCampaign=l.UTM_CAMPAIGN
+	LEFT ANY JOIN DB.raw_yd_campaigns_utms as cuid ON toString(cuid.CampaignId)=l.UTM_CAMPAIGN
+    LEFT ANY JOIN DB.raw_yd_campaigns_utms as cucamp ON cucamp.UTMCampaign=l.UTM_CAMPAIGN
 GROUP BY DT, UTM_CAMPAIGN_ID, UTM_CAMPAIGN, UTM_SOURCE, UTM_MEDIUM, UTM_TERM, cuid.CampaignName, cucamp.CampaignName
 
 SETTINGS join_use_nulls = 1;

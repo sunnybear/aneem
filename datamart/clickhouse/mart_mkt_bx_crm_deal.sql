@@ -97,7 +97,7 @@ SELECT
         ELSE IFNULL(`UTM_MEDIUM`,IFNULL(s.NAME, 'direct'))
     END as UTM_MEDIUM_PURE
 FROM DB.raw_bx_crm_deal as d
-    LEFT JOIN DB.raw_bx_crm_status as s ON d.SOURCE_ID=s.STATUS_ID
+    LEFT ANY JOIN DB.raw_bx_crm_status as s ON d.SOURCE_ID=s.STATUS_ID
 
 SETTINGS join_use_nulls = 1;
 
@@ -131,6 +131,6 @@ INSERT INTO DB.mart_mkt_bx_crm_deal SELECT
         ELSE IFNULL(`UTM_MEDIUM`, IFNULL(s.NAME, 'direct'))
     END as UTM_MEDIUM_PURE
 FROM DB.raw_bx_crm_deal as d
-    LEFT JOIN DB.raw_bx_crm_status as s ON d.SOURCE_ID=s.STATUS_ID
+    LEFT ANY JOIN DB.raw_bx_crm_status as s ON d.SOURCE_ID=s.STATUS_ID
 
 SETTINGS join_use_nulls = 1;

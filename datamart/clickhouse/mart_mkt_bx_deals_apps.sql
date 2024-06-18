@@ -66,22 +66,22 @@ FROM (SELECT
 	UTM_CAMPAIGN_ID,
 	d.UTM_TERM as UTM_TERM
 FROM DB.mart_mkt_bx_crm_deal as d
-    LEFT JOIN DB.dict_bxdealid_phone as dp ON d.ID=dp.ID
-    LEFT JOIN DB.dict_yainstallationid_phone_all as ip ON ip.phone=dp.phone
-    LEFT JOIN DB.dict_yainstallationid_yclid as ic ON ic.installation_id=ip.installation_id
-    LEFT JOIN DB.raw_ya_installs as am ON am.installation_id=ip.installation_id
-    LEFT JOIN DB.dict_yclid_attribution_lndc as ca ON ca.yclid=ic.yclid
-	LEFT JOIN DB.dict_ctphone_yclid as ct ON ct.phone=dp.phone
-	LEFT JOIN DB.dict_yclid_attribution_lndc as cact ON cact.yclid=ct.yclid
-	LEFT JOIN DB.dict_ctphone_attribution_lndc as ctlndc ON ctlndc.phone=dp.phone
+    LEFT ANY JOIN DB.dict_bxdealid_phone as dp ON d.ID=dp.ID
+    LEFT ANY JOIN DB.dict_yainstallationid_phone_all as ip ON ip.phone=dp.phone
+    LEFT ANY JOIN DB.dict_yainstallationid_yclid as ic ON ic.installation_id=ip.installation_id
+    LEFT ANY JOIN DB.raw_ya_installs as am ON am.installation_id=ip.installation_id
+    LEFT ANY JOIN DB.dict_yclid_attribution_lndc as ca ON ca.yclid=ic.yclid
+	LEFT ANY JOIN DB.dict_ctphone_yclid as ct ON ct.phone=dp.phone
+	LEFT ANY JOIN DB.dict_yclid_attribution_lndc as cact ON cact.yclid=ct.yclid
+	LEFT ANY JOIN DB.dict_ctphone_attribution_lndc as ctlndc ON ctlndc.phone=dp.phone
 WHERE
     (CASE
 WHEN POSITION(REVERSE(`STAGE_ID`), ':')>0 THEN SUBSTRING(`STAGE_ID`, LENGTH(`STAGE_ID`)-POSITION(REVERSE(`STAGE_ID`), ':')+2, LENGTH(`STAGE_ID`))
 ELSE `STAGE_ID`
 END) = 'WON'
 GROUP BY d.ID, DEAL_APP, IS_RETURN_CUSTOMER, CLOSEDATE, OPPORTUNITY, UTM_MEDIUM, UTM_SOURCE, UTM_CAMPAIGN, UTM_CAMPAIGN_ID, UTM_TERM) as d
-    LEFT JOIN DB.raw_yd_campaigns_utms as cuid ON toString(cuid.CampaignId)=d.UTM_CAMPAIGN
-    LEFT JOIN DB.raw_yd_campaigns_utms as cucamp ON cucamp.UTMCampaign=d.UTM_CAMPAIGN
+    LEFT ANY JOIN DB.raw_yd_campaigns_utms as cuid ON toString(cuid.CampaignId)=d.UTM_CAMPAIGN
+    LEFT ANY JOIN DB.raw_yd_campaigns_utms as cucamp ON cucamp.UTMCampaign=d.UTM_CAMPAIGN
 GROUP BY DT, UTM_TERM, UTM_CAMPAIGN_ID, UTM_CAMPAIGN, UTM_SOURCE, UTM_MEDIUM, cuid.CampaignName, cucamp.CampaignName
 
 SETTINGS join_use_nulls = 1;
@@ -136,22 +136,22 @@ FROM (SELECT
 	UTM_CAMPAIGN_ID,
 	d.UTM_TERM as UTM_TERM
 FROM DB.mart_mkt_bx_crm_deal as d
-    LEFT JOIN DB.dict_bxdealid_phone as dp ON d.ID=dp.ID
-    LEFT JOIN DB.dict_yainstallationid_phone_all as ip ON ip.phone=dp.phone
-    LEFT JOIN DB.dict_yainstallationid_yclid as ic ON ic.installation_id=ip.installation_id
-    LEFT JOIN DB.raw_ya_installs as am ON am.installation_id=ip.installation_id
-    LEFT JOIN DB.dict_yclid_attribution_lndc as ca ON ca.yclid=ic.yclid
-	LEFT JOIN DB.dict_ctphone_yclid as ct ON ct.phone=dp.phone
-	LEFT JOIN DB.dict_yclid_attribution_lndc as cact ON cact.yclid=ct.yclid
-	LEFT JOIN DB.dict_ctphone_attribution_lndc as ctlndc ON ctlndc.phone=dp.phone
+    LEFT ANY JOIN DB.dict_bxdealid_phone as dp ON d.ID=dp.ID
+    LEFT ANY JOIN DB.dict_yainstallationid_phone_all as ip ON ip.phone=dp.phone
+    LEFT ANY JOIN DB.dict_yainstallationid_yclid as ic ON ic.installation_id=ip.installation_id
+    LEFT ANY JOIN DB.raw_ya_installs as am ON am.installation_id=ip.installation_id
+    LEFT ANY JOIN DB.dict_yclid_attribution_lndc as ca ON ca.yclid=ic.yclid
+	LEFT ANY JOIN DB.dict_ctphone_yclid as ct ON ct.phone=dp.phone
+	LEFT ANY JOIN DB.dict_yclid_attribution_lndc as cact ON cact.yclid=ct.yclid
+	LEFT ANY JOIN DB.dict_ctphone_attribution_lndc as ctlndc ON ctlndc.phone=dp.phone
 WHERE
     (CASE
 WHEN POSITION(REVERSE(`STAGE_ID`), ':')>0 THEN SUBSTRING(`STAGE_ID`, LENGTH(`STAGE_ID`)-POSITION(REVERSE(`STAGE_ID`), ':')+2, LENGTH(`STAGE_ID`))
 ELSE `STAGE_ID`
 END) = 'WON'
 GROUP BY d.ID, DEAL_APP, IS_RETURN_CUSTOMER, CLOSEDATE, OPPORTUNITY, UTM_MEDIUM, UTM_SOURCE, UTM_CAMPAIGN, UTM_CAMPAIGN_ID, UTM_TERM) as d
-    LEFT JOIN DB.raw_yd_campaigns_utms as cuid ON toString(cuid.CampaignId)=d.UTM_CAMPAIGN
-    LEFT JOIN DB.raw_yd_campaigns_utms as cucamp ON cucamp.UTMCampaign=d.UTM_CAMPAIGN
+    LEFT ANY JOIN DB.raw_yd_campaigns_utms as cuid ON toString(cuid.CampaignId)=d.UTM_CAMPAIGN
+    LEFT ANY JOIN DB.raw_yd_campaigns_utms as cucamp ON cucamp.UTMCampaign=d.UTM_CAMPAIGN
 GROUP BY DT, UTM_TERM, UTM_CAMPAIGN_ID, UTM_CAMPAIGN, UTM_SOURCE, UTM_MEDIUM, cuid.CampaignName, cucamp.CampaignName
 
 SETTINGS join_use_nulls = 1;
