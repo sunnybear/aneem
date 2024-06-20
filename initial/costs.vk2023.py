@@ -110,19 +110,19 @@ for i, TOKEN in enumerate(TOKENS):
 # формируем датафрейм из ответа API
         data = pd.DataFrame(items)
 # базовый процесс очистки: приведение к нужным типам
-        for col in data_all.columns:
+        for col in data.columns:
 # приведение целых чисел
             if col in ["shows", "clicks", "goals", "vk_goals", "campaign_id"]:
-                data_all[col] = data_all[col].fillna('').replace('', 0).astype(np.int64)
+                data[col] = data[col].fillna('').replace('', 0).astype(np.int64)
 # приведение вещественных чисел
             elif col in ["spent", "cpm", "cpc", "cpa", "ctr", "cr", "vk_cpa", "vk_cr"]:
-                data_all[col] = data_all[col].fillna(0.0).astype(float)
+                data[col] = data[col].fillna(0.0).astype(float)
 # приведение дат
             elif col in ["date"]:
-                data_all[col] = pd.to_datetime(data_all[col].fillna("2000-01-01"))
+                data[col] = pd.to_datetime(data[col].fillna("2000-01-01"))
 # приведение строк
             else:
-                data_all[col] = data_all[col].fillna('')
+                data[col] = data[col].fillna('')
         if len(data):
 # добавляем метку времени
             data["ts"] = pd.DatetimeIndex(data["date"]).asi8
@@ -144,9 +144,12 @@ for i, TOKEN in enumerate(TOKENS):
                 requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/',
                     params={"database": config["DB"]["DB"], "query": 'INSERT INTO ' + config["DB"]["DB"] + '.' + config["VK_2023"]["TABLE"] + ' FORMAT CSV'},
                     headers={'Content-Type':'application/octet-stream'}, data=csv_file, stream=True, verify=False)
-        print ("TOKEN" + i + " | " + date_since + "=>" + date_until + ": " + str(len(data)))
+        print ("TOKEN" + str(i) + " | " + date_since + "=>" + date_until + ": " + str(len(data)))
 
 # закрытие подключения к БД
 if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
+# добавление индексов
+    connection.execute(text("ALTER TABLE " + config["VK_2023"]["TABLE"] + " ADD INDEX dateidx (`date`)"))
+    connection.execute(text("ALTER TABLE " + config["VK_2023"]["TABLE"] + " ADD INDEX campaignidx (`campaign_id`)"))
     connection.commit()
     connection.close()

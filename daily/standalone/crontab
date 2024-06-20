@@ -5,3 +5,4 @@
 15 1 * * * cd ~/aibi/daily/standalone/ && /usr/bin/python3 daily.costs.yandex.metrika.py >/dev/null 2>/dev/null
 20 1 * * * cd ~/aibi/daily/standalone/ && /usr/bin/python3 daily.costs.yandex.direct.py >/dev/null 2>/dev/null
 25 1 * * * cd ~/aibi/initial/ && /usr/bin/python3 utms.yandex.direct.py >/dev/null 2>/dev/null
+30 1 * * * cd ~/aibi/initial/ && /usr/bin/python3 costs.vk2023.py >/dev/null 2>/dev/null

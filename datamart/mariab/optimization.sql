@@ -57,3 +57,8 @@ IF EXISTS(SELECT table_name FROM INFORMATION_SCHEMA.TABLES WHERE table_name LIKE
 	alter table raw_ct_calltouch_calls add index utmMedium (`utmMedium`);
 	alter table raw_ct_calltouch_calls add index utmCampaign (`utmCampaign`);
 END IF;
+-- raw_vk2023_costs
+IF EXISTS(SELECT table_name FROM INFORMATION_SCHEMA.TABLES WHERE table_name LIKE 'raw_vk2023_costs') THEN
+	alter table raw_ct_calltouch_calls add index dateidx (`date`);
+	alter table raw_ct_calltouch_calls add index campaignidx (`campaign_id`);
+END IF;
