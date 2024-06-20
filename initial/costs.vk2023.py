@@ -5,6 +5,7 @@
 # * DB.USER - пользователь базы данных
 # * DB.PASSWORD - пароль к базе данных
 # * DB.DB - имя базы данных
+# * VK2023.ACCESS_TOKEN - Access Token (бессрочный, агентский) как альтернатива клиентскому набору Client Secret/Client Id/Refresh Token
 # * VK2023.CLIENT_SECRET - Client Secret из настроек аккаунта
 # * VK2023.CLIENT_ID - Client Id из настроек аккаунта
 # * VK2023.REFRESH_TOKEN - Refresh Token (получается после запроса ACCESS TOKEN в API ВК), используется для обновления ACCESS TOKEN
@@ -54,14 +55,17 @@ if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"
         connection.execute(text('SET CHARACTER SET utf8mb4'))
         connection.execute(text('SET character_set_connection=utf8mb4'))
 
-# обновляем токен ВК
-r_refresh = requests.post('https://ads.vk.com/api/v2/oauth2/token.json', data={
-    'grant_type': 'refresh_token',
-    'refresh_token': config["VK_2023"]["REFRESH_TOKEN"],
-    'client_id': config["VK_2023"]["CLIENT_ID"],
-    'client_secret': config["VK_2023"]["CLIENT_SECRET"]
-}).json()
-vk2023_access_token = r_refresh['access_token']
+# обновляем токен ВК, если требуется
+if config["VK_2023"]["ACCESS_TOKEN"]:
+	vk2023_access_token = config["VK_2023"]["ACCESS_TOKEN"]
+else:
+    r_refresh = requests.post('https://ads.vk.com/api/v2/oauth2/token.json', data={
+        'grant_type': 'refresh_token',
+        'refresh_token': config["VK_2023"]["REFRESH_TOKEN"],
+        'client_id': config["VK_2023"]["CLIENT_ID"],
+        'client_secret': config["VK_2023"]["CLIENT_SECRET"]
+    }).json()
+    vk2023_access_token = r_refresh['access_token']
 
 # создаем таблицу для данных при наличии каких-либо данных
 table_not_created = True
