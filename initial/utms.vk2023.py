@@ -20,7 +20,6 @@ import requests
 import time
 from sqlalchemy import create_engine, text
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
-from requests.packages.urllib3 import parse
 from io import StringIO
 # Скрытие предупреждения Unverified HTTPS request
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
@@ -67,7 +66,7 @@ else:
 for i, TOKEN in enumerate(TOKENS):
 # обновляем токен ВК, если требуется
     if config["VK_2023"]["ACCESS_TOKEN"]:
-	    vk2023_access_token = TOKEN
+        vk2023_access_token = TOKEN
     else:
         r_refresh = requests.post('https://ads.vk.com/api/v2/oauth2/token.json', data={
             'grant_type': 'refresh_token',
@@ -80,14 +79,14 @@ for i, TOKEN in enumerate(TOKENS):
 # Задержка в 1 секунду для избежания превышения лимитов по запросам
     time.sleep(1)
 # Создание запроса на выгрузку пакетов групп объявлений
-    r_packages = requests.get("https://ads.vk.com/api/v2/api/v2/packages.json", headers = {'Authorization': 'Bearer ' + vk2023_access_token}).json()
+    r_packages = requests.get("https://ads.vk.com/api/v2/packages.json", headers = {'Authorization': 'Bearer ' + vk2023_access_token}).json()
 # формируем список пакетов с UTM
-    packages = []
+    packages = {}
     if "items" in r_packages.keys():
         for k in r_packages["items"]:
             if k["utm"]:
 # преобразуем строку адреса из URL Decoded формата
-                href = parse.unquote(k["utm"]).replace("+", " ")
+                href = requests.utils.unquote(k["utm"]).replace("+", " ")
                 utm_values = []
                 for utm in ['utm_source', 'utm_medium', 'utm_campaign']:
                     if href.find(utm) > -1:
@@ -109,12 +108,12 @@ for i, TOKEN in enumerate(TOKENS):
     items = []
     if "items" in r_ads.keys():
         for k in r_ads["items"]:
-            if k["package_id"] in packages:
-                if packages[k["id"]][3] = '':
+            if k["package_id"] in packages.keys():
+                if packages[k["package_id"]][3] == '':
                     utm_campaign = k["id"]
                 else:
-                    utm_campaign = packages[k["id"]][3].replace('{campaign_id}', k["id"]).replace('{campaign_name}', k["name"])
-                items.append(k["id"], k["name"], packages[k["id"]][0], packages[k["id"]][1], packages[k["id"]][2], utm_campaign)
+                    utm_campaign = packages[k["package_id"]][3].replace('{{campaign_id}}', str(k["id"])).replace('{{campaign_name}}', k["name"])
+                items.append([k["id"], k["name"], packages[k["package_id"]][0], packages[k["package_id"]][1], packages[k["package_id"]][2], utm_campaign])
 # формируем датафрейм из полученных меток
     data = pd.DataFrame(items, columns=["CampaignId", "CampaignName", "CampaignHref", "UTMSource", "UTMMedium", "UTMCampaign"])
 # базовый процесс очистки: приведение к нужным типам
@@ -125,7 +124,7 @@ for i, TOKEN in enumerate(TOKENS):
 # приведение строк
         else:
             data[col] = data[col].fillna('')
-if len(data):
+    if len(data):
 # создаем таблицу в первый раз
         if table_not_created:
             if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
