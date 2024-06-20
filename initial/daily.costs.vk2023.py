@@ -1,4 +1,4 @@
-# Скрипт для первоначального получения ежедневной статистики по кампаниям (включая расходы) из кабинета вКонтакте после 2023 года
+# Скрипт для ежедневного обновления статистики по кампаниям (включая расходы) из кабинета вКонтакте после 2023 года
 # Необходимо в settings.ini указать
 # * DB.TYPE - тип базы данных (куда выгружать данные)
 # * DB.HOST - адрес (хост) базы данных
@@ -55,8 +55,10 @@ if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"
         connection.execute(text('SET CHARACTER SET utf8mb4'))
         connection.execute(text('SET character_set_connection=utf8mb4'))
 
-# создаем таблицу для данных при наличии каких-либо данных
-table_not_created = True
+date_since = (date.today() - timedelta(days=1)).strftime('%Y-%m-%d')
+date_until = (date.today() - timedelta(days=1)).strftime('%Y-%m-%d')
+# удалять ли данные за вчера (для обновления)
+date_cleaup = True
 
 # перебор всех токенов при необходимости
 if config["VK_2023"]["ACCESS_TOKEN"]:
@@ -77,61 +79,64 @@ for i, TOKEN in enumerate(TOKENS):
         }).json()
         vk2023_access_token = r_refresh['access_token']
 
-# выгружаем данные за 5 лет по месяцам
-    for period in range(int(config["VK_2023"]["PERIODS"]), 0, -1):
 # Задержка в 1 секунду для избежания превышения лимитов по запросам
-        time.sleep(1)
-        date_since = (date.today() - timedelta(days=period*int(config["VK_2023"]["DELTA"]))).strftime('%Y-%m-%d')
-        date_until = (date.today() - timedelta(days=(period-1)*int(config["VK_2023"]["DELTA"])+1)).strftime('%Y-%m-%d')
+    time.sleep(1)
 # Создание запроса на выгрузку данных (помесячно)
-        r = requests.get("https://ads.vk.com/api/v2/statistics/ad_plans/day.json", params={
-            'date_from': date_since,
-            'date_to': date_until,
-            'metrics': 'base'
-        }, headers = {'Authorization': 'Bearer ' + vk2023_access_token}).json()
+    r = requests.get("https://ads.vk.com/api/v2/statistics/ad_plans/day.json", params={
+        'date_from': date_since,
+        'date_to': date_until,
+        'metrics': 'base'
+    }, headers = {'Authorization': 'Bearer ' + vk2023_access_token}).json()
 # формируем первичный список данных
-        items = []
-        if "items" in r.keys():
-            for k in r["items"]:
-                for row in k["rows"]:
-                    item = row["base"]
-                    item["campaign_id"] = k["id"]
-                    if "vk" in item.keys():
-                        item["vk_goals"] = item["vk"]["goals"]
-                        item["vk_cpa"] = item["vk"]["cpa"]
-                        item["vk_cr"] = item["vk"]["cr"]
-                        del item["vk"]
-                    else:
-                        item["vk_goals"] = 0
-                        item["vk_cpa"] = 0.0
-                        item["vk_cr"] = 0.0
-                    item["date"] = row["date"]
-                    items.append(item)
+    items = []
+    if "items" in r.keys():
+        for k in r["items"]:
+            for row in k["rows"]:
+                item = row["base"]
+                item["campaign_id"] = k["id"]
+                if "vk" in item.keys():
+                    item["vk_goals"] = item["vk"]["goals"]
+                    item["vk_cpa"] = item["vk"]["cpa"]
+                    item["vk_cr"] = item["vk"]["cr"]
+                    del item["vk"]
+                else:
+                    item["vk_goals"] = 0
+                    item["vk_cpa"] = 0.0
+                    item["vk_cr"] = 0.0
+                item["date"] = row["date"]
+                items.append(item)
 # формируем датафрейм из ответа API
-        data = pd.DataFrame(items)
+    data = pd.DataFrame(items)
 # базовый процесс очистки: приведение к нужным типам
-        for col in data_all.columns:
+    for col in data_all.columns:
 # приведение целых чисел
-            if col in ["shows", "clicks", "goals", "vk_goals", "campaign_id"]:
-                data_all[col] = data_all[col].fillna('').replace('', 0).astype(np.int64)
+        if col in ["shows", "clicks", "goals", "vk_goals", "campaign_id"]:
+            data_all[col] = data_all[col].fillna('').replace('', 0).astype(np.int64)
 # приведение вещественных чисел
-            elif col in ["spent", "cpm", "cpc", "cpa", "ctr", "cr", "vk_cpa", "vk_cr"]:
-                data_all[col] = data_all[col].fillna(0.0).astype(float)
+        elif col in ["spent", "cpm", "cpc", "cpa", "ctr", "cr", "vk_cpa", "vk_cr"]:
+            data_all[col] = data_all[col].fillna(0.0).astype(float)
 # приведение дат
-            elif col in ["date"]:
-                data_all[col] = pd.to_datetime(data_all[col].fillna("2000-01-01"))
+        elif col in ["date"]:
+            data_all[col] = pd.to_datetime(data_all[col].fillna("2000-01-01"))
 # приведение строк
-            else:
-                data_all[col] = data_all[col].fillna('')
-        if len(data):
+        else:
+            data_all[col] = data_all[col].fillna('')
+    if len(data):
 # добавляем метку времени
-            data["ts"] = pd.DatetimeIndex(data["date"]).asi8
-# создаем таблицу в первый раз
-            if table_not_created:
-                if config["DB"]["TYPE"] == "CLICKHOUSE":
+        data["ts"] = pd.DatetimeIndex(data["date"]).asi8
+# удаляем данные за вчера
+            if data_cleaup:
+                if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
+                    try:
+                        connection.execute(text("DELETE FROM " + config["VK_2023"]["TABLE"] + " WHERE `date`>='" + date_since + "'"))
+                        connection.commit()
+                    except Exception as E:
+                        print (E)
+                        connection.rollback()
+                elif config["DB"]["TYPE"] == "CLICKHOUSE":
                     requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/', verify=False,
-                        params={"database": config["DB"]["DB"], "query": (pd.io.sql.get_schema(data, config["VK_2023"]["TABLE"]) + "  ENGINE=MergeTree ORDER BY (`ts`)").replace("CREATE TABLE ", "CREATE TABLE IF NOT EXISTS " + config["DB"]["DB"] + ".").replace("INTEGER", "Int64")})
-                table_not_created = False
+                        params={"database": config["DB"]["DB"], "query": "DELETE FROM " + config["DB"]["DB"] + "." + config["VK_2023"]["TABLE"] + " WHERE `date`>='" + date_since + "'"})
+                data_cleaup = False
             if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
 # обработка ошибок при добавлении данных
                 try:
