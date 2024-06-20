@@ -318,6 +318,74 @@ FROM raw_yd_costs as c
     LEFT JOIN raw_yd_campaigns_utms as u ON c.CampaignId=u.CampaignId
 GROUP BY DATE(`Date`), UTMMedium, UTMSource, UTMCampaign, UTMTerm, Region;
 
+CREATE OR REPLACE EVENT mart_costs_vk2023_dt
+  ON SCHEDULE EVERY 1 DAY STARTS '2024-01-01 04:30:00.000' DO
+CREATE OR REPLACE TABLE `mart_costs_vk2023_dt` (
+  `DT` datetime DEFAULT NULL,
+  `Visits` bigint(20) DEFAULT NULL,
+  `Costs` double DEFAULT NULL,
+  `Orders` bigint(20) DEFAULT NULL,
+  `Sales` bigint(20) DEFAULT NULL,
+  `Revenue` double DEFAULT NULL,
+  `UTMMedium` text DEFAULT NULL,
+  `UTMSource` text DEFAULT NULL,
+  `UTMCampaign` text DEFAULT NULL,
+  `UTMTerm` text DEFAULT NULL,
+  `Region` text DEFAULT NULL,
+  KEY `ix_datetime` (`DT`),
+  KEY `ix_channel` (`UTMMedium`(768)),
+  KEY `ix_source` (`UTMSource`(768)),
+  KEY `ix_campaign` (`UTMCampaign`(768)),
+  KEY `ix_term` (`UTMTerm`(768)),
+  KEY `ix_region` (`Region`(768))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 SELECT
+    DATE(`date`) AS `DT`,
+    0 AS 'Visits',
+    SUM(`spent`) as Costs,
+    0 AS Orders,
+    0 AS Sales,
+    0 AS Revenue,
+    'cpc' AS UTMMedium,
+    'vk' AS UTMSource,
+    `campaign_id` as UTMCampaign,
+    '' AS UTMTerm,
+    'MSK' AS Region
+FROM raw_vk2023_costs
+GROUP BY DATE(`date`), UTMMedium, UTMSource, UTMCampaign, UTMTerm, Region;
+
+CREATE OR REPLACE TABLE `mart_costs_vk2023_dt` (
+  `DT` datetime DEFAULT NULL,
+  `Visits` bigint(20) DEFAULT NULL,
+  `Costs` double DEFAULT NULL,
+  `Orders` bigint(20) DEFAULT NULL,
+  `Sales` bigint(20) DEFAULT NULL,
+  `Revenue` double DEFAULT NULL,
+  `UTMMedium` text DEFAULT NULL,
+  `UTMSource` text DEFAULT NULL,
+  `UTMCampaign` text DEFAULT NULL,
+  `UTMTerm` text DEFAULT NULL,
+  `Region` text DEFAULT NULL,
+  KEY `ix_datetime` (`DT`),
+  KEY `ix_channel` (`UTMMedium`(768)),
+  KEY `ix_source` (`UTMSource`(768)),
+  KEY `ix_campaign` (`UTMCampaign`(768)),
+  KEY `ix_term` (`UTMTerm`(768)),
+  KEY `ix_region` (`Region`(768))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 SELECT
+    DATE(`date`) AS `DT`,
+    0 AS 'Visits',
+    SUM(`spent`) as Costs,
+    0 AS Orders,
+    0 AS Sales,
+    0 AS Revenue,
+    'cpc' AS UTMMedium,
+    'vk' AS UTMSource,
+    `campaign_id` as UTMCampaign,
+    '' AS UTMTerm,
+    'MSK' AS Region
+FROM raw_vk2023_costs
+GROUP BY DATE(`date`), UTMMedium, UTMSource, UTMCampaign, UTMTerm, Region;
+
 create or replace view mart_orders_dt as (SELECT
     DATE(dateInsert) AS `DT`,
     0 as Visits,
@@ -403,6 +471,22 @@ SELECT
     UTMCampaign,
     Region
 FROM mart_costs_dt
+WHERE Costs>0
+
+UNION ALL
+
+SELECT
+    DT,
+    Visits,
+    Costs,
+    Orders,
+    Sales,
+    Revenue,
+    UTMMedium,
+    UTMSource,
+    UTMCampaign,
+    Region
+FROM mart_costs_vk2023_dt
 WHERE Costs>0
 
 UNION ALL

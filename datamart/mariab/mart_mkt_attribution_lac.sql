@@ -300,6 +300,22 @@ SELECT
     UTMSource,
     UTMCampaign,
     Region
+FROM mart_costs_vk2023_dt
+WHERE Costs>0
+
+UNION ALL
+
+SELECT
+    DT,
+    Visits,
+    Costs,
+    Orders,
+    Sales,
+    Revenue,
+    UTMMedium,
+    UTMSource,
+    UTMCampaign,
+    Region
 FROM mart_orders_dt_lac
 WHERE Orders>0
 
