@@ -33,7 +33,7 @@ except Exception as E:
 # импорт настроек
 import configparser
 config = configparser.ConfigParser()
-config.read("../settings.ini")
+config.read("../../settings.ini")
 
 # подключение к БД
 if config["DB"]["TYPE"] == "MYSQL":
@@ -58,7 +58,7 @@ if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"
 date_since = (date.today() - timedelta(days=1)).strftime('%Y-%m-%d')
 date_until = (date.today() - timedelta(days=1)).strftime('%Y-%m-%d')
 # удалять ли данные за вчера (для обновления)
-date_cleaup = True
+data_cleanup = True
 
 # перебор всех токенов при необходимости
 if config["VK_2023"]["ACCESS_TOKEN"]:
@@ -69,7 +69,7 @@ else:
 for i, TOKEN in enumerate(TOKENS):
 # обновляем токен ВК, если требуется
     if config["VK_2023"]["ACCESS_TOKEN"]:
-	    vk2023_access_token = TOKEN
+        vk2023_access_token = TOKEN
     else:
         r_refresh = requests.post('https://ads.vk.com/api/v2/oauth2/token.json', data={
             'grant_type': 'refresh_token',
@@ -125,31 +125,31 @@ for i, TOKEN in enumerate(TOKENS):
 # добавляем метку времени
         data["ts"] = pd.DatetimeIndex(data["date"]).asi8
 # удаляем данные за вчера
-            if data_cleaup:
-                if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
-                    try:
-                        connection.execute(text("DELETE FROM " + config["VK_2023"]["TABLE"] + " WHERE `date`>='" + date_since + "'"))
-                        connection.commit()
-                    except Exception as E:
-                        print (E)
-                        connection.rollback()
-                elif config["DB"]["TYPE"] == "CLICKHOUSE":
-                    requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/', verify=False,
-                        params={"database": config["DB"]["DB"], "query": "DELETE FROM " + config["DB"]["DB"] + "." + config["VK_2023"]["TABLE"] + " WHERE `date`>='" + date_since + "'"})
-                data_cleaup = False
+        if data_cleanup:
             if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
-# обработка ошибок при добавлении данных
                 try:
-                    data.to_sql(name=config["VK_2023"]["TABLE"], con=engine, if_exists='append', chunksize=100)
+                    connection.execute(text("DELETE FROM " + config["VK_2023"]["TABLE"] + " WHERE `date`>='" + date_since + "'"))
+                    connection.commit()
                 except Exception as E:
                     print (E)
                     connection.rollback()
             elif config["DB"]["TYPE"] == "CLICKHOUSE":
-                csv_file = data.to_csv().encode('utf-8')
-                requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/',
-                    params={"database": config["DB"]["DB"], "query": 'INSERT INTO ' + config["DB"]["DB"] + '.' + config["VK_2023"]["TABLE"] + ' FORMAT CSV'},
-                    headers={'Content-Type':'application/octet-stream'}, data=csv_file, stream=True, verify=False)
-        print ("TOKEN" + str(i) + " | " + date_since + "=>" + date_until + ": " + str(len(data)))
+                requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/', verify=False,
+                    params={"database": config["DB"]["DB"], "query": "DELETE FROM " + config["DB"]["DB"] + "." + config["VK_2023"]["TABLE"] + " WHERE `date`>='" + date_since + "'"})
+            data_cleanup = False
+        if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
+# обработка ошибок при добавлении данных
+            try:
+                data.to_sql(name=config["VK_2023"]["TABLE"], con=engine, if_exists='append', chunksize=100)
+            except Exception as E:
+                print (E)
+                connection.rollback()
+        elif config["DB"]["TYPE"] == "CLICKHOUSE":
+            csv_file = data.to_csv().encode('utf-8')
+            requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/',
+                params={"database": config["DB"]["DB"], "query": 'INSERT INTO ' + config["DB"]["DB"] + '.' + config["VK_2023"]["TABLE"] + ' FORMAT CSV'},
+                headers={'Content-Type':'application/octet-stream'}, data=csv_file, stream=True, verify=False)
+    print ("TOKEN" + str(i) + " | " + date_since + "=>" + date_until + ": " + str(len(data)))
 
 # закрытие подключения к БД
 if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
