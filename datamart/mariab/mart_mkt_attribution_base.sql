@@ -345,12 +345,13 @@ CREATE OR REPLACE TABLE `mart_costs_vk2023_dt` (
     0 AS Orders,
     0 AS Sales,
     0 AS Revenue,
-    'cpc' AS UTMMedium,
-    'vk' AS UTMSource,
-    `campaign_id` as UTMCampaign,
+    IFNULL(u.UTMMedium, 'cpc') AS UTMMedium,
+    IFNULL(u.UTMSource, 'vk') AS UTMSource,
+    IFNULL(u.CampaignName, c.campaign_id) as UTMCampaign,
     '' AS UTMTerm,
     'MSK' AS Region
-FROM raw_vk2023_costs
+FROM raw_vk2023_costs as c
+    LEFT JOIN raw_vk2023_campaigns_utms as u ON c.campaign_id=u.CampaignId
 GROUP BY DATE(`date`), UTMMedium, UTMSource, UTMCampaign, UTMTerm, Region;
 
 CREATE OR REPLACE TABLE `mart_costs_vk2023_dt` (
@@ -378,12 +379,13 @@ CREATE OR REPLACE TABLE `mart_costs_vk2023_dt` (
     0 AS Orders,
     0 AS Sales,
     0 AS Revenue,
-    'cpc' AS UTMMedium,
-    'vk' AS UTMSource,
-    `campaign_id` as UTMCampaign,
+    IFNULL(u.UTMMedium, 'cpc') AS UTMMedium,
+    IFNULL(u.UTMSource, 'vk') AS UTMSource,
+    IFNULL(u.CampaignName, c.campaign_id) as UTMCampaign,
     '' AS UTMTerm,
     'MSK' AS Region
-FROM raw_vk2023_costs
+FROM raw_vk2023_costs as c
+    LEFT JOIN raw_vk2023_campaigns_utms as u ON c.campaign_id=u.CampaignId
 GROUP BY DATE(`date`), UTMMedium, UTMSource, UTMCampaign, UTMTerm, Region;
 
 create or replace view mart_orders_dt as (SELECT
