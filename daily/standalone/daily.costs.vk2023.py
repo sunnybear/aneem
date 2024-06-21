@@ -5,13 +5,13 @@
 # * DB.USER - пользователь базы данных
 # * DB.PASSWORD - пароль к базе данных
 # * DB.DB - имя базы данных
-# * VK2023.ACCESS_TOKEN - Access Token (бессрочный, агентский) как альтернатива клиентскому набору Client Secret/Client Id/Refresh Token
-# * VK2023.CLIENT_SECRET - Client Secret из настроек аккаунта
-# * VK2023.CLIENT_ID - Client Id из настроек аккаунта
-# * VK2023.REFRESH_TOKEN - Refresh Token (получается после запроса ACCESS TOKEN в API ВК), используется для обновления клиентского ACCESS TOKEN
-# * VK2023.DELTA - продолжительность периода (в днях) каждой отдельной выгрузки (запроса к API)
-# * VK2023.PERIODS - количество периодов (всех выгрузок), будут выгружены данные за DELTA*PERIODS дней
-# * VK2023.TABLE - имя результирующей таблицы для статистики (расходов)
+# * VK_2023.ACCESS_TOKEN - Access Token (бессрочный, агентский) как альтернатива клиентскому набору Client Secret/Client Id/Refresh Token
+# * VK_2023.CLIENT_SECRET - Client Secret из настроек аккаунта
+# * VK_2023.CLIENT_ID - Client Id из настроек аккаунта
+# * VK_2023.REFRESH_TOKEN - Refresh Token (получается после запроса ACCESS TOKEN в API ВК), используется для обновления клиентского ACCESS TOKEN
+# * VK_2023.DELTA - продолжительность периода (в днях) каждой отдельной выгрузки (запроса к API)
+# * VK_2023.PERIODS - количество периодов (всех выгрузок), будут выгружены данные за DELTA*PERIODS дней
+# * VK_2023.TABLE - имя результирующей таблицы для статистики (расходов)
 
 # импорт общих библиотек
 from datetime import datetime as dt

@@ -167,6 +167,29 @@ FROM
 /*UNION ALL
 
 SELECT
+    'VK2023' as `source`,
+	'ВК: расходы (новый)' as `title`,
+    count(*) as total,
+	max(`date`) as date_end,
+    min(`date`) as date_start
+FROM
+    raw_vk2023_costs
+	
+UNION ALL
+
+SELECT
+    'VK2023U' as `source`,
+	'ВК: UTM-метки (новый)' as `title`,
+    count(*) as total,
+	NOW() as date_end,
+    NOW() as date_start
+FROM
+    raw_vk2023_campaigns_utms
+*/
+
+/*UNION ALL
+
+SELECT
     'BXO' as `source`,
 	'Битрикс: заказы' as `title`,
     count(*) as total,

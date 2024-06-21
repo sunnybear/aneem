@@ -74,8 +74,10 @@ for i_credentials, TOKEN in enumerate(config["YANDEX_METRIKA"]["ACCESS_TOKEN"].s
     if "requests" in api_requests:
         for req in api_requests["requests"]:
             if req["status"] == "processed":
-                api.clean(requestId=req["request_id"]).post()
-# отправляем запрос API
+                try:
+                    api.clean(requestId=req["request_id"]).post()
+                except Exception as E:
+                    continue# отправляем запрос API
     result = api.create().post(params=params)
 # получаем ID в очереди
     request_id = result["log_request"]["request_id"]

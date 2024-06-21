@@ -76,7 +76,10 @@ def handler(event, context):
     api_requests = api.allinfo().get()
     if "requests" in api_requests:
         for req in api_requests["requests"]:
-            api.clean(requestId=req["request_id"]).post()
+            try:
+                api.clean(requestId=req["request_id"]).post()
+            except Exception as E:
+                continue
 # отправляем запрос API
     result = api.create().post(params=params)
 # получаем ID в очереди

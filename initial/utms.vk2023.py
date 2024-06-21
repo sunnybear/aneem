@@ -5,11 +5,11 @@
 # * DB.USER - пользователь базы данных
 # * DB.PASSWORD - пароль к базе данных
 # * DB.DB - имя базы данных
-# * VK2023.ACCESS_TOKEN - Access Token (бессрочный, агентский) как альтернатива клиентскому набору Client Secret/Client Id/Refresh Token
-# * VK2023.CLIENT_SECRET - Client Secret из настроек аккаунта
-# * VK2023.CLIENT_ID - Client Id из настроек аккаунта
-# * VK2023.REFRESH_TOKEN - Refresh Token (получается после запроса ACCESS TOKEN в API ВК), используется для обновления клиентского ACCESS TOKEN
-# * VK2023.TABLE_UTMS - имя результирующей таблицы для UTM меток
+# * VK_2023.ACCESS_TOKEN - Access Token (бессрочный, агентский) как альтернатива клиентскому набору Client Secret/Client Id/Refresh Token
+# * VK_2023.CLIENT_SECRET - Client Secret из настроек аккаунта
+# * VK_2023.CLIENT_ID - Client Id из настроек аккаунта
+# * VK_2023.REFRESH_TOKEN - Refresh Token (получается после запроса ACCESS TOKEN в API ВК), используется для обновления клиентского ACCESS TOKEN
+# * VK_2023.TABLE_UTMS - имя результирующей таблицы для UTM меток
 
 # импорт общих библиотек
 from datetime import datetime as dt
@@ -137,7 +137,7 @@ for i, TOKEN in enumerate(TOKENS):
         if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
 # обработка ошибок при добавлении данных
             try:
-                data.to_sql(name=config["VK_2023"]["TABLE_UTMS"], con=engine, if_exists='replace', chunksize=100)
+                data.to_sql(name=config["VK_2023"]["TABLE_UTMS"], con=engine, if_exists='append', chunksize=100)
             except Exception as E:
                 print (E)
                 connection.rollback()
