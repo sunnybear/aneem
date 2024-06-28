@@ -20,6 +20,20 @@ SELECT
 		WHEN Month=11 THEN 'Ноябрь'
 		WHEN Month=12 THEN 'Декабрь'
 	END AS Month_RU,
+	CASE
+		WHEN Month=1 THEN 'Янв'
+		WHEN Month=2 THEN 'Фев'
+		WHEN Month=3 THEN 'Март'
+		WHEN Month=4 THEN 'Апр'
+		WHEN Month=5 THEN 'Май'
+		WHEN Month=6 THEN 'Июнь'
+		WHEN Month=7 THEN 'Июль'
+		WHEN Month=8 THEN 'Авг'
+		WHEN Month=9 THEN 'Сент'
+		WHEN Month=10 THEN 'Окт'
+		WHEN Month=11 THEN 'Нояб'
+		WHEN Month=12 THEN 'Дек'
+	END AS MonthShort_RU,
 	DT
 FROM (
 	SELECT arrayJoin(groupArray(
