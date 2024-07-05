@@ -1,10 +1,11 @@
-/* Цепочки касаний до конверсий (по всем типам конверсий) - на глубину 3, 7, 30, 90, 365 дней */
+/* Цепочки касаний до конверсий (по всем типам конверсий) - на глубину 3, 7, 30, 90, 365 дней или всю */
 /*
 	int_mart_e2e_funnels_3days
 	int_mart_e2e_funnels_week
 	int_mart_e2e_funnels_month
 	int_mart_e2e_funnels_quarter
 	int_mart_e2e_funnels_year
+	int_mart_e2e_funnels_any
 */
 /*
 	Тип конверсии: conversionType,
@@ -51,9 +52,8 @@ FROM
 LEFT JOIN
     int_mart_e2e_touches_phone AS t ON t.phone=c.phone
 WHERE
-    conversionDateTime>touchDateTime
+    conversionDateTime>=touchDateTime
     AND conversionDateTime-touchDateTime<3*86400
-    AND (conversionType!=touchType OR conversionDateTime!=touchDateTime)
 GROUP BY
 	conversionType,
     conversionDateTime,
@@ -99,9 +99,8 @@ FROM
 LEFT JOIN
     int_mart_e2e_touches_phone AS t ON t.phone=c.phone
 WHERE
-    conversionDateTime>touchDateTime
+    conversionDateTime>=touchDateTime
     AND conversionDateTime-touchDateTime<7*86400
-    AND (conversionType!=touchType OR conversionDateTime!=touchDateTime)
 GROUP BY
 	conversionType,
     conversionDateTime,
@@ -147,9 +146,8 @@ FROM
 LEFT JOIN
     int_mart_e2e_touches_phone AS t ON t.phone=c.phone
 WHERE
-    conversionDateTime>touchDateTime
+    conversionDateTime>=touchDateTime
     AND conversionDateTime-touchDateTime<30*86400
-    AND (conversionType!=touchType OR conversionDateTime!=touchDateTime)
 GROUP BY
 	conversionType,
     conversionDateTime,
@@ -195,9 +193,8 @@ FROM
 LEFT JOIN
     int_mart_e2e_touches_phone AS t ON t.phone=c.phone
 WHERE
-    conversionDateTime>touchDateTime
+    conversionDateTime>=touchDateTime
     AND conversionDateTime-touchDateTime<90*86400
-    AND (conversionType!=touchType OR conversionDateTime!=touchDateTime)
 GROUP BY
 	conversionType,
     conversionDateTime,
@@ -243,9 +240,8 @@ FROM
 LEFT JOIN
     int_mart_e2e_touches_phone AS t ON t.phone=c.phone
 WHERE
-    conversionDateTime>touchDateTime
+    conversionDateTime>=touchDateTime
     AND conversionDateTime-touchDateTime<365*86400
-    AND (conversionType!=touchType OR conversionDateTime!=touchDateTime)
 GROUP BY
 	conversionType,
     conversionDateTime,
@@ -291,8 +287,7 @@ FROM
 LEFT JOIN
     int_mart_e2e_touches_phone AS t ON t.phone=c.phone
 WHERE
-    conversionDateTime>touchDateTime
-    AND (conversionType!=touchType OR conversionDateTime!=touchDateTime)
+    conversionDateTime>=touchDateTime
 GROUP BY
 	conversionType,
     conversionDateTime,

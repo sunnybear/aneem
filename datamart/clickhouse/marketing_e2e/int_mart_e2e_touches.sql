@@ -286,3 +286,63 @@ FROM
 	raw_bx_crm_lead_uf as l
 LEFT ANY JOIN raw_bx_crm_status as s ON l.SOURCE_ID=s.STATUS_ID
 */
+/* Битрикс24 (сделки) */
+/*
+UNION ALL
+SELECT
+	'deal' AS touchType,
+	'bitrix24' AS touchSource,
+	'' AS touchSourceName,
+	`DATE_CREATE` AS touchDateTime,
+	toString(`ID`) AS touchID,
+	'' AS yclid,
+	'' as gclid,
+	'' AS gaid,
+	'' AS amiid,
+	'' AS ctid,
+	CASE
+		WHEN LENGTH(`phone1`)<11 THEN ''
+		ELSE CONCAT('7', SUBSTRING(replace(replace(replace(replace(replace(`phone1`, '(', ''), ')', ''), ' ', ''), '+', ''), '-', ''), 2))
+	END AS phone,
+	`email` AS email,
+	'' AS google_aid,
+	'' AS oaid,
+	'' AS ios_ifa,
+	'' AS ios_ifv, 
+	'' AS windows_aid,
+    CASE
+        WHEN `UTM_SOURCE`='(direct)' THEN 'bitrix24'
+        WHEN `UTM_MEDIUM`='' THEN IFNULL(s.NAME, 'direct')
+        WHEN `UTM_MEDIUM` IS NULL THEN IFNULL(s.NAME, 'direct')
+        WHEN `UTM_MEDIUM`='(none)' THEN IFNULL(s.NAME, 'direct')
+        ELSE IFNULL(`UTM_MEDIUM`, IFNULL(s.NAME, 'direct'))
+    END as UTMMedium,
+    CASE 
+        WHEN `UTM_SOURCE`='(offline)' THEN IFNULL(`UTM_MEDIUM`, '')
+        WHEN `UTM_SOURCE`='' THEN IFNULL(s.NAME, '')
+        WHEN `UTM_SOURCE`='(none)' THEN IFNULL(s.NAME, '')
+        WHEN `UTM_SOURCE`='(direct)' THEN IFNULL(s.NAME, '')
+        WHEN `UTM_SOURCE` IS NULL THEN IFNULL(s.NAME, '')
+        ELSE IFNULL(`UTM_SOURCE`, '')
+    END as UTMSource,
+	CASE 
+        WHEN `UTM_CAMPAIGN`='(referral)' THEN ''
+        WHEN `UTM_CAMPAIGN`='(organic)' THEN ''
+        WHEN `UTM_CAMPAIGN`='(none)' THEN ''
+        WHEN `UTM_CAMPAIGN`='(undefined)' THEN ''
+        ELSE IFNULL(`UTM_CAMPAIGN`, '')
+    END as UTMCampaign,
+	CASE
+		WHEN `UTM_TERM`='<не указано>' THEN ''
+		WHEN `UTM_TERM`='<не заполнено>' THEN ''
+		ELSE `UTM_TERM`
+	END AS UTMTerm,
+	CASE
+		WHEN `UTM_CONTENT`='<не указано>' THEN ''
+		WHEN `UTM_CONTENT`='<не заполнено>' THEN ''
+		ELSE `UTM_CONTENT`
+	END AS UTMContent
+FROM
+	raw_bx_crm_deal_uf as d
+LEFT ANY JOIN raw_bx_crm_status as s ON d.SOURCE_ID=s.STATUS_ID
+*/
