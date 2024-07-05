@@ -1,18 +1,21 @@
--- 1. ground table
-CREATE TABLE DB.dict_yainstallationid_yclid
+/* Словарь соответствия yclid-amiid для Yandex.Appmetrica (из соответствия устройства и захода по Яндекс.Метрике) */
+/*
+	Yandex Appmetrica Installation ID: amiid,
+	Yandex Client ID: yclid */
+-- 1. целевая таблица
+CREATE OR REPLACE TABLE dict_metrika_amiid_yclid
 (
-    `install_datetime` DateTime,
-    `installation_id` String,
+    `amiid` String,
     `yclid` String,
 )
 ENGINE = SummingMergeTree
-ORDER BY (install_datetime, installation_id, yclid);
+ORDER BY (amiid, yclid);
 
--- 2. materialized view (updates data rom now)
-CREATE MATERIALIZED VIEW DB.dict_yainstallationid_yclid_mv TO DB.dict_yainstallationid_yclid AS
+-- 2. материализованное представление (триггер на обновление данных целевой таблицы)
+DROP VIEW IF EXISTS dict_metrika_amiid_yclid_mv;
+CREATE MATERIALIZED VIEW dict_metrika_amiid_yclid_mv TO dict_metrika_amiid_yclid AS
 SELECT
-	install_datetime,
-	installation_id,
+	installation_id AS amiid,
 	yclid
 FROM (SELECT
 	installation_id,
@@ -35,8 +38,8 @@ FROM (SELECT
 	`ym:s:operatingSystem` as vos,
 	`ym:s:browserLanguage` as vlocale,
 	`ym:s:clientID` as yclid
-FROM DB.raw_am_installs as i
-    LEFT JOIN DB.raw_ym_visits as v ON iyear=vyear
+FROM raw_ya_installs as i
+    LEFT JOIN raw_ym_visits as v ON iyear=vyear
         AND imonth=vmonth
         AND iday=vday
         AND imanufacturer=vmanufacturer
@@ -48,10 +51,9 @@ AND df>0
 AND df<600)
 WHERE rowNum=1;
 
--- 3. initial data upload
-INSERT INTO DB.dict_yainstallationid_yclid SELECT
-    install_datetime,
-    installation_id,
+-- 3. загрузка исходных данных
+INSERT INTO dict_metrika_amiid_yclid SELECT
+    installation_id as amiid,
     yclid
 FROM (SELECT
     installation_id,
@@ -74,8 +76,8 @@ FROM (SELECT
     `ym:s:operatingSystem` as vos,
     `ym:s:browserLanguage` as vlocale,
     `ym:s:clientID` as yclid
-FROM DB.raw_am_installs as i
-    LEFT JOIN DB.raw_ym_visits as v ON iyear=vyear
+FROM raw_ya_installs as i
+    LEFT JOIN raw_ym_visits as v ON iyear=vyear
         AND imonth=vmonth
         AND iday=vday
         AND imanufacturer=vmanufacturer
