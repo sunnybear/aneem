@@ -25,10 +25,7 @@
 CREATE OR REPLACE VIEW final_mart_e2e_lndc_3days AS
 SELECT 
 	conversionType,
-	CASE
-		WHEN _UTMMedium='direct' THEN conversionDateTime-1
-		ELSE conversionDateTime
-    END AS conversionDateTime,
+	conversionDateTime,
 	conversionID,
 	conversionSource,
 	conversionSourceName,
@@ -36,11 +33,11 @@ SELECT
 	conversionSum,
     phone,
 	email,
-    argMax(_UTMMedium, (conversionDateTime)) AS UTMMedium,
-    argMax(_UTMSource, (conversionDateTime)) AS UTMSource,
-	argMax(_UTMCampaign, (conversionDateTime)) AS UTMCampaign,
-    argMax(_UTMTerm, (conversionDateTime)) AS UTMTerm,
-	argMax(_UTMContent, (conversionDateTime)) AS UTMContent
+    argMin(_UTMMedium, (conversionPriority)) AS UTMMedium,
+    argMin(_UTMSource, (conversionPriority)) AS UTMSource,
+	argMin(_UTMCampaign, (conversionPriority)) AS UTMCampaign,
+    argMin(_UTMTerm, (conversionPriority)) AS UTMTerm,
+	argMin(_UTMContent, (conversionPriority)) AS UTMContent
 FROM (
 SELECT 
 	conversionType,
@@ -49,6 +46,7 @@ SELECT
 	conversionSource,
 	conversionSourceName,
 	conversionSum,
+	1 AS conversionPriority,
     phone,
 	email,
     argMax(UTMMedium, (touchDateTime)) AS _UTMMedium,
@@ -74,11 +72,12 @@ UNION ALL
 
 SELECT
 	conversionType,
-    conversionDateTime+1,
+    conversionDateTime,
 	conversionID,
 	conversionSource,
 	conversionSourceName,
 	conversionSum,
+	2 AS conversionPriority,
     phone,
 	email,
     'direct',
@@ -112,10 +111,7 @@ GROUP BY
 CREATE OR REPLACE VIEW final_mart_e2e_lndc_week AS
 SELECT 
 	conversionType,
-	CASE
-		WHEN _UTMMedium='direct' THEN conversionDateTime-1
-		ELSE conversionDateTime
-    END AS conversionDateTime,
+	conversionDateTime,
 	conversionID,
 	conversionSource,
 	conversionSourceName,
@@ -123,11 +119,11 @@ SELECT
 	conversionSum,
     phone,
 	email,
-    argMax(_UTMMedium, (conversionDateTime)) AS UTMMedium,
-    argMax(_UTMSource, (conversionDateTime)) AS UTMSource,
-	argMax(_UTMCampaign, (conversionDateTime)) AS UTMCampaign,
-    argMax(_UTMTerm, (conversionDateTime)) AS UTMTerm,
-	argMax(_UTMContent, (conversionDateTime)) AS UTMContent
+    argMin(_UTMMedium, (conversionPriority)) AS UTMMedium,
+    argMin(_UTMSource, (conversionPriority)) AS UTMSource,
+	argMin(_UTMCampaign, (conversionPriority)) AS UTMCampaign,
+    argMin(_UTMTerm, (conversionPriority)) AS UTMTerm,
+	argMin(_UTMContent, (conversionPriority)) AS UTMContent
 FROM (
 SELECT 
 	conversionType,
@@ -136,6 +132,7 @@ SELECT
 	conversionSource,
 	conversionSourceName,
 	conversionSum,
+	1 AS conversionPriority,
     phone,
 	email,
     argMax(UTMMedium, (touchDateTime)) AS _UTMMedium,
@@ -161,11 +158,12 @@ UNION ALL
 
 SELECT
 	conversionType,
-    conversionDateTime+1,
+    conversionDateTime,
 	conversionID,
 	conversionSource,
 	conversionSourceName,
 	conversionSum,
+	2 AS conversionPriority,
     phone,
 	email,
     'direct',
@@ -199,10 +197,7 @@ GROUP BY
 CREATE OR REPLACE VIEW final_mart_e2e_lndc_month AS
 SELECT 
 	conversionType,
-	CASE
-		WHEN _UTMMedium='direct' THEN conversionDateTime-1
-		ELSE conversionDateTime
-    END AS conversionDateTime,
+	conversionDateTime,
 	conversionID,
 	conversionSource,
 	conversionSourceName,
@@ -210,11 +205,11 @@ SELECT
 	conversionSum,
     phone,
 	email,
-    argMax(_UTMMedium, (conversionDateTime)) AS UTMMedium,
-    argMax(_UTMSource, (conversionDateTime)) AS UTMSource,
-	argMax(_UTMCampaign, (conversionDateTime)) AS UTMCampaign,
-    argMax(_UTMTerm, (conversionDateTime)) AS UTMTerm,
-	argMax(_UTMContent, (conversionDateTime)) AS UTMContent
+    argMin(_UTMMedium, (conversionPriority)) AS UTMMedium,
+    argMin(_UTMSource, (conversionPriority)) AS UTMSource,
+	argMin(_UTMCampaign, (conversionPriority)) AS UTMCampaign,
+    argMin(_UTMTerm, (conversionPriority)) AS UTMTerm,
+	argMin(_UTMContent, (conversionPriority)) AS UTMContent
 FROM (
 SELECT 
 	conversionType,
@@ -223,6 +218,7 @@ SELECT
 	conversionSource,
 	conversionSourceName,
 	conversionSum,
+	1 AS conversionPriority,
     phone,
 	email,
     argMax(UTMMedium, (touchDateTime)) AS _UTMMedium,
@@ -248,11 +244,12 @@ UNION ALL
 
 SELECT
 	conversionType,
-    conversionDateTime+1,
+    conversionDateTime,
 	conversionID,
 	conversionSource,
 	conversionSourceName,
 	conversionSum,
+	2 AS conversionPriority,
     phone,
 	email,
     'direct',
@@ -286,10 +283,7 @@ GROUP BY
 CREATE OR REPLACE VIEW final_mart_e2e_lndc_quarter AS
 SELECT 
 	conversionType,
-	CASE
-		WHEN _UTMMedium='direct' THEN conversionDateTime-1
-		ELSE conversionDateTime
-    END AS conversionDateTime,
+	conversionDateTime,
 	conversionID,
 	conversionSource,
 	conversionSourceName,
@@ -297,11 +291,11 @@ SELECT
 	conversionSum,
     phone,
 	email,
-    argMax(_UTMMedium, (conversionDateTime)) AS UTMMedium,
-    argMax(_UTMSource, (conversionDateTime)) AS UTMSource,
-	argMax(_UTMCampaign, (conversionDateTime)) AS UTMCampaign,
-    argMax(_UTMTerm, (conversionDateTime)) AS UTMTerm,
-	argMax(_UTMContent, (conversionDateTime)) AS UTMContent
+    argMin(_UTMMedium, (conversionPriority)) AS UTMMedium,
+    argMin(_UTMSource, (conversionPriority)) AS UTMSource,
+	argMin(_UTMCampaign, (conversionPriority)) AS UTMCampaign,
+    argMin(_UTMTerm, (conversionPriority)) AS UTMTerm,
+	argMin(_UTMContent, (conversionPriority)) AS UTMContent
 FROM (
 SELECT 
 	conversionType,
@@ -310,6 +304,7 @@ SELECT
 	conversionSource,
 	conversionSourceName,
 	conversionSum,
+	1 AS conversionPriority,
     phone,
 	email,
     argMax(UTMMedium, (touchDateTime)) AS _UTMMedium,
@@ -335,11 +330,12 @@ UNION ALL
 
 SELECT
 	conversionType,
-    conversionDateTime+1,
+    conversionDateTime,
 	conversionID,
 	conversionSource,
 	conversionSourceName,
 	conversionSum,
+	2 AS conversionPriority,
     phone,
 	email,
     'direct',
@@ -373,10 +369,7 @@ GROUP BY
 CREATE OR REPLACE VIEW final_mart_e2e_lndc_year AS
 SELECT 
 	conversionType,
-	CASE
-		WHEN _UTMMedium='direct' THEN conversionDateTime-1
-		ELSE conversionDateTime
-    END AS conversionDateTime,
+	conversionDateTime,
 	conversionID,
 	conversionSource,
 	conversionSourceName,
@@ -384,11 +377,11 @@ SELECT
 	conversionSum,
     phone,
 	email,
-    argMax(_UTMMedium, (conversionDateTime)) AS UTMMedium,
-    argMax(_UTMSource, (conversionDateTime)) AS UTMSource,
-	argMax(_UTMCampaign, (conversionDateTime)) AS UTMCampaign,
-    argMax(_UTMTerm, (conversionDateTime)) AS UTMTerm,
-	argMax(_UTMContent, (conversionDateTime)) AS UTMContent
+    argMin(_UTMMedium, (conversionPriority)) AS UTMMedium,
+    argMin(_UTMSource, (conversionPriority)) AS UTMSource,
+	argMin(_UTMCampaign, (conversionPriority)) AS UTMCampaign,
+    argMin(_UTMTerm, (conversionPriority)) AS UTMTerm,
+	argMin(_UTMContent, (conversionPriority)) AS UTMContent
 FROM (
 SELECT 
 	conversionType,
@@ -397,6 +390,7 @@ SELECT
 	conversionSource,
 	conversionSourceName,
 	conversionSum,
+	1 AS conversionPriority,
     phone,
 	email,
     argMax(UTMMedium, (touchDateTime)) AS _UTMMedium,
@@ -422,11 +416,12 @@ UNION ALL
 
 SELECT
 	conversionType,
-    conversionDateTime+1,
+    conversionDateTime,
 	conversionID,
 	conversionSource,
 	conversionSourceName,
 	conversionSum,
+	2 AS conversionPriority,
     phone,
 	email,
     'direct',
