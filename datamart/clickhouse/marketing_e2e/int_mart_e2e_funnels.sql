@@ -27,8 +27,81 @@
 	Ключевое слово касания: UTMTerm,
 	Содержание касания: UTMContent */
 /* на глубину 3 дня */
-CREATE OR REPLACE VIEW int_mart_e2e_funnels_3days AS
-SELECT
+-- 1. целевая таблица
+CREATE OR REPLACE TABLE int_mart_e2e_funnels_3days (
+	conversionType String,
+    conversionDateTime DateTime,
+	conversionID String,
+	conversionSource String,
+	conversionSourceName String,
+	conversionSum Int64,
+    phone String,
+	email String,
+    touchType String,
+    touchSource String,
+    touchSourceName String,
+    touchDateTime DateTime,
+    touchID String,
+	UTMMedium String,
+    UTMSource String,
+	UTMCampaign String,
+    UTMTerm String,
+	UTMContent String
+)
+ENGINE = SummingMergeTree
+ORDER BY (conversionType, conversionDateTime, conversionID, conversionSource, conversionSourceName, conversionSum, phone, email, touchType, touchSource, touchSourceName, touchDateTime, touchID, UTMMedium, UTMSource, UTMCampaign, UTMTerm, UTMContent);
+
+-- 2. материализованное представление (триггер на обновление данных целевой таблицы)
+DROP VIEW IF EXISTS int_mart_e2e_funnels_3days_mv;
+CREATE MATERIALIZED VIEW int_mart_e2e_funnels_3days_mv TO int_mart_e2e_funnels_3days AS
+SELECT 
+    conversionType,
+    conversionDateTime,
+	conversionID,
+	conversionSource,
+	conversionSourceName,
+	conversionSum,
+    phone,
+	email,
+    touchType,
+    touchSource,
+    touchSourceName,
+    touchDateTime,
+    touchID,
+    UTMMedium,
+    UTMSource,
+    UTMCampaign,
+    UTMTerm,
+    UTMContent
+FROM
+    int_mart_e2e_conversions as c
+LEFT JOIN
+    int_mart_e2e_touches_phone AS t ON t.phone=c.phone
+WHERE
+    conversionDateTime>=touchDateTime
+    AND conversionDateTime-touchDateTime<3*86400
+GROUP BY
+	conversionType,
+    conversionDateTime,
+	conversionID,
+	conversionSource,
+	conversionSourceName,
+	conversionSum,
+    phone,
+	email,
+    touchType,
+    touchSource,
+    touchSourceName,
+    touchDateTime,
+    touchID,
+    UTMMedium,
+    UTMSource,
+    UTMCampaign,
+    UTMTerm,
+    UTMContent;
+
+-- 3. загрузка исходных данных
+INSERT INTO int_mart_e2e_funnels_3days SELECT 
     conversionType,
     conversionDateTime,
 	conversionID,
@@ -74,8 +147,34 @@ GROUP BY
     UTMTerm,
     UTMContent;
 /* на глубину неделя */
-CREATE OR REPLACE VIEW int_mart_e2e_funnels_week AS
-SELECT
+-- 1. целевая таблица
+CREATE OR REPLACE TABLE int_mart_e2e_funnels_week (
+	conversionType String,
+    conversionDateTime DateTime,
+	conversionID String,
+	conversionSource String,
+	conversionSourceName String,
+	conversionSum Int64,
+    phone String,
+	email String,
+    touchType String,
+    touchSource String,
+    touchSourceName String,
+    touchDateTime DateTime,
+    touchID String,
+	UTMMedium String,
+    UTMSource String,
+	UTMCampaign String,
+    UTMTerm String,
+	UTMContent String
+)
+ENGINE = SummingMergeTree
+ORDER BY (conversionType, conversionDateTime, conversionID, conversionSource, conversionSourceName, conversionSum, phone, email, touchType, touchSource, touchSourceName, touchDateTime, touchID, UTMMedium, UTMSource, UTMCampaign, UTMTerm, UTMContent);
+
+-- 2. материализованное представление (триггер на обновление данных целевой таблицы)
+DROP VIEW IF EXISTS int_mart_e2e_funnels_week_mv;
+CREATE MATERIALIZED VIEW int_mart_e2e_funnels_week_mv TO int_mart_e2e_funnels_week AS
+SELECT 
     conversionType,
     conversionDateTime,
 	conversionID,
@@ -120,9 +219,83 @@ GROUP BY
     UTMCampaign,
     UTMTerm,
     UTMContent;
+
+-- 3. загрузка исходных данных
+INSERT INTO int_mart_e2e_funnels_week SELECT 
+    conversionType,
+    conversionDateTime,
+	conversionID,
+	conversionSource,
+	conversionSourceName,
+	conversionSum,
+    phone,
+	email,
+    touchType,
+    touchSource,
+    touchSourceName,
+    touchDateTime,
+    touchID,
+    UTMMedium,
+    UTMSource,
+    UTMCampaign,
+    UTMTerm,
+    UTMContent
+FROM
+    int_mart_e2e_conversions as c
+LEFT JOIN
+    int_mart_e2e_touches_phone AS t ON t.phone=c.phone
+WHERE
+    conversionDateTime>=touchDateTime
+    AND conversionDateTime-touchDateTime<7*86400
+/* можно рассчитать отдельно по годам:	AND YEAR(conversionDateTime)=2024 */
+GROUP BY
+	conversionType,
+    conversionDateTime,
+	conversionID,
+	conversionSource,
+	conversionSourceName,
+	conversionSum,
+    phone,
+	email,
+    touchType,
+    touchSource,
+    touchSourceName,
+    touchDateTime,
+    touchID,
+    UTMMedium,
+    UTMSource,
+    UTMCampaign,
+    UTMTerm,
+    UTMContent;
 /* на глубину месяц */
-CREATE OR REPLACE VIEW int_mart_e2e_funnels_month AS
-SELECT
+-- 1. целевая таблица
+CREATE OR REPLACE TABLE int_mart_e2e_funnels_month (
+	conversionType String,
+    conversionDateTime DateTime,
+	conversionID String,
+	conversionSource String,
+	conversionSourceName String,
+	conversionSum Int64,
+    phone String,
+	email String,
+    touchType String,
+    touchSource String,
+    touchSourceName String,
+    touchDateTime DateTime,
+    touchID String,
+	UTMMedium String,
+    UTMSource String,
+	UTMCampaign String,
+    UTMTerm String,
+	UTMContent String
+)
+ENGINE = SummingMergeTree
+ORDER BY (conversionType, conversionDateTime, conversionID, conversionSource, conversionSourceName, conversionSum, phone, email, touchType, touchSource, touchSourceName, touchDateTime, touchID, UTMMedium, UTMSource, UTMCampaign, UTMTerm, UTMContent);
+
+-- 2. материализованное представление (триггер на обновление данных целевой таблицы)
+DROP VIEW IF EXISTS int_mart_e2e_funnels_month_mv;
+CREATE MATERIALIZED VIEW int_mart_e2e_funnels_month_mv TO int_mart_e2e_funnels_month AS
+SELECT 
     conversionType,
     conversionDateTime,
 	conversionID,
@@ -158,18 +331,92 @@ GROUP BY
     phone,
 	email,
     touchType,
+    touchSource,
+    touchSourceName,
     touchDateTime,
     touchID,
-	touchSource,
-	touchSourceName,
+    UTMMedium,
+    UTMSource,
+    UTMCampaign,
+    UTMTerm,
+    UTMContent;
+
+-- 3. загрузка исходных данных
+INSERT INTO int_mart_e2e_funnels_month SELECT 
+    conversionType,
+    conversionDateTime,
+	conversionID,
+	conversionSource,
+	conversionSourceName,
+	conversionSum,
+    phone,
+	email,
+    touchType,
+    touchSource,
+    touchSourceName,
+    touchDateTime,
+    touchID,
+    UTMMedium,
+    UTMSource,
+    UTMCampaign,
+    UTMTerm,
+    UTMContent
+FROM
+    int_mart_e2e_conversions as c
+LEFT JOIN
+    int_mart_e2e_touches_phone AS t ON t.phone=c.phone
+WHERE
+    conversionDateTime>=touchDateTime
+    AND conversionDateTime-touchDateTime<30*86400
+/* можно рассчитать отдельно по годам:	AND YEAR(conversionDateTime)=2024 */
+GROUP BY
+	conversionType,
+    conversionDateTime,
+	conversionID,
+	conversionSource,
+	conversionSourceName,
+	conversionSum,
+    phone,
+	email,
+    touchType,
+    touchSource,
+    touchSourceName,
+    touchDateTime,
+    touchID,
     UTMMedium,
     UTMSource,
     UTMCampaign,
     UTMTerm,
     UTMContent;
 /* на глубину квартал */
-CREATE OR REPLACE VIEW int_mart_e2e_funnels_quarter AS
-SELECT
+-- 1. целевая таблица
+CREATE OR REPLACE TABLE int_mart_e2e_funnels_quarter (
+	conversionType String,
+    conversionDateTime DateTime,
+	conversionID String,
+	conversionSource String,
+	conversionSourceName String,
+	conversionSum Int64,
+    phone String,
+	email String,
+    touchType String,
+    touchSource String,
+    touchSourceName String,
+    touchDateTime DateTime,
+    touchID String,
+	UTMMedium String,
+    UTMSource String,
+	UTMCampaign String,
+    UTMTerm String,
+	UTMContent String
+)
+ENGINE = SummingMergeTree
+ORDER BY (conversionType, conversionDateTime, conversionID, conversionSource, conversionSourceName, conversionSum, phone, email, touchType, touchSource, touchSourceName, touchDateTime, touchID, UTMMedium, UTMSource, UTMCampaign, UTMTerm, UTMContent);
+
+-- 2. материализованное представление (триггер на обновление данных целевой таблицы)
+DROP VIEW IF EXISTS int_mart_e2e_funnels_quarter_mv;
+CREATE MATERIALIZED VIEW int_mart_e2e_funnels_quarter_mv TO int_mart_e2e_funnels_quarter AS
+SELECT 
     conversionType,
     conversionDateTime,
 	conversionID,
@@ -205,18 +452,92 @@ GROUP BY
     phone,
 	email,
     touchType,
+    touchSource,
+    touchSourceName,
     touchDateTime,
     touchID,
-	touchSource,
-	touchSourceName,
+    UTMMedium,
+    UTMSource,
+    UTMCampaign,
+    UTMTerm,
+    UTMContent;
+
+-- 3. загрузка исходных данных
+INSERT INTO int_mart_e2e_funnels_quarter SELECT 
+    conversionType,
+    conversionDateTime,
+	conversionID,
+	conversionSource,
+	conversionSourceName,
+	conversionSum,
+    phone,
+	email,
+    touchType,
+    touchSource,
+    touchSourceName,
+    touchDateTime,
+    touchID,
+    UTMMedium,
+    UTMSource,
+    UTMCampaign,
+    UTMTerm,
+    UTMContent
+FROM
+    int_mart_e2e_conversions as c
+LEFT JOIN
+    int_mart_e2e_touches_phone AS t ON t.phone=c.phone
+WHERE
+    conversionDateTime>=touchDateTime
+    AND conversionDateTime-touchDateTime<90*86400
+/* можно рассчитать отдельно по годам:	AND YEAR(conversionDateTime)=2024 */
+GROUP BY
+	conversionType,
+    conversionDateTime,
+	conversionID,
+	conversionSource,
+	conversionSourceName,
+	conversionSum,
+    phone,
+	email,
+    touchType,
+    touchSource,
+    touchSourceName,
+    touchDateTime,
+    touchID,
     UTMMedium,
     UTMSource,
     UTMCampaign,
     UTMTerm,
     UTMContent;
 /* на глубину год */
-CREATE OR REPLACE VIEW int_mart_e2e_funnels_year AS
-SELECT
+-- 1. целевая таблица
+CREATE OR REPLACE TABLE int_mart_e2e_funnels_year (
+	conversionType String,
+    conversionDateTime DateTime,
+	conversionID String,
+	conversionSource String,
+	conversionSourceName String,
+	conversionSum Int64,
+    phone String,
+	email String,
+    touchType String,
+    touchSource String,
+    touchSourceName String,
+    touchDateTime DateTime,
+    touchID String,
+	UTMMedium String,
+    UTMSource String,
+	UTMCampaign String,
+    UTMTerm String,
+	UTMContent String
+)
+ENGINE = SummingMergeTree
+ORDER BY (conversionType, conversionDateTime, conversionID, conversionSource, conversionSourceName, conversionSum, phone, email, touchType, touchSource, touchSourceName, touchDateTime, touchID, UTMMedium, UTMSource, UTMCampaign, UTMTerm, UTMContent);
+
+-- 2. материализованное представление (триггер на обновление данных целевой таблицы)
+DROP VIEW IF EXISTS int_mart_e2e_funnels_year_mv;
+CREATE MATERIALIZED VIEW int_mart_e2e_funnels_year_mv TO int_mart_e2e_funnels_year AS
+SELECT 
     conversionType,
     conversionDateTime,
 	conversionID,
@@ -252,18 +573,92 @@ GROUP BY
     phone,
 	email,
     touchType,
+    touchSource,
+    touchSourceName,
     touchDateTime,
     touchID,
-	touchSource,
-	touchSourceName,
+    UTMMedium,
+    UTMSource,
+    UTMCampaign,
+    UTMTerm,
+    UTMContent;
+
+-- 3. загрузка исходных данных
+INSERT INTO int_mart_e2e_funnels_year SELECT 
+    conversionType,
+    conversionDateTime,
+	conversionID,
+	conversionSource,
+	conversionSourceName,
+	conversionSum,
+    phone,
+	email,
+    touchType,
+    touchSource,
+    touchSourceName,
+    touchDateTime,
+    touchID,
+    UTMMedium,
+    UTMSource,
+    UTMCampaign,
+    UTMTerm,
+    UTMContent
+FROM
+    int_mart_e2e_conversions as c
+LEFT JOIN
+    int_mart_e2e_touches_phone AS t ON t.phone=c.phone
+WHERE
+    conversionDateTime>=touchDateTime
+    AND conversionDateTime-touchDateTime<365*86400
+/* можно рассчитать отдельно по годам:	AND YEAR(conversionDateTime)=2024 */
+GROUP BY
+	conversionType,
+    conversionDateTime,
+	conversionID,
+	conversionSource,
+	conversionSourceName,
+	conversionSum,
+    phone,
+	email,
+    touchType,
+    touchSource,
+    touchSourceName,
+    touchDateTime,
+    touchID,
     UTMMedium,
     UTMSource,
     UTMCampaign,
     UTMTerm,
     UTMContent;
 /* на всю глубину */
-CREATE OR REPLACE VIEW int_mart_e2e_funnels_any AS
-SELECT
+-- 1. целевая таблица
+CREATE OR REPLACE TABLE int_mart_e2e_funnels_any (
+	conversionType String,
+    conversionDateTime DateTime,
+	conversionID String,
+	conversionSource String,
+	conversionSourceName String,
+	conversionSum Int64,
+    phone String,
+	email String,
+    touchType String,
+    touchSource String,
+    touchSourceName String,
+    touchDateTime DateTime,
+    touchID String,
+	UTMMedium String,
+    UTMSource String,
+	UTMCampaign String,
+    UTMTerm String,
+	UTMContent String
+)
+ENGINE = SummingMergeTree
+ORDER BY (conversionType, conversionDateTime, conversionID, conversionSource, conversionSourceName, conversionSum, phone, email, touchType, touchSource, touchSourceName, touchDateTime, touchID, UTMMedium, UTMSource, UTMCampaign, UTMTerm, UTMContent);
+
+-- 2. материализованное представление (триггер на обновление данных целевой таблицы)
+DROP VIEW IF EXISTS int_mart_e2e_funnels_any_mv;
+CREATE MATERIALIZED VIEW int_mart_e2e_funnels_any_mv TO int_mart_e2e_funnels_any AS
+SELECT 
     conversionType,
     conversionDateTime,
 	conversionID,
@@ -298,10 +693,57 @@ GROUP BY
     phone,
 	email,
     touchType,
+    touchSource,
+    touchSourceName,
     touchDateTime,
     touchID,
-	touchSource,
-	touchSourceName,
+    UTMMedium,
+    UTMSource,
+    UTMCampaign,
+    UTMTerm,
+    UTMContent;
+
+-- 3. загрузка исходных данных
+INSERT INTO int_mart_e2e_funnels_any SELECT 
+    conversionType,
+    conversionDateTime,
+	conversionID,
+	conversionSource,
+	conversionSourceName,
+	conversionSum,
+    phone,
+	email,
+    touchType,
+    touchSource,
+    touchSourceName,
+    touchDateTime,
+    touchID,
+    UTMMedium,
+    UTMSource,
+    UTMCampaign,
+    UTMTerm,
+    UTMContent
+FROM
+    int_mart_e2e_conversions as c
+LEFT JOIN
+    int_mart_e2e_touches_phone AS t ON t.phone=c.phone
+WHERE
+    conversionDateTime>=touchDateTime
+/* можно рассчитать отдельно по годам:	AND YEAR(conversionDateTime)=2024 */
+GROUP BY
+	conversionType,
+    conversionDateTime,
+	conversionID,
+	conversionSource,
+	conversionSourceName,
+	conversionSum,
+    phone,
+	email,
+    touchType,
+    touchSource,
+    touchSourceName,
+    touchDateTime,
+    touchID,
     UTMMedium,
     UTMSource,
     UTMCampaign,
