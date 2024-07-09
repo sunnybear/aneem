@@ -24,31 +24,14 @@
 	Содержание TD: UTMContent */
 /* на глубину 3 дня */
 CREATE OR REPLACE VIEW final_mart_e2e_td_3days AS
-SELECT
+SELECT 
 	conversionType,
 	conversionDateTime,
 	conversionID,
 	conversionSource,
 	conversionSourceName,
-	round(pow(2, -touchIndex)*touchWeight/touchWeightsSum, 4)+0.0 AS conversionWeight,
-	round(_conversionSum*pow(2, -touchIndex)*touchWeight/touchWeightsSum, 4)+0.0 AS conversionSum,
-    phone,
-	email,
-    UTMMedium,
-    UTMSource,
-	UTMCampaign,
-    UTMTerm,
-	UTMContent
-FROM (SELECT 
-	conversionType,
-	conversionDateTime,
-	conversionID,
-	conversionSource,
-	conversionSourceName,
-	(sum(pow(2, -touchIndex)*touchWeight) OVER (PARTITION BY conversionType,conversionID,conversionSource)) AS touchWeightsSum,
-	touchIndex,
-	touchWeight,
-	_conversionSum,
+	round(pow(2, -touchIndex)*touchWeight/(sum(pow(2, -touchIndex)*touchWeight) OVER (PARTITION BY conversionType,conversionID,conversionSource)), 4)+0.0 AS conversionWeight,
+	round(_conversionSum * pow(2, -touchIndex)*touchWeight/(sum(pow(2, -touchIndex)*touchWeight) OVER (PARTITION BY conversionType,conversionID,conversionSource)), 4)+0.0 AS conversionSum,
     phone,
 	email,
     _UTMMedium AS UTMMedium,
@@ -56,34 +39,17 @@ FROM (SELECT
 	_UTMCampaign AS UTMCampaign,
     _UTMTerm AS UTMTerm,
 	_UTMContent AS UTMContent
-FROM int_mart_e2e_touches_3days);
+FROM int_mart_e2e_touches_3days;
 /* на глубину неделя */
 CREATE OR REPLACE VIEW final_mart_e2e_td_week AS
-SELECT
+SELECT 
 	conversionType,
 	conversionDateTime,
 	conversionID,
 	conversionSource,
 	conversionSourceName,
-	round(pow(2, -touchIndex)*touchWeight/touchWeightsSum, 4)+0.0 AS conversionWeight,
-	round(_conversionSum*pow(2, -touchIndex)*touchWeight/touchWeightsSum, 4)+0.0 AS conversionSum,
-    phone,
-	email,
-    UTMMedium,
-    UTMSource,
-	UTMCampaign,
-    UTMTerm,
-	UTMContent
-FROM (SELECT 
-	conversionType,
-	conversionDateTime,
-	conversionID,
-	conversionSource,
-	conversionSourceName,
-	(sum(pow(2, -touchIndex)*touchWeight) OVER (PARTITION BY conversionType,conversionID,conversionSource)) AS touchWeightsSum,
-	touchIndex,
-	touchWeight,
-	_conversionSum,
+	round(pow(2, -touchIndex)*touchWeight/(sum(pow(2, -touchIndex)*touchWeight) OVER (PARTITION BY conversionType,conversionID,conversionSource)), 4)+0.0 AS conversionWeight,
+	round(_conversionSum * pow(2, -touchIndex)*touchWeight/(sum(pow(2, -touchIndex)*touchWeight) OVER (PARTITION BY conversionType,conversionID,conversionSource)), 4)+0.0 AS conversionSum,
     phone,
 	email,
     _UTMMedium AS UTMMedium,
@@ -91,34 +57,17 @@ FROM (SELECT
 	_UTMCampaign AS UTMCampaign,
     _UTMTerm AS UTMTerm,
 	_UTMContent AS UTMContent
-FROM int_mart_e2e_touches_week);
+FROM int_mart_e2e_touches_week;
 /* на глубину месяц */
 CREATE OR REPLACE VIEW final_mart_e2e_td_month AS
-SELECT
+SELECT 
 	conversionType,
 	conversionDateTime,
 	conversionID,
 	conversionSource,
 	conversionSourceName,
-	round(pow(2, -touchIndex)*touchWeight/touchWeightsSum, 4)+0.0 AS conversionWeight,
-	round(_conversionSum*pow(2, -touchIndex)*touchWeight/touchWeightsSum, 4)+0.0 AS conversionSum,
-    phone,
-	email,
-    UTMMedium,
-    UTMSource,
-	UTMCampaign,
-    UTMTerm,
-	UTMContent
-FROM (SELECT 
-	conversionType,
-	conversionDateTime,
-	conversionID,
-	conversionSource,
-	conversionSourceName,
-	(sum(pow(2, -touchIndex)*touchWeight) OVER (PARTITION BY conversionType,conversionID,conversionSource)) AS touchWeightsSum,
-	touchIndex,
-	touchWeight,
-	_conversionSum,
+	round(pow(2, -touchIndex)*touchWeight/(sum(pow(2, -touchIndex)*touchWeight) OVER (PARTITION BY conversionType,conversionID,conversionSource)), 4)+0.0 AS conversionWeight,
+	round(_conversionSum * pow(2, -touchIndex)*touchWeight/(sum(pow(2, -touchIndex)*touchWeight) OVER (PARTITION BY conversionType,conversionID,conversionSource)), 4)+0.0 AS conversionSum,
     phone,
 	email,
     _UTMMedium AS UTMMedium,
@@ -126,34 +75,17 @@ FROM (SELECT
 	_UTMCampaign AS UTMCampaign,
     _UTMTerm AS UTMTerm,
 	_UTMContent AS UTMContent
-FROM int_mart_e2e_touches_month);
+FROM int_mart_e2e_touches_month;
 /* на глубину квартал */
 CREATE OR REPLACE VIEW final_mart_e2e_td_quarter AS
-SELECT
+SELECT 
 	conversionType,
 	conversionDateTime,
 	conversionID,
 	conversionSource,
 	conversionSourceName,
-	round(pow(2, -touchIndex)*touchWeight/touchWeightsSum, 4)+0.0 AS conversionWeight,
-	round(_conversionSum*pow(2, -touchIndex)*touchWeight/touchWeightsSum, 4)+0.0 AS conversionSum,
-    phone,
-	email,
-    UTMMedium,
-    UTMSource,
-	UTMCampaign,
-    UTMTerm,
-	UTMContent
-FROM (SELECT 
-	conversionType,
-	conversionDateTime,
-	conversionID,
-	conversionSource,
-	conversionSourceName,
-	(sum(pow(2, -touchIndex)*touchWeight) OVER (PARTITION BY conversionType,conversionID,conversionSource)) AS touchWeightsSum,
-	touchIndex,
-	touchWeight,
-	_conversionSum,
+	round(pow(2, -touchIndex)*touchWeight/(sum(pow(2, -touchIndex)*touchWeight) OVER (PARTITION BY conversionType,conversionID,conversionSource)), 4)+0.0 AS conversionWeight,
+	round(_conversionSum * pow(2, -touchIndex)*touchWeight/(sum(pow(2, -touchIndex)*touchWeight) OVER (PARTITION BY conversionType,conversionID,conversionSource)), 4)+0.0 AS conversionSum,
     phone,
 	email,
     _UTMMedium AS UTMMedium,
@@ -161,34 +93,17 @@ FROM (SELECT
 	_UTMCampaign AS UTMCampaign,
     _UTMTerm AS UTMTerm,
 	_UTMContent AS UTMContent
-FROM int_mart_e2e_touches_quarter);
+FROM int_mart_e2e_touches_quarter;
 /* на глубину год */
 CREATE OR REPLACE VIEW final_mart_e2e_td_year AS
-SELECT
+SELECT 
 	conversionType,
 	conversionDateTime,
 	conversionID,
 	conversionSource,
 	conversionSourceName,
-	round(pow(2, -touchIndex)*touchWeight/touchWeightsSum, 4)+0.0 AS conversionWeight,
-	round(_conversionSum*pow(2, -touchIndex)*touchWeight/touchWeightsSum, 4)+0.0 AS conversionSum,
-    phone,
-	email,
-    UTMMedium,
-    UTMSource,
-	UTMCampaign,
-    UTMTerm,
-	UTMContent
-FROM (SELECT 
-	conversionType,
-	conversionDateTime,
-	conversionID,
-	conversionSource,
-	conversionSourceName,
-	(sum(pow(2, -touchIndex)*touchWeight) OVER (PARTITION BY conversionType,conversionID,conversionSource)) AS touchWeightsSum,
-	touchIndex,
-	touchWeight,
-	_conversionSum,
+	round(pow(2, -touchIndex)*touchWeight/(sum(pow(2, -touchIndex)*touchWeight) OVER (PARTITION BY conversionType,conversionID,conversionSource)), 4)+0.0 AS conversionWeight,
+	round(_conversionSum * pow(2, -touchIndex)*touchWeight/(sum(pow(2, -touchIndex)*touchWeight) OVER (PARTITION BY conversionType,conversionID,conversionSource)), 4)+0.0 AS conversionSum,
     phone,
 	email,
     _UTMMedium AS UTMMedium,
@@ -196,34 +111,17 @@ FROM (SELECT
 	_UTMCampaign AS UTMCampaign,
     _UTMTerm AS UTMTerm,
 	_UTMContent AS UTMContent
-FROM int_mart_e2e_touches_year);
+FROM int_mart_e2e_touches_year;
 /* на всю глубину */
 CREATE OR REPLACE VIEW final_mart_e2e_td_any AS
-SELECT
+SELECT 
 	conversionType,
 	conversionDateTime,
 	conversionID,
 	conversionSource,
 	conversionSourceName,
-	round(pow(2, -touchIndex)*touchWeight/touchWeightsSum, 4)+0.0 AS conversionWeight,
-	round(_conversionSum*pow(2, -touchIndex)*touchWeight/touchWeightsSum, 4)+0.0 AS conversionSum,
-    phone,
-	email,
-    UTMMedium,
-    UTMSource,
-	UTMCampaign,
-    UTMTerm,
-	UTMContent
-FROM (SELECT 
-	conversionType,
-	conversionDateTime,
-	conversionID,
-	conversionSource,
-	conversionSourceName,
-	(sum(pow(2, -touchIndex)*touchWeight) OVER (PARTITION BY conversionType,conversionID,conversionSource)) AS touchWeightsSum,
-	touchIndex,
-	touchWeight,
-	_conversionSum,
+	round(pow(2, -touchIndex)*touchWeight/(sum(pow(2, -touchIndex)*touchWeight) OVER (PARTITION BY conversionType,conversionID,conversionSource)), 4)+0.0 AS conversionWeight,
+	round(_conversionSum * pow(2, -touchIndex)*touchWeight/(sum(pow(2, -touchIndex)*touchWeight) OVER (PARTITION BY conversionType,conversionID,conversionSource)), 4)+0.0 AS conversionSum,
     phone,
 	email,
     _UTMMedium AS UTMMedium,
@@ -231,4 +129,4 @@ FROM (SELECT
 	_UTMCampaign AS UTMCampaign,
     _UTMTerm AS UTMTerm,
 	_UTMContent AS UTMContent
-FROM int_mart_e2e_touches_any);
+FROM int_mart_e2e_touches_any;
