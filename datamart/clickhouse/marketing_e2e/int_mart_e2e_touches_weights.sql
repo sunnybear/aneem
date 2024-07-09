@@ -15,7 +15,8 @@
 	Название в источнике конверсии: conversionSourceName,
 	Вес касания: touchWeight,
 	Веса всех касаний конверсии: touchWeights,
-	Номер касания по дате: touchNumber,
+	Номер касания по дате: touchIndex,
+	Количество всех касаний: touchCount,
 	Сумма конверсии: _conversionSum,
 	Телефон: phone,
 	Email: email,
@@ -40,7 +41,8 @@ SELECT
 		ELSE 1.0
 	END AS touchWeight,
 	(sum(touchWeight) OVER (PARTITION BY conversionType,conversionID,conversionSource)) AS touchWeights,
-	(row_number() OVER (PARTITION BY conversionType,conversionID,conversionSource ORDER BY touchDateTime)) AS touchNumber,
+	(row_number() OVER (PARTITION BY conversionType,conversionID,conversionSource ORDER BY touchDateTime ASC)) AS touchIndex,
+	(count(*) OVER (PARTITION BY conversionType,conversionID,conversionSource)) AS touchCount,
     phone,
 	email,
 	CASE
@@ -85,7 +87,8 @@ SELECT
 		ELSE 1.0
 	END AS touchWeight,
 	(sum(touchWeight) OVER (PARTITION BY conversionType,conversionID,conversionSource)) AS touchWeights,
-	(row_number() OVER (PARTITION BY conversionType,conversionID,conversionSource ORDER BY touchDateTime)) AS touchNumber,
+	(row_number() OVER (PARTITION BY conversionType,conversionID,conversionSource ORDER BY touchDateTime)) AS touchIndex,
+	(count(*) OVER (PARTITION BY conversionType,conversionID,conversionSource)) AS touchCount,
     phone,
 	email,
 	CASE
@@ -130,7 +133,8 @@ SELECT
 		ELSE 1.0
 	END AS touchWeight,
 	(sum(touchWeight) OVER (PARTITION BY conversionType,conversionID,conversionSource)) AS touchWeights,
-	(row_number() OVER (PARTITION BY conversionType,conversionID,conversionSource ORDER BY touchDateTime)) AS touchNumber,
+	(row_number() OVER (PARTITION BY conversionType,conversionID,conversionSource ORDER BY touchDateTime)) AS touchIndex,
+	(count(*) OVER (PARTITION BY conversionType,conversionID,conversionSource)) AS touchCount,
     phone,
 	email,
 	CASE
@@ -175,7 +179,8 @@ SELECT
 		ELSE 1.0
 	END AS touchWeight,
 	(sum(touchWeight) OVER (PARTITION BY conversionType,conversionID,conversionSource)) AS touchWeights,
-	(row_number() OVER (PARTITION BY conversionType,conversionID,conversionSource ORDER BY touchDateTime)) AS touchNumber,
+	(row_number() OVER (PARTITION BY conversionType,conversionID,conversionSource ORDER BY touchDateTime)) AS touchIndex,
+	(count(*) OVER (PARTITION BY conversionType,conversionID,conversionSource)) AS touchCount,
     phone,
 	email,
 	CASE
@@ -220,7 +225,8 @@ SELECT
 		ELSE 1.0
 	END AS touchWeight,
 	(sum(touchWeight) OVER (PARTITION BY conversionType,conversionID,conversionSource)) AS touchWeights,
-	(row_number() OVER (PARTITION BY conversionType,conversionID,conversionSource ORDER BY touchDateTime)) AS touchNumber,
+	(row_number() OVER (PARTITION BY conversionType,conversionID,conversionSource ORDER BY touchDateTime)) AS touchIndex,
+	(count(*) OVER (PARTITION BY conversionType,conversionID,conversionSource)) AS touchCount,
     phone,
 	email,
 	CASE
@@ -265,7 +271,8 @@ SELECT
 		ELSE 1.0
 	END AS touchWeight,
 	(sum(touchWeight) OVER (PARTITION BY conversionType,conversionID,conversionSource)) AS touchWeights,
-	(row_number() OVER (PARTITION BY conversionType,conversionID,conversionSource ORDER BY touchDateTime)) AS touchNumber,
+	(row_number() OVER (PARTITION BY conversionType,conversionID,conversionSource ORDER BY touchDateTime)) AS touchIndex,
+	(count(*) OVER (PARTITION BY conversionType,conversionID,conversionSource)) AS touchCount,
     phone,
 	email,
 	CASE

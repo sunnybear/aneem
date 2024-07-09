@@ -8,6 +8,7 @@
 # * BITRIX24.METHOD - BATCH (для пакетной загрузки) или SINGLE (для одиночной загрузки)
 # * BITRIX24.WEBHOOK - URL вебхука (интеграции) Битрикс24
 # * BITRIX24.TABLE_LEADS_UF - имя результирующей таблицы для пользовательских полей crm.lead
+# * BITRIX24.TABLE_DEALS_UF - имя результирующей таблицы для пользовательских полей crm.deal
 # * BITRIX24.TABLE_CONTACTS_UF - имя результирующей таблицы для пользовательских полей crm.contact
 
 # импорт общих библиотек
@@ -88,7 +89,7 @@ if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"
         connection.execute(text('SET character_set_connection=utf8mb4'))
 
 # словарь таблиц для обновления
-tables = {"crm.contact": "TABLE_CONTACTS_UF", "crm.deal": "TABLE_DEALS_UF"}
+tables = {"crm.deal": "TABLE_DEALS_UF", "crm.lead": "TABLE_LEADS_UF", "crm.contact": "TABLE_CONTACTS_UF"}
 # загружаем справочники и дополнительные таблицы
 for dataset in list(tables.keys()):
 # если в настройках задана таблица - загружаем данные
