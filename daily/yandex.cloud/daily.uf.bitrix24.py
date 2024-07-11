@@ -166,9 +166,9 @@ def handler(event, context):
                     print (E)
                     connection.rollback()
             elif os.getenv('DB_TYPE') == "CLICKHOUSE":
-                csv_file = data.to_csv(index=False).encode('utf-8')
+                csv_file = data.to_csv(index=False).replace('\r', '').encode('utf-8')
                 requests.post('https://' + os.getenv('DB_HOST') + ':8443', headers=auth_post, verify=cacert,
-                    params={"database": os.getenv('DB_DB'), "query": 'INSERT INTO ' + os.getenv('DB_PREFIX') + '.' + current_table + ' FORMAT CSV'},
+                    params={"database": os.getenv('DB_DB'), "query": 'INSERT INTO ' + os.getenv('DB_PREFIX') + '.' + current_table + ' FORMAT CSVWithNames'},
                     data=csv_file, stream=True)
         ret.append(dataset + "=" + str(len(data)))
     if os.getenv('DB_TYPE') in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
