@@ -131,7 +131,7 @@ def handler(event, context):
                 goals.columns = ['ym:s:visitID', 'ym:s:clientID', 'ym:s:goalID', 'ym:s:goalDateTime', 'ym:s:goalPrice', 'ym:s:goalOrder']
                 goals["ym:s:goalDateTime"] = pd.to_datetime(goals["ym:s:goalDateTime"])
                 goals["ym:s:goalPrice"] = goals["ym:s:goalPrice"].fillna(0.0).astype(float)
-               goals["ts"] = pd.DatetimeIndex(goals["ym:s:goalDateTime"]).asi8
+                goals["ts"] = pd.DatetimeIndex(goals["ym:s:goalDateTime"]).asi8
             if len(data):
 # добавляем метку времени
                 data["ts"] = pd.DatetimeIndex(data["ym:s:dateTime"]).asi8
