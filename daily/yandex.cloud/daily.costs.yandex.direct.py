@@ -142,7 +142,7 @@ def handler(event, context):
                     headers=auth_post, data=csv_file, stream=True)
         if os.getenv('DB_TYPE') in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
             connection.close()
-        ret.append('LOGIN => ' + str(len(data)))
+        ret.append(LOGIN + ' => ' + str(len(data)))
 
     return {
         'statusCode': 200,
