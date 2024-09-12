@@ -5,7 +5,7 @@
 # * DB.USER - пользователь базы данных
 # * DB.PASSWORD - пароль к базе данных
 # * DB.DB - имя базы данных
-# * WILDBERRIES.ACCESS_TOKEN - Access Token для приложения, имеющего доступ к статистике нужного кабинета (или несколько - через запятую, порядок как у логина)
+# * WILDBERRIES.ACCESS_TOKEN - Access Token, имеющий доступ к статистике нужного кабинета (или несколько - через запятую)
 # * WILDBERRIES.TABLE_ORDERS - имя результирующей таблицы для заказов
 
 # импорт общих библиотек
@@ -61,6 +61,7 @@ for i_credentials, TOKEN in enumerate(config["WILDBERRIES"]["ACCESS_TOKEN"].spli
 		
 # формируем датафрейм из ответа API
     data = pd.DataFrame(result.json())
+	data["account"] = hash(TOKEN)
 # базовый процесс очистки: приведение к нужным типам
     for col in data.columns:
 # приведение целых чисел
