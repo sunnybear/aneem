@@ -7,7 +7,7 @@
 # * DB.PASSWORD - пароль к базе данных
 # * DB.DB - имя базы данных
 # * YANDEX_METRIKA.ACCESS_TOKEN - Access Token для приложения, имеющего доступ к статистике нужного сайта
-# * YANDEX_METRIKA.COUNTER_ID - ID сайта, статистику которого нужно выгрузить
+# * YANDEX_METRIKA.COUNTER_ID - ID сайта, статистику которого нужно выгрузить. Несколько через запятую
 # * YANDEX_METRIKA.DELTA - продолжительность периода (в днях) каждой отдельной выгрузки (запроса к API)
 # * YANDEX_METRIKA.PERIODS - количество периодов (всех выгрузок), будут выгружены данные за DELTA*PERIODS дней
 # * YANDEX_METRIKA.TABLE_COSTS - имя результирующей таблицы для расходов
@@ -57,38 +57,44 @@ if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"
 
 # создаем таблицу для данных при наличии каких-либо данных
 table_not_created = True
-api = YandexMetrikaStats(access_token=config["YANDEX_METRIKA"]["ACCESS_TOKEN"])
+
+# выгружаем данные по каждому счетчику
+for i_credentials, TOKEN in enumerate(config["YANDEX_METRIKA"]["ACCESS_TOKEN"].split(",")):
+    api = YandexMetrikaStats(access_token=TOKEN.strip())
+    COUNTER_ID = config["YANDEX_METRIKA"]["COUNTER_ID"].split(",")[i_credentials].strip()
 # выгружаем данные за 5 лет по годам
-for period in range(int(config["YANDEX_METRIKA"]["PERIODS"]), 0, -1):
+    for period in range(int(config["YANDEX_METRIKA"]["PERIODS"]), 0, -1):
 # Создание запроса на выгрузку данных (ежегодно)
-    date_until = (date.today() - timedelta(days=int(config["YANDEX_METRIKA"]["DELTA"])*(period-1)+1)).strftime('%Y-%m-%d')
-    date_since = (date.today() - timedelta(days=int(config["YANDEX_METRIKA"]["DELTA"])*period)).strftime('%Y-%m-%d')
-    params = {
-        "ids": config["YANDEX_METRIKA"]["COUNTER_ID"],
-        "metrics": "ym:ev:expensesRUB,ym:ev:visits,ym:ev:expenseClicks",
-        "dimensions": "ym:ev:date,ym:ev:lastExpenseSource,ym:ev:lastExpenseMedium,ym:ev:lastExpenseCampaign",
-        "date1": date_since,
-        "date2": date_until,
-        "limit": 100000
-    }
+        date_until = (date.today() - timedelta(days=int(config["YANDEX_METRIKA"]["DELTA"])*(period-1)+1)).strftime('%Y-%m-%d')
+        date_since = (date.today() - timedelta(days=int(config["YANDEX_METRIKA"]["DELTA"])*period)).strftime('%Y-%m-%d')
+        params = {
+            "ids": COUNTER_ID,
+            "metrics": "ym:ev:expensesRUB,ym:ev:visits,ym:ev:expenseClicks",
+            "dimensions": "ym:ev:date,ym:ev:lastExpenseSource,ym:ev:lastExpenseMedium,ym:ev:lastExpenseCampaign",
+            "date1": date_since,
+            "date2": date_until,
+            "limit": 100000
+        }
 # отправляем запрос API
-    result = api.stats().get(params=params)
+        result = api.stats().get(params=params)
 # формируем датафрейм по отдельности из каждой части
-    data = pd.DataFrame(result().to_values(), columns=result.columns)
+        data = pd.DataFrame(result().to_values(), columns=result.columns)
+        data["ym:ev:counterId"] = COUNTER_ID
+        print (data.head(10))
 # базовый процесс очистки: приведение к нужным типам
-    for col in data.columns:
+        for col in data.columns:
 # приведение целых чисел
-        if col in ["ym:ev:visits", "ym:ev:expenseClicks"]:
-            data[col] = data[col].fillna('').replace('', 0).astype(np.int64)
+            if col in ["ym:ev:visits", "ym:ev:expenseClicks"]:
+                data[col] = data[col].fillna('').replace('', 0).replace('None', 0).astype(np.int64)
 # приведение вещественных чисел
-        elif col in ["ym:ev:expensesRUB"]:
-            data[col] = data[col].fillna(0.0).astype(float)
+            elif col in ["ym:ev:expensesRUB"]:
+                data[col] = data[col].fillna(0.0).astype(float)
 # приведение дат
-        elif col in ["ym:ev:date"]:
-            data[col] = pd.to_datetime(data[col].fillna("2000-01-01").apply(lambda x: dt.strptime(x, "%Y-%m-%d")))
+            elif col in ["ym:ev:date"]:
+                data[col] = pd.to_datetime(data[col].fillna("2000-01-01").apply(lambda x: dt.strptime(x, "%Y-%m-%d")))
 # приведение строк
-        else:
-            data[col] = data[col].fillna('')
+            else:
+                data[col] = data[col].fillna('')
         if len(data):
 # добавляем метку времени
             data["ts"] = pd.DatetimeIndex(data["ym:ev:date"]).asi8
@@ -110,7 +116,7 @@ for period in range(int(config["YANDEX_METRIKA"]["PERIODS"]), 0, -1):
                 requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/',
                     params={"database": config["DB"]["DB"], "query": 'INSERT INTO ' + config["DB"]["DB"] + '.' + config["YANDEX_METRIKA"]["TABLE_COSTS"] + ' FORMAT CSV'},
                     headers={'Content-Type':'application/octet-stream'}, data=csv_file, stream=True, verify=False)
-    print (date_since + "=>" + date_until + ": " + str(len(data)))
+        print (COUNTER_ID + " | " + date_since + "=>" + date_until + ": " + str(len(data)))
 
 # закрытие подключения к БД
 if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
