@@ -87,7 +87,11 @@ def handler(event, context):
             for i in range(min(50, items_last_id-last_item_id)):
                 cmd.append('cmd[' + str(i) + ']=' + dataset + '.get%3FID%3D' + str(ids[last_item_id]))
                 last_item_id += 1
-            items_req = requests.get(os.getenv('BITRIX24_WEBHOOK') + 'batch.json?' + '&'.join(cmd)).json()
+            try:
+                items_req = requests.get(os.getenv('BITRIX24_WEBHOOK') + 'batch.json?' + '&'.join(cmd)).json()
+# делаем еще одну попытку
+            except Exception as E:
+                items_req = requests.get(os.getenv('BITRIX24_WEBHOOK') + 'batch.json?' + '&'.join(cmd)).json()
             if "result" in items_req:
 # разбор объектов из пакетного запроса
                 for item in items_req["result"]["result"]:

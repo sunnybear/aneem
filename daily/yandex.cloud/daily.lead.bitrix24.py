@@ -57,7 +57,11 @@ def handler(event, context):
             connection.execute(text('SET character_set_connection=utf8mb4'))
 
 # формируем запрос для получения общего количества измененных лидов
-    leads_req = requests.get(os.getenv('BITRIX24_WEBHOOK') + 'crm.lead.list.json?ORDER[ID]=ASC&FILTER[>DATE_MODIFY]=' + yesterday).json()
+    try:
+        leads_req = requests.get(os.getenv('BITRIX24_WEBHOOK') + 'crm.lead.list.json?ORDER[ID]=ASC&FILTER[>DATE_MODIFY]=' + yesterday).json()
+# делаем еще одну попытку
+    except Exception as E:
+        leads_req = requests.get(os.getenv('BITRIX24_WEBHOOK') + 'crm.lead.list.json?ORDER[ID]=ASC&FILTER[>DATE_MODIFY]=' + yesterday).json()
     leads = {}
     last_lead_id = '0'
 # разбираем текущий запрос
@@ -65,7 +69,10 @@ def handler(event, context):
         leads[lead['ID']] = lead
         last_lead_id = lead['ID']
 # получаем количество лидов для следующего запроса
-    leads_next = int(leads_req["next"])
+    if "next" in leads_req:
+        leads_next = int(leads_req["next"])
+    else:
+        leads_next = 0
 # получаем лиды пакетами по 50, начиная с последнего измененного вчера
     while leads_next > 0:
         leads_req = requests.get(os.getenv('BITRIX24_WEBHOOK') + 'crm.lead.list.json?ORDER[ID]=ASC&FILTER[>ID]=' + last_lead_id).json()

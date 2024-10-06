@@ -57,7 +57,11 @@ def handler(event, context):
             connection.execute(text('SET character_set_connection=utf8mb4'))
 
 # формируем запрос для получения общего количества измененных сделок
-    deals_req = requests.get(os.getenv('BITRIX24_WEBHOOK') + 'crm.deal.list.json?ORDER[ID]=ASC&FILTER[>DATE_MODIFY]=' + yesterday).json()
+    try:
+        deals_req = requests.get(os.getenv('BITRIX24_WEBHOOK') + 'crm.deal.list.json?ORDER[ID]=ASC&FILTER[>DATE_MODIFY]=' + yesterday).json()
+# делаем еще одну попытку
+    except Exception as E:
+        deals_req = requests.get(os.getenv('BITRIX24_WEBHOOK') + 'crm.deal.list.json?ORDER[ID]=ASC&FILTER[>DATE_MODIFY]=' + yesterday).json()
     deals = {}
     last_deal_id = '0'
 # разбираем текущий запрос
@@ -65,7 +69,10 @@ def handler(event, context):
         deals[deal['ID']] = deal
         last_deal_id = deal['ID']
 # получаем количество сделок для следующего запроса
-    deals_next = int(deals_req["next"])
+    if 'next' in deals_req:
+        deals_next = int(deals_req["next"])
+    else:
+        deals_next = 0
 # получаем сделки пакетами по 50, начиная с последней измененной вчера
     while deals_next > 0:
         deals_req = requests.get(os.getenv('BITRIX24_WEBHOOK') + 'crm.deal.list.json?ORDER[ID]=ASC&FILTER[>ID]=' + last_deal_id).json()

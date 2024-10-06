@@ -57,7 +57,11 @@ def handler(event, context):
             connection.execute(text('SET character_set_connection=utf8mb4'))
 
 # формируем запрос для получения общего количества измененных контактов
-    contacts_req = requests.get(os.getenv('BITRIX24_WEBHOOK') + 'crm.contact.list.json?ORDER[ID]=ASC&FILTER[>DATE_MODIFY]=' + yesterday).json()
+    try:
+        contacts_req = requests.get(os.getenv('BITRIX24_WEBHOOK') + 'crm.contact.list.json?ORDER[ID]=ASC&FILTER[>DATE_MODIFY]=' + yesterday).json()
+# делаем еще одну попытку
+    except Exception as E:
+        contacts_req = requests.get(os.getenv('BITRIX24_WEBHOOK') + 'crm.contact.list.json?ORDER[ID]=ASC&FILTER[>DATE_MODIFY]=' + yesterday).json()
     contacts = {}
     last_contact_id = '0'
 # разбираем текущий запрос
@@ -65,7 +69,10 @@ def handler(event, context):
         contacts[contact['ID']] = contact
         last_contact_id = contact['ID']
 # получаем количество контактов для следующего запроса
-    contacts_next = int(contacts_req["next"])
+    if 'next' in contacts_req:
+        contacts_next = int(contacts_req["next"])
+    else:
+        contacts_next = 0
 # получаем контакты пакетами по 50, начиная с последнего измененного вчера
     while contacts_next > 0:
         contacts_req = requests.get(os.getenv('BITRIX24_WEBHOOK') + 'crm.contact.list.json?ORDER[ID]=ASC&FILTER[>ID]=' + last_contact_id).json()
