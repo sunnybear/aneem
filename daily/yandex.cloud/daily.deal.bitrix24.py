@@ -105,26 +105,26 @@ def handler(event, context):
         if "DATE_CREATE" in data.columns:
             data['ts'] = pd.DatetimeIndex(data["DATE_CREATE"]).asi8
 # удаление старых данных
-            if os.getenv('DB_TYPE') in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
-                connection.execute(text("DELETE FROM " + os.getenv('BITRIX24_TABLE_DEALS') + " WHERE ID IN (" + ",".join(ids) + ")"))
-                connection.commit()
-            elif os.getenv('DB_TYPE') == "CLICKHOUSE":
-                requests.post("https://" + os.getenv('DB_HOST') + ":8443/?database=" + os.getenv('DB_DB') + "&query=DELETE FROM " + os.getenv('DB_PREFIX') + "." + os.getenv('BITRIX24_TABLE_DEALS') + " WHERE ID IN (" + ",".join(ids) + ")",
-                    headers=auth_post, verify=cacert)
+        if os.getenv('DB_TYPE') in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
+            connection.execute(text("DELETE FROM " + os.getenv('BITRIX24_TABLE_DEALS') + " WHERE ID IN (" + ",".join(ids) + ")"))
+            connection.commit()
+        elif os.getenv('DB_TYPE') == "CLICKHOUSE":
+            requests.post("https://" + os.getenv('DB_HOST') + ":8443/?database=" + os.getenv('DB_DB') + "&query=DELETE FROM " + os.getenv('DB_PREFIX') + "." + os.getenv('BITRIX24_TABLE_DEALS') + " WHERE ID IN (" + ",".join(ids) + ")",
+                headers=auth_post, verify=cacert)
 # добавление новых данных
-            if os.getenv('DB_TYPE') in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
+        if os.getenv('DB_TYPE') in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
 # обработка ошибок при добавлении данных
-                try:
-                    data.to_sql(name=os.getenv('BITRIX24_TABLE_DEALS'), con=engine, if_exists='append', chunksize=100)
-                    connection.commit()
-                except Exception as E:
-                    print (E)
-                    connection.rollback()
-            elif os.getenv('DB_TYPE') == "CLICKHOUSE":
-                csv_file = data.to_csv().encode('utf-8')
-                requests.post('https://' + os.getenv('DB_HOST') + ':8443', headers=auth_post, verify=cacert,
-                    params={"database": os.getenv('DB_DB'), "query": 'INSERT INTO ' + os.getenv('DB_PREFIX') + '.' + os.getenv('BITRIX24_TABLE_DEALS') + ' FORMAT CSV'},
-                    data=csv_file, stream=True)
+            try:
+                data.to_sql(name=os.getenv('BITRIX24_TABLE_DEALS'), con=engine, if_exists='append', chunksize=100)
+                connection.commit()
+            except Exception as E:
+                print (E)
+                connection.rollback()
+        elif os.getenv('DB_TYPE') == "CLICKHOUSE":
+            csv_file = data.to_csv().encode('utf-8')
+            requests.post('https://' + os.getenv('DB_HOST') + ':8443', headers=auth_post, verify=cacert,
+                params={"database": os.getenv('DB_DB'), "query": 'INSERT INTO ' + os.getenv('DB_PREFIX') + '.' + os.getenv('BITRIX24_TABLE_DEALS') + ' FORMAT CSV'},
+                data=csv_file, stream=True)
     if os.getenv('DB_TYPE') in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
         connection.close()
 

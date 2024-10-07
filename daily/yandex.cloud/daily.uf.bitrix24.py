@@ -150,9 +150,6 @@ def handler(event, context):
         if len(data):
             if "DATE_CREATE" in data.columns:
                 data['ts'] = pd.DatetimeIndex(data["DATE_CREATE"]).asi8
-                index = 'ts'
-            else:
-                index = 'ID'
 # удаление старых данных
             if os.getenv('DB_TYPE') in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
                 connection.execute(text("DELETE FROM " + current_table + " WHERE ID IN (" + ",".join(ids) + ")"))
