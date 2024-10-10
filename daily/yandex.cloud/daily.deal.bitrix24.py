@@ -64,10 +64,11 @@ def handler(event, context):
         deals_req = requests.get(os.getenv('BITRIX24_WEBHOOK') + 'crm.deal.list.json?ORDER[ID]=ASC&FILTER[>DATE_MODIFY]=' + yesterday).json()
     deals = {}
     last_deal_id = '0'
+    if 'result' in deals_req:
 # разбираем текущий запрос
-    for deal in deals_req["result"]:
-        deals[deal['ID']] = deal
-        last_deal_id = deal['ID']
+        for deal in deals_req["result"]:
+            deals[deal['ID']] = deal
+            last_deal_id = deal['ID']
 # получаем количество сделок для следующего запроса
     if 'next' in deals_req:
         deals_next = int(deals_req["next"])
@@ -75,11 +76,16 @@ def handler(event, context):
         deals_next = 0
 # получаем сделки пакетами по 50, начиная с последней измененной вчера
     while deals_next > 0:
-        deals_req = requests.get(os.getenv('BITRIX24_WEBHOOK') + 'crm.deal.list.json?ORDER[ID]=ASC&FILTER[>ID]=' + last_deal_id).json()
+        try:
+            deals_req = requests.get(os.getenv('BITRIX24_WEBHOOK') + 'crm.deal.list.json?ORDER[ID]=ASC&FILTER[>ID]=' + last_deal_id).json()
+# делаем еще одну попытку
+        except Exception as E:
+            deals_req = requests.get(os.getenv('BITRIX24_WEBHOOK') + 'crm.deal.list.json?ORDER[ID]=ASC&FILTER[>ID]=' + last_deal_id).json()
+        if 'result' in deals_req:
 # разбираем текущий запрос
-        for deal in deals_req["result"]:
-            deals[deal['ID']] = deal
-            last_deal_id = deal['ID']
+            for deal in deals_req["result"]:
+                deals[deal['ID']] = deal
+                last_deal_id = deal['ID']
 # получаем количество сделок для следующего запроса
         if "next" in deals_req:
             deals_next = int(deals_req["next"])
