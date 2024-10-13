@@ -27,6 +27,7 @@ import pandas as pd
 import numpy as np
 import os
 import io
+from io import StringIO
 import requests
 from datetime import datetime as dt
 from datetime import date, timedelta
@@ -150,6 +151,25 @@ def handler(event, context):
         if len(data):
             if "DATE_CREATE" in data.columns:
                 data['ts'] = pd.DatetimeIndex(data["DATE_CREATE"]).asi8
+# сверка списка полей
+            if os.getenv('DB_TYPE') in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
+                current_columns = pd.read_sql("SELECT * FROM " + current_table + " WHERE ID=" + ids[0], connection).columns
+            elif os.getenv('DB_TYPE') == "CLICKHOUSE":
+                current_columns = pd.read_csv(StringIO(requests.get("https://" + os.getenv('DB_HOST') + ":8443/?database=" + os.getenv('DB_DB') + "&query=SHOW COLUMNS FROM " + os.getenv('DB_PREFIX') + "." + current_table, headers=auth, verify=cacert).text), delimiter="\t", header=None)[0]
+# добавление новых столбцов
+            for column_new in set(data.columns)-set(current_columns):
+                if os.getenv('DB_TYPE') in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
+                    connection.execute(text("ALTER TABLE " + current_table + " ADD COLUMN `" + column_new + "` (TEXT)"))
+                    connection.commit()
+                elif os.getenv('DB_TYPE') == "CLICKHOUSE":
+                    requests.post("https://" + os.getenv('DB_HOST') + ":8443/?database=" + os.getenv('DB_DB') + "&query=ALTER TABLE " + os.getenv('DB_PREFIX') + "." + current_table + " ADD COLUMN `" + column_new + "` String", headers=auth, verify=cacert)
+# удаление неактуальных столбцов
+            for column_outdated in set(current_columns)-set(data.columns):
+                if os.getenv('DB_TYPE') in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
+                    connection.execute(text("ALTER TABLE " + current_table + " DROP COLUMN `" + column_outdated + "`"))
+                    connection.commit()
+                elif os.getenv('DB_TYPE') == "CLICKHOUSE":
+                    requests.post("https://" + os.getenv('DB_HOST') + ":8443/?database=" + os.getenv('DB_DB') + "&query=ALTER TABLE " + os.getenv('DB_PREFIX') + "." + current_table + " DROP COLUMN `" + column_outdated + "`", headers=auth, verify=cacert)
 # удаление старых данных
             if os.getenv('DB_TYPE') in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
                 connection.execute(text("DELETE FROM " + current_table + " WHERE ID IN (" + ",".join(ids) + ")"))
@@ -171,7 +191,7 @@ def handler(event, context):
                 requests.post('https://' + os.getenv('DB_HOST') + ':8443', headers=auth_post, verify=cacert,
                     params={"database": os.getenv('DB_DB'), "query": 'INSERT INTO ' + os.getenv('DB_PREFIX') + '.' + current_table + ' FORMAT CSVWithNames'},
                     data=csv_file, stream=True)
-        ret.append(dataset + "=" + str(len(data)))
+        ret.append(dataset + "=" + str(len(data)) + " " + str(set(data.columns)-set(current_columns)))
     if os.getenv('DB_TYPE') in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
         connection.close()
 
