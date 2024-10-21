@@ -168,7 +168,7 @@ for i_credentials, TOKEN in enumerate(config["YANDEX_METRIKA"]["ACCESS_TOKEN"].s
                         requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/',
                             params={"database": config["DB"]["DB"], "query": "DELETE FROM " + config["DB"]["DB"] + "." + config["YANDEX_METRIKA"]["TABLE_VISITS_GOALS"] + " WHERE `ym:s:goalDateTime`>='" + yesterday_1 + "'"}, headers={'Content-Type':'application/octet-stream'}, verify=False)
 # добавляем новые данные, цели
-                    csv_file = data.to_csv(index=False).encode('utf-8')
+                    csv_file = goals.to_csv(index=False).encode('utf-8')
                     requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/',
                         params={"database": config["DB"]["DB"], "query": 'INSERT INTO ' + config["DB"]["DB"] + '.' + config["YANDEX_METRIKA"]["TABLE_VISITS_GOALS"] + ' FORMAT CSV'},
                         headers={'Content-Type':'application/octet-stream'}, data=csv_file, stream=True, verify=False)
