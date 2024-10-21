@@ -179,7 +179,7 @@ def handler(event, context):
                             requests.post('https://' + os.getenv('DB_HOST') + ':8443', headers=auth_post, verify=cacert,
                                 params={"database": os.getenv('DB_DB'), "query": "DELETE FROM " + os.getenv('DB_PREFIX') + "." + os.getenv('YANDEX_METRIKA_TABLE_VISITS_GOALS') + " WHERE `ym:s:goalDateTime`>='" + yesterday_1 + "'"})
 # добавляем новые данные, цели
-                        csv_file = data.to_csv(index=False).encode('utf-8')
+                        csv_file = goals.to_csv(index=False).encode('utf-8')
                         requests.post('https://' + os.getenv('DB_HOST') + ':8443', headers=auth_post, verify=cacert,
                             params={"database": os.getenv('DB_DB'), "query": 'INSERT INTO ' + os.getenv('DB_PREFIX') + '.' + os.getenv('YANDEX_METRIKA_TABLE_VISITS_GOALS') + ' FORMAT CSV'},
                             data=csv_file, stream=True)

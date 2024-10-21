@@ -243,3 +243,15 @@ SELECT
     NOW() as date_start
 FROM
     raw_yd_campaigns_utms)
+
+/*UNION ALL
+
+SELECT
+    'YW' as `source`,
+	'яндекс.Wordstat' as `title`,
+    count(*) as total,
+	max(`Date`) as date_end,
+    min(`Date`) as date_start
+FROM
+    raw_yw_shows_daily
+*/
