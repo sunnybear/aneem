@@ -41,6 +41,7 @@ def handler(event, context):
     auth_post['Content-Type'] = 'application/octet-stream'
     cacert = '/etc/ssl/certs/ca-certificates.crt'
     yesterday = (date.today() - timedelta(days=1)).strftime('%Y-%m-%d')
+    threedaysago = (date.today() - timedelta(days=3)).strftime('%Y-%m-%d')
 
 # подключение к БД
     if os.getenv('DB_TYPE') == "MYSQL":
@@ -62,31 +63,35 @@ def handler(event, context):
             connection.execute(text('SET CHARACTER SET utf8mb4'))
             connection.execute(text('SET character_set_connection=utf8mb4'))
 
-# формат: название таблицы => поле с датой, имя таблицы в сообщении
+# формат: название таблицы => (поле с датой, имя таблицы в сообщении, дней проверки)
     tables = {
-        'raw_ym_visits': ('ym:s:dateTime', 'Яндекс.Метрика: визиты')
-#		,'raw_yd_costs': ('Date', 'Яндекс.Директ: расходы')
-#		,'raw_ym_costs': ('ym:ev:date', 'Яндекс.Метрика: расходы')
-#		,'raw_bx_crm_lead': ('DATE_CREATE', 'Битрикс24: лиды')
-#		,'raw_bx_crm_deal': ('DATE_CREATE', 'Битрикс24: сделки')
-#		,'raw_yw_shows_daily': ('Date', 'Yandex.Wordstat: показы')
+        'raw_ym_visits': ('ym:s:dateTime', 'Яндекс.Метрика: визиты', 1)
+#        ,'raw_yd_costs': ('Date', 'Яндекс.Директ: расходы', 1)
+#        ,'raw_ym_costs': ('ym:ev:date', 'Яндекс.Метрика: расходы', 1)
+#        ,'raw_bx_crm_lead': ('DATE_CREATE', 'Битрикс24: лиды', 3)
+#        ,'raw_bx_crm_deal': ('DATE_CREATE', 'Битрикс24: сделки', 3)
+#        ,'raw_yw_shows_daily': ('Date', 'Yandex.Wordstat: показы', 1)
     }
     alerts = 0
 
 # проверяем данные во всех таблицах
     for TABLE in tables.keys():
         TABLE_FIELD = tables[TABLE][0]
+        if tables[TABLE][2] == 3:
+            DATE_DELTA = threedaysago
+        else:
+            DATE_DELTA = yesterday
 # проверяем вчерашние данные
         if os.getenv('DB_TYPE') in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
             try:
-                table_total = int(pd.read_sql("SELECT COUNT(*) AS c FROM " + TABLE + " WHERE `" + TABLE_FIELD + "`>='" + yesterday + "'", connection)['c'].values[0])
+                table_total = int(pd.read_sql("SELECT COUNT(*) AS c FROM " + TABLE + " WHERE `" + TABLE_FIELD + "`>='" + DATE_DELTA + "'", connection)['c'].values[0])
                 connection.commit()
             except Exception as E:
                 print (E)
                 connection.rollback()
         elif os.getenv('DB_TYPE') == "CLICKHOUSE":
             table_total = int(requests.get('https://' + os.getenv('DB_HOST') + ':8443', headers=auth, verify=cacert,
-                params={"database": os.getenv('DB_DB'), "query": "SELECT COUNT(*) FROM " + os.getenv('DB_PREFIX') + "." + TABLE + " WHERE `" + TABLE_FIELD + "`>='" + yesterday + "'"}).text)
+                params={"database": os.getenv('DB_DB'), "query": "SELECT COUNT(*) FROM " + os.getenv('DB_PREFIX') + "." + TABLE + " WHERE `" + TABLE_FIELD + "`>='" + DATE_DELTA + "'"}).text)
 # данных нет - отправляем уведомление во все чаты
         if table_total == 0:
             message = os.getenv('TELEGRAM_BOT_MESSAGE').replace('{table}', tables[TABLE][1]).replace('{date}', yesterday)
@@ -98,5 +103,5 @@ def handler(event, context):
 
     return {
         'statusCode': 200,
-        'body': "SendAlerts: " + str(alerts)
+        'body': "SentAlerts: " + str(alerts)
     }
