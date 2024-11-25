@@ -84,14 +84,14 @@ def handler(event, context):
 # проверяем вчерашние данные
         if os.getenv('DB_TYPE') in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
             try:
-                table_total = int(pd.read_sql("SELECT COUNT(*) AS c FROM " + TABLE + " WHERE `" + TABLE_FIELD + "`>='" + DATE_DELTA + "'", connection)['c'].values[0])
+                table_total = int(pd.read_sql("SELECT COUNT(*) AS c FROM `" + TABLE + "` WHERE `" + TABLE_FIELD + "`>='" + DATE_DELTA + "'", connection)['c'].values[0])
                 connection.commit()
             except Exception as E:
                 print (E)
                 connection.rollback()
         elif os.getenv('DB_TYPE') == "CLICKHOUSE":
             table_total = int(requests.get('https://' + os.getenv('DB_HOST') + ':8443', headers=auth, verify=cacert,
-                params={"database": os.getenv('DB_DB'), "query": "SELECT COUNT(*) FROM " + os.getenv('DB_PREFIX') + "." + TABLE + " WHERE `" + TABLE_FIELD + "`>='" + DATE_DELTA + "'"}).text)
+                params={"database": os.getenv('DB_DB'), "query": "SELECT COUNT(*) FROM " + os.getenv('DB_PREFIX') + ".\"" + TABLE + "\" WHERE `" + TABLE_FIELD + "`>='" + DATE_DELTA + "'"}).text)
 # данных нет - отправляем уведомление во все чаты
         if table_total == 0:
             message = os.getenv('TELEGRAM_BOT_MESSAGE').replace('{table}', tables[TABLE][1]).replace('{date}', yesterday)
