@@ -92,7 +92,7 @@ def handler(event, context):
 # удаление старых данных
                 if os.getenv('DB_TYPE') in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
                     try:
-                        connection.execute(text("DELETE FROM " + os.getenv('WILDBERRIES_TABLE_ORDERS') + " WHERE `date`>='" + date_since + "' AND account='" + hash(TOKEN) + "'"))
+                        connection.execute(text("DELETE FROM " + os.getenv('WILDBERRIES_TABLE_ORDERS') + " WHERE `date`>='" + date_yesterday + "' AND account='" + hash(TOKEN) + "'"))
                         connection.commit()
                     except Exception as E:
                         print (E)
@@ -100,7 +100,7 @@ def handler(event, context):
                 elif os.getenv('DB_TYPE') == "CLICKHOUSE":
 # удаление старых данных
                     requests.post('https://' + os.getenv('DB_HOST') + ':8443', headers=auth, verify=cacert,
-                        params={"database": os.getenv('DB_DB'), "query": "DELETE FROM " + os.getenv('DB_PREFIX') + "." + os.getenv('WILDBERRIES_TABLE_ORDERS') + " WHERE `date`>='" + date_since + "' AND account='" + hash(token) + "'"})
+                        params={"database": os.getenv('DB_DB'), "query": "DELETE FROM " + os.getenv('DB_PREFIX') + "." + os.getenv('WILDBERRIES_TABLE_ORDERS') + " WHERE `date`>='" + date_yesterday + "' AND account='" + hash(token) + "'"})
             data_not_cleaned = False
 # добавление новых данных
             if os.getenv('DB_TYPE') in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
