@@ -1,4 +1,4 @@
-# Скрипт для ежедневного обновления статистики по продажам (заказам) из кабинета Wildberries
+# Скрипт для ежедневного обновления статистики по складам из кабинета Wildberries
 # Необходимо в переменных окружения указать
 # * DB_TYPE - тип базы данных (куда выгружать данные)
 # * DB_HOST - адрес (хост) базы данных
@@ -7,7 +7,7 @@
 # * DB_DB - имя базы данных
 # * DB_PREFIX - префикс базы данных (может отличаться от имени при облачном подключении)
 # * WILDBERRIES_ACCESS_TOKEN - Access Token, имеющий доступ к статистике нужного кабинета (или несколько - через запятую)
-# * WILDBERRIES_TABLE_ORDERS - имя результирующей таблицы для заказов
+# * WILDBERRIES_TABLE_STOCK - имя результирующей таблицы для складских остатков
 
 # requirements.txt:
 # pandas
@@ -64,9 +64,9 @@ def handler(event, context):
         data_not_cleaned = True
         TOKEN = TOKEN.strip()
 # отправка запроса
-        result = requests.get('https://marketplace-api.wildberries.ru/api/v3/orders',
+        result = requests.get('https://marketplace-api.wildberries.ru/api/v1/supplier/stocks',
             headers = {'Authorization': TOKEN},
-            params = {'dateFrom' : date_yesterday, 'flag' : 0})
+            params = {'dateFrom' : date_yesterday})
 		
 # формируем датафрейм из ответа API
         data = pd.DataFrame(result.json())
@@ -74,24 +74,27 @@ def handler(event, context):
 # базовый процесс очистки: приведение к нужным типам
         for col in data.columns:
 # приведение целых чисел
-            if col in ["barcode"]:
+            if col in ["nmId", "quantity", "inWayToClient", "inWayFromClient", "quantityFull"]:
                 data[col] = data[col].fillna(0).replace('--', 0).astype(np.int64)
 # приведение вещественных чисел
-            elif col in ["totalPrice", "discountPercent", "spp", "finishedPrice", "priceWithDisc"]:
+            elif col in ["Price", "Discount"]:
                 data[col] = data[col].fillna(0.0).replace('--', 0.0).astype(float)
 # приведение дат
-            elif col in ["date", "lastChangeDate", "cancelDate"]:
+            elif col in ["lastChangeDate"]:
                 data[col] = pd.to_datetime(data[col])
+# приведение логических типов
+            elif col in ["isSupply", "isRealization"]:
+                data[col] = data[col].fillna(False).astype(bool)
 # приведение строк
             else:
                 data[col] = data[col].fillna('')
         if len(data):
-            data["ts"] = pd.DatetimeIndex(data["date"]).asi8
+            data["ts"] = pd.DatetimeIndex(data["lastChangeDate"]).asi8
             if data_not_cleaned:
 # удаление старых данных
                 if os.getenv('DB_TYPE') in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
                     try:
-                        connection.execute(text("DELETE FROM " + os.getenv('WILDBERRIES_TABLE_ORDERS') + " WHERE `date`>='" + date_yesterday + "' AND account='" + hash(TOKEN) + "'"))
+                        connection.execute(text("DELETE FROM " + os.getenv('WILDBERRIES_TABLE_STOCK') + " WHERE `lastChangeDate`>='" + date_yesterday + "' AND account='" + hash(TOKEN) + "'"))
                         connection.commit()
                     except Exception as E:
                         print (E)
@@ -99,19 +102,19 @@ def handler(event, context):
                 elif os.getenv('DB_TYPE') == "CLICKHOUSE":
 # удаление старых данных
                     requests.post('https://' + os.getenv('DB_HOST') + ':8443', headers=auth, verify=cacert,
-                        params={"database": os.getenv('DB_DB'), "query": "DELETE FROM " + os.getenv('DB_PREFIX') + "." + os.getenv('WILDBERRIES_TABLE_ORDERS') + " WHERE `date`>='" + date_yesterday + "' AND account='" + hash(token) + "'"})
+                        params={"database": os.getenv('DB_DB'), "query": "DELETE FROM " + os.getenv('DB_PREFIX') + "." + os.getenv('WILDBERRIES_TABLE_STOCK') + " WHERE `lastChangeDate`>='" + date_yesterday + "' AND account='" + hash(token) + "'"})
             data_not_cleaned = False
 # добавление новых данных
             if os.getenv('DB_TYPE') in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
                 try:
-                    data.to_sql(name=os.getenv('WILDBERRIES_TABLE_ORDERS'), con=engine, if_exists='append', chunksize=100)
+                    data.to_sql(name=os.getenv('WILDBERRIES_TABLE_STOCK'), con=engine, if_exists='append', chunksize=100)
                     connection.commit()
                 except Exception as E:
                     print (E)
                     connection.rollback()
             elif os.getenv('DB_TYPE') == "CLICKHOUSE":
                 csv_file = data.to_csv().encode('utf-8')
-                requests.post('https://' + os.getenv('DB_HOST') + ':8443/?database=' + os.getenv('DB_DB') + '&query=INSERT INTO ' + os.getenv('DB_PREFIX') + '.' + os.getenv('WILDBERRIES_TABLE_ORDERS') + ' FORMAT CSV',
+                requests.post('https://' + os.getenv('DB_HOST') + ':8443/?database=' + os.getenv('DB_DB') + '&query=INSERT INTO ' + os.getenv('DB_PREFIX') + '.' + os.getenv('WILDBERRIES_TABLE_STOCK') + ' FORMAT CSV',
                     headers=auth_post, data=csv_file, stream=True)
         if os.getenv('DB_TYPE') in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
             connection.close()
