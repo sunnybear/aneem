@@ -92,8 +92,8 @@ def handler(event, context):
         elif os.getenv('DB_TYPE') == "CLICKHOUSE":
             table_total = int(requests.get('https://' + os.getenv('DB_HOST') + ':8443', headers=auth, verify=cacert,
                 params={"database": os.getenv('DB_DB'), "query": "SELECT COUNT(*) FROM " + os.getenv('DB_PREFIX') + ".\"" + TABLE + "\" WHERE `" + TABLE_FIELD + "`>='" + DATE_DELTA + "'"}).text)
-# данных нет - отправляем уведомление во все чаты
-        if table_total == 0:
+# данных нет - отправляем уведомление во все чаты, пропускаем 1-7 января
+        if table_total == 0 and (date.today().month != 1 or date.today().day > 8):
             message = os.getenv('TELEGRAM_BOT_MESSAGE').replace('{table}', tables[TABLE][1]).replace('{date}', yesterday)
             for CHAT_ID in os.getenv('TELEGRAM_BOT_CHATIDS').split(','):
                 requests.get("https://api.telegram.org/bot" + os.getenv('TELEGRAM_BOT_TOKEN') + "/sendMessage?chat_id=" + CHAT_ID.strip() + "&text=" + message)
