@@ -56,6 +56,9 @@ if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"
         connection.execute(text('SET CHARACTER SET utf8mb4'))
         connection.execute(text('SET character_set_connection=utf8mb4'))
 
+date_since = (date.today() - timedelta(days=1)).strftime('%Y-%m-%d')
+date_until = (date.today() + timedelta(days=1)).strftime('%Y-%m-%d')
+
 # получение временного токена
 result_token = requests.get(config['IIKO']['API_ENDPOINT'] + '/resto/api/auth?login=' + config['IIKO']['ACCESS_TOKEN_LOGIN'] + '&pass=' + config['IIKO']['ACCESS_TOKEN_PASS'])
 TOKEN = result_token.text
