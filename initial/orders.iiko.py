@@ -17,6 +17,7 @@ from datetime import date, timedelta
 import pandas as pd
 import numpy as np
 import requests
+import time
 from sqlalchemy import create_engine, text
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 # Скрытие предупреждения Unverified HTTPS request
@@ -58,6 +59,8 @@ if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"
 
 # создаем таблицу для данных при наличии каких-либо данных
 table_not_created = True
+token_timestamp = time.time()
+TOKEN = ''
 
 # выгружаем данные по заказам периодам по 30 дней
 for period in range(int(config['IIKO']['PERIODS']), 0, -1):
@@ -66,8 +69,10 @@ for period in range(int(config['IIKO']['PERIODS']), 0, -1):
     date_until = (date.today() - timedelta(days=(period-1)*delta-1)).strftime('%Y-%m-%d')
 
 # получение временного токена
-    result_token = requests.get(config['IIKO']['API_ENDPOINT'] + '/resto/api/auth?login=' + config['IIKO']['ACCESS_TOKEN_LOGIN'] + '&pass=' + config['IIKO']['ACCESS_TOKEN_PASS'])
-    TOKEN = result_token.text
+    if TOKEN == '' or time.time() - token_timestamp > 900:
+        result_token = requests.get(config['IIKO']['API_ENDPOINT'] + '/resto/api/auth?login=' + config['IIKO']['ACCESS_TOKEN_LOGIN'] + '&pass=' + config['IIKO']['ACCESS_TOKEN_PASS'])
+        TOKEN = result_token.text
+        token_timestamp = time.time()
 
 # отправка основного запроса
     result = requests.post(config['IIKO']['API_ENDPOINT'] + '/resto/api/v2/reports/olap',
