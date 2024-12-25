@@ -66,7 +66,7 @@ TOKEN = ''
 for period in range(int(config['IIKO']['PERIODS']), 0, -1):
     delta = int(config['IIKO']['DELTA'])
     date_since = (date.today() - timedelta(days=period*delta)).strftime('%Y-%m-%d')
-    date_until = (date.today() - timedelta(days=(period-1)*delta-1)).strftime('%Y-%m-%d')
+    date_until = (date.today() - timedelta(days=(period-1)*delta)).strftime('%Y-%m-%d')
 
 # получение временного токена
     if TOKEN == '' or time.time() - token_timestamp > 900:
