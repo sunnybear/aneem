@@ -2,6 +2,7 @@
 # Необходимо в settings.ini указать
 # * DB.TYPE - тип базы данных (куда выгружать данные)
 # * DB.HOST - адрес (хост) базы данных
+# * DB.PORT - порт хоста базы данных (если отличается от стандартного)
 # * DB.USER - пользователь базы данных
 # * DB.PASSWORD - пароль к базе данных
 # * DB.DB - имя базы данных
@@ -32,14 +33,18 @@ config = configparser.ConfigParser()
 config.read("../settings.ini")
 
 # подключение к БД
+if config["DB"]["PORT"] != '':
+    DB_PORT = ':' + config["DB"]["PORT"]
+else:
+    DB_PORT = ''
 if config["DB"]["TYPE"] == "MYSQL":
-    engine = create_engine('mysql+mysqldb://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + '/' + config["DB"]["DB"] + '?charset=utf8')
+    engine = create_engine('mysql+mysqldb://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + DB_PORT + '/' + config["DB"]["DB"] + '?charset=utf8')
 elif config["DB"]["TYPE"] == "POSTGRESQL":
-    engine = create_engine('postgresql+psycopg2://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + '/' + config["DB"]["DB"] + '?client_encoding=utf8')
+    engine = create_engine('postgresql+psycopg2://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + DB_PORT + '/' + config["DB"]["DB"] + '?client_encoding=utf8')
 elif config["DB"]["TYPE"] == "MARIADB":
-    engine = create_engine('mariadb+mysqldb://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + '/' + config["DB"]["DB"] + '?charset=utf8')
+    engine = create_engine('mariadb+mysqldb://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + DB_PORT + '/' + config["DB"]["DB"] + '?charset=utf8')
 elif config["DB"]["TYPE"] == "ORACLE":
-    engine = create_engine('oracle+pyodbc://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + '/' + config["DB"]["DB"])
+    engine = create_engine('oracle+pyodbc://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + DB_PORT + '/' + config["DB"]["DB"])
 elif config["DB"]["TYPE"] == "SQLITE":
     engine = create_engine('sqlite:///' + config["DB"]["DB"])
 
@@ -55,14 +60,14 @@ if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"
 table_not_created = True
 
 # выгружаем данные по заказам периодам по 30 дней
-for period in range(config['IIKO']['PERIODS'], 0, -1):
-    date_since = (date.today() - timedelta(days=period*config['IIKO']['PERIODS']).strftime('%Y-%m-%d')
-    date_until = (date.today() - timedelta(days=(period-1)*30-1).strftime('%Y-%m-%d')
+for period in range(int(config['IIKO']['PERIODS']), 0, -1):
+    delta = int(config['IIKO']['PERIODS'])
+    date_since = (date.today() - timedelta(days=period*delta)).strftime('%Y-%m-%d')
+    date_until = (date.today() - timedelta(days=(period-1)*delta-1)).strftime('%Y-%m-%d')
 
 # получение временного токена
     result_token = requests.get(config['IIKO']['API_ENDPOINT'] + '/resto/api/auth?login=' + config['IIKO']['ACCESS_TOKEN_LOGIN'] + '&pass=' + config['IIKO']['ACCESS_TOKEN_PASS'])
     TOKEN = result_token.text
-    DATE_START = '2000-01-01'
 
 # отправка основного запроса
     result = requests.post(config['IIKO']['API_ENDPOINT'] + '/resto/api/v2/reports/olap',
@@ -71,8 +76,8 @@ for period in range(config['IIKO']['PERIODS'], 0, -1):
             "groupByColFields": ["Cashier.Id", "Cashier", "CashRegisterName.Number", "CashRegisterName", "CloseTime", "CloseTime.Minutes15", "Comment", "CookingPlace", "Currencies.CurrencyRate", "Currencies.Currency", "DayOfWeekOpen", "Department.Id", "Department", "DiscountPercent", "DishCategory.Id", "DishCode", "DishCategory", "DishGroup.Id", "DishGroup.Num", "DishGroup", "DishGroup.Hierarchy", "DishGroup.SecondParent", "DishGroup.ThirdParent", "DishGroup.TopParent", "DishId", "DishName", "DishServicePrintTime", "DishType", "FiscalChequeNumber", "GuestNum", "HourClose", "HourOpen", "JurName", "Mounth", "NonCashPaymentType", "NonCashPaymentType.DocumentType", "OpenDate.Typed", "OpenTime", "OpenTime.Minutes15", "OperationType", "OrderDiscount.GuestCard", "OrderDiscount.Type", "OrderDiscount.Type.IDs", "OrderNum", "OrderServiceType", "OrderTime.OrderLength", "OrderTime.PrechequeLength", "OrderWaiter.Id", "OrderWaiter.Name", "PayTypes.Combo", "PayTypes.IsPrintCheque", "PrechequeTime", "RemovalType", "RestaurantSection.Id", "RestaurantSection", "SessionNum", "SoldWithDish", "SoldWithDish.Id", "Store.Id", "Store.Name", "Storned", "TableNum", "UniqOrderId.Id", "WaiterName.ID", "WaiterName", "WeekInMonthOpen", "WeekInYearOpen", "YearOpen"],
             "aggregateFields": ["Cooking.GuestWaitTime.Avg", "DiscountSum", "discountWithoutVAT", "DishAmountInt.PerOrder", "DishDiscountSumInt", "DishDiscountSumInt.averageByGuest", "DishReturnSum.withoutVAT", "fullSum", "OrderItems", "ProductCostBase.OneItem", "ProductCostBase.Percent", "ProductCostBase.PercentWithoutVAT", "ProductCostBase.ProductCost", "ProductCostBase.Profit", "UniqOrderId", "UniqOrderId.OrdersCount"],
             "filters": {
-                "OpenDate.Typed": {"filterType":"DateRange", "periodType":"CUSTOM", "from": DATE_START, "to": date.today().strftime("%Y-%m-%d")},
-                "OpenTime": {"filterType":"DateRange", "periodType":"CUSTOM", "from": DATE_START, "to": date.today().strftime("%Y-%m-%d"), "includeLow": True, "includeHigh": True},
+                "OpenDate.Typed": {"filterType":"DateRange", "periodType":"CUSTOM", "from": date_since, "to": date_until},
+                "OpenTime": {"filterType":"DateRange", "periodType":"CUSTOM", "from": date_since, "to": date_until, "includeLow": True, "includeHigh": True},
                 "DeletedWithWriteoff": {"filterType": "ExcludeValues", "values": ["DELETED_WITH_WRITEOFF","DELETED_WITHOUT_WRITEOFF"]},
                 "OrderDeleted": {"filterType": "IncludeValues", "values": ["NOT_DELETED"]}
             }
@@ -101,10 +106,17 @@ for period in range(config['IIKO']['PERIODS'], 0, -1):
 
     if len(data):
         data["ts"] = pd.DatetimeIndex(data["OpenDate.Typed"]).asi8
+# поддержка TCP HTTP для Clickhouse
+        if config["DB"]["PORT"] != '8443':
+            CLICKHOUSE_PROTO = 'http://'
+            CLICKHOUSE_PORT = config["DB"]["PORT"]
+        else:
+            CLICKHOUSE_PROTO = 'https://'
+            CLICKHOUSE_PORT = config["DB"]["PORT"]
 # создаем таблицу в первый раз
         if table_not_created:
             if config["DB"]["TYPE"] == "CLICKHOUSE":
-                requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/', verify=False,
+                requests.post(CLICKHOUSE_PROTO + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':' + CLICKHOUSE_PORT + '/', verify=False,
                     params={"database": config["DB"]["DB"], "query": (pd.io.sql.get_schema(data, config["IIKO"]["TABLE_ORDERS"]) + "  ENGINE=MergeTree ORDER BY (`ts`)").replace("CREATE TABLE ", "CREATE TABLE IF NOT EXISTS " + config["DB"]["DB"] + ".").replace("INTEGER", "Int64")})
             table_not_created = False
         if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
@@ -116,7 +128,7 @@ for period in range(config['IIKO']['PERIODS'], 0, -1):
                 connection.rollback()
         elif config["DB"]["TYPE"] == "CLICKHOUSE":
             csv_file = data.to_csv(index=False).encode('utf-8')
-            requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/',
+            requests.post(CLICKHOUSE_PROTO + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':' + CLICKHOUSE_PORT + '/',
                 params={"database": config["DB"]["DB"], "query": 'INSERT INTO ' + config["DB"]["DB"] + '.' + config["IIKO"]["TABLE_ORDERS"] + ' FORMAT CSV'},
                 headers={'Content-Type':'application/octet-stream'}, data=csv_file, stream=True, verify=False)
         print (date_since, "=>", date_until, ":", len(data))
