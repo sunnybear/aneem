@@ -61,7 +61,7 @@ table_not_created = True
 
 # выгружаем данные по заказам периодам по 30 дней
 for period in range(int(config['IIKO']['PERIODS']), 0, -1):
-    delta = int(config['IIKO']['PERIODS'])
+    delta = int(config['IIKO']['DELTA'])
     date_since = (date.today() - timedelta(days=period*delta)).strftime('%Y-%m-%d')
     date_until = (date.today() - timedelta(days=(period-1)*delta-1)).strftime('%Y-%m-%d')
 
@@ -132,6 +132,8 @@ for period in range(int(config['IIKO']['PERIODS']), 0, -1):
                 params={"database": config["DB"]["DB"], "query": 'INSERT INTO ' + config["DB"]["DB"] + '.' + config["IIKO"]["TABLE_ORDERS"] + ' FORMAT CSV'},
                 headers={'Content-Type':'application/octet-stream'}, data=csv_file, stream=True, verify=False)
         print (date_since, "=>", date_until, ":", len(data))
+    else:
+        print (date_since, "=>", date_until, ":", result.text[:500])
 
 # закрытие подключения к БД
 if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
