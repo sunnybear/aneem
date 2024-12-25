@@ -54,6 +54,7 @@ if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"
 # получение временного токена
 result_token = requests.get(config['IIKO']['API_ENDPOINT'] + '/resto/api/auth?login=' + config['IIKO']['ACCESS_TOKEN_LOGIN'] + '&pass=' + config['IIKO']['ACCESS_TOKEN_PASS'])
 TOKEN = result_token.text
+DATE_START = '2000-01-01'
 
 # создаем таблицу для данных при наличии каких-либо данных
 table_not_created = True
@@ -64,8 +65,8 @@ result = requests.post(config['IIKO']['API_ENDPOINT'] + '/resto/api/v2/reports/o
         "groupByColFields": ["Cashier.Id", "Cashier", "CashRegisterName.Number", "CashRegisterName", "CloseTime", "CloseTime.Minutes15", "Comment", "CookingPlace", "Currencies.CurrencyRate", "Currencies.Currency", "DayOfWeekOpen", "Department.Id", "Department", "DiscountPercent", "DishCategory.Id", "DishCode", "DishCategory", "DishGroup.Id", "DishGroup.Num", "DishGroup", "DishGroup.Hierarchy", "DishGroup.SecondParent", "DishGroup.ThirdParent", "DishGroup.TopParent", "DishId", "DishName", "DishServicePrintTime", "DishType", "FiscalChequeNumber", "GuestNum", "HourClose", "HourOpen", "JurName", "Mounth", "NonCashPaymentType", "NonCashPaymentType.DocumentType", "OpenDate.Typed", "OpenTime", "OpenTime.Minutes15", "OperationType", "OrderDiscount.GuestCard", "OrderDiscount.Type", "OrderDiscount.Type.IDs", "OrderNum", "OrderServiceType", "OrderTime.OrderLength", "OrderTime.PrechequeLength", "OrderWaiter.Id", "OrderWaiter.Name", "PayTypes.Combo", "PayTypes.IsPrintCheque", "PrechequeTime", "RemovalType", "RestaurantSection.Id", "RestaurantSection", "SessionNum", "SoldWithDish", "SoldWithDish.Id", "Store.Id", "Store.Name", "Storned", "TableNum", "UniqOrderId.Id", "WaiterName.ID", "WaiterName", "WeekInMonthOpen", "WeekInYearOpen", "YearOpen"],
         "aggregateFields": ["Cooking.GuestWaitTime.Avg", "DiscountSum", "discountWithoutVAT", "DishAmountInt.PerOrder", "DishDiscountSumInt", "DishDiscountSumInt.averageByGuest", "DishReturnSum.withoutVAT", "fullSum", "OrderItems", "ProductCostBase.OneItem", "ProductCostBase.Percent", "ProductCostBase.PercentWithoutVAT", "ProductCostBase.ProductCost", "ProductCostBase.Profit", "UniqOrderId", "UniqOrderId.OrdersCount"],
         "filters": {
-            "OpenDate.Typed": {"filterType":"DateRange", "periodType":"CUSTOM", "from": "2024-12-24", "to": date.today().strftime("%Y-%m-%d")},
-            "OpenTime": {"filterType":"DateRange", "periodType":"CUSTOM", "from": "2024-12-24", "to": date.today().strftime("%Y-%m-%d"), "includeLow": True, "includeHigh": True},
+            "OpenDate.Typed": {"filterType":"DateRange", "periodType":"CUSTOM", "from": DATE_START, "to": date.today().strftime("%Y-%m-%d")},
+            "OpenTime": {"filterType":"DateRange", "periodType":"CUSTOM", "from": DATE_START, "to": date.today().strftime("%Y-%m-%d"), "includeLow": True, "includeHigh": True},
             "DeletedWithWriteoff": {"filterType": "ExcludeValues", "values": ["DELETED_WITH_WRITEOFF","DELETED_WITHOUT_WRITEOFF"]},
             "OrderDeleted": {"filterType": "IncludeValues", "values": ["NOT_DELETED"]}
         }
