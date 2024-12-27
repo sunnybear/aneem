@@ -81,6 +81,7 @@ data = pd.DataFrame()
 if len(result.text) > 500 and 'data' in result.json():
 # формируем датафрейм из ответа API
     data = pd.DataFrame(result.json()['data'])
+    del result
 # базовый процесс очистки: приведение к нужным типам
     for col in data.columns:
 # приведение целых чисел
