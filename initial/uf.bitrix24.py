@@ -127,7 +127,7 @@ for dataset in list(tables.keys()):
                         item = bitrix24_crm_uf_plain_contacts(item)
                         items[int(item['ID'])] = item
 # задержка для избежания исчерпания лимита запросов
-                time.sleep(1)
+                time.sleep(0.5)
             elif config["BITRIX24"]["METHOD"] == "SINGLE":
                 items_req = requests.get(config["BITRIX24"]["WEBHOOK"] + dataset + '.get.json?ID=' + str(ids[last_item_id])).json()
                 if "result" in items_req:
