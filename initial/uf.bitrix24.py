@@ -137,8 +137,8 @@ for dataset in list(tables.keys()):
                     items[int(item['ID'])] = item
                 last_item_id += 1
             print (dataset + ": " + str(last_item_id) + "/" + str(items_last_id))
-# формируем датафрейм. Загрузка чанками по 10000 записей позволяет уложить процесс в 0,6-0,8 Гб
-            if last_item_id % 10000 < 50 or last_item_id == items_last_id:
+# формируем датафрейм. Загрузка чанками по 5000 записей позволяет уложить процесс в 0,6-0,8 Гб
+            if last_item_id % 5000 < 50 or last_item_id == items_last_id:
                 data = pd.DataFrame.from_dict(items, orient='index')
                 items = {}
 # базовый процесс очистки: приведение к нужным типам
@@ -154,7 +154,7 @@ for dataset in list(tables.keys()):
                         data[col] = pd.to_datetime(data[col].fillna('').replace('', '2000-01-01T00:00:00+03:00').apply(lambda x: dt.strptime(x, '%Y-%m-%dT%H:%M:%S%z').strftime("%Y-%m-%d %H:%M:%S").replace('202-','2024-')))
 # приведение строк
                     else:
-                        data[col] = data[col].fillna('')
+                        data[col] = data[col].fillna('').astype('string')
                 if len(data):
                     if "DATE_CREATE" in data.columns:
                         data["ts"] = pd.DatetimeIndex(data["DATE_CREATE"]).asi8
