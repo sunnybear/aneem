@@ -71,7 +71,6 @@ result = requests.post(config['IIKO']['API_ENDPOINT'] + '/resto/api/v2/reports/o
         "aggregateFields": ["Cooking.GuestWaitTime.Avg", "DiscountSum", "discountWithoutVAT", "DishAmountInt.PerOrder", "DishDiscountSumInt", "DishDiscountSumInt.averageByGuest", "DishReturnSum.withoutVAT", "fullSum", "OrderItems", "ProductCostBase.OneItem", "ProductCostBase.Percent", "ProductCostBase.PercentWithoutVAT", "ProductCostBase.ProductCost", "ProductCostBase.Profit", "UniqOrderId", "UniqOrderId.OrdersCount"],
         "filters": {
             "OpenDate.Typed": {"filterType":"DateRange", "periodType":"CUSTOM", "from": date_since, "to": date_until},
-            "OpenTime": {"filterType":"DateRange", "periodType":"CUSTOM", "from": date_since, "to": date_until, "includeLow": True, "includeHigh": True},
             "DeletedWithWriteoff": {"filterType": "ExcludeValues", "values": ["DELETED_WITH_WRITEOFF","DELETED_WITHOUT_WRITEOFF"]},
             "OrderDeleted": {"filterType": "IncludeValues", "values": ["NOT_DELETED"]}
         }
