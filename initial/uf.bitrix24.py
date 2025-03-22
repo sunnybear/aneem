@@ -139,18 +139,18 @@ for dataset in list(tables.keys()):
             print (dataset + ": " + str(last_item_id) + "/" + str(items_last_id))
 # формируем датафрейм. Загрузка чанками по 5000 записей позволяет уложить процесс в 0,6-0,8 Гб
             if last_item_id % 5000 < 50 or last_item_id == items_last_id:
-                data = pd.DataFrame.from_dict(items, orient='index')
+                data = pd.DataFrame.from_dict(items, orient='index', dtype=None)
                 items = {}
 # базовый процесс очистки: приведение к нужным типам
                 for i,col in enumerate(data.columns):
 # приведение целых чисел
-                    if col in ["ID", "ASSIGNED_BY_ID", "CREATED_BY_ID", "MODIFY_BY_ID", "LEAD_ID", "ADDRESS_LOC_ADDR_ID", "ADDRESS_COUNTRY_CODE", "REG_ADDRESS_COUNTRY_CODE", "REG_ADDRESS_LOC_ADDR_ID", "LAST_ACTIVITY_BY", "SORT", "CATEGORY_ID", "COMPANY_ID", "CONTACT_ID"] or data.dtypes.iloc[i] in ["bool", "int64", "int32"]:
+                    if col in ["ID", "ASSIGNED_BY_ID", "CREATED_BY_ID", "MODIFY_BY_ID", "LEAD_ID", "ADDRESS_LOC_ADDR_ID", "ADDRESS_COUNTRY_CODE", "REG_ADDRESS_COUNTRY_CODE", "REG_ADDRESS_LOC_ADDR_ID", "LAST_ACTIVITY_BY", "SORT", "CATEGORY_ID", "COMPANY_ID", "CONTACT_ID"]:
                         data[col] = data[col].fillna('').replace('', 0).astype(np.int64)
 # приведение вещественных чисел
-                    elif col in ["REVENUE", "OPPORTUNITY"] or data.dtypes.iloc[i] in ["float32", "float64"]:
+                    elif col in ["REVENUE", "OPPORTUNITY"]:
 # приведение дат
                         data[col] = data[col].fillna('').replace('', 0.0).astype(float)
-                    elif col in ["DATE_CREATE", "DATE_MODIFY", "LAST_ACTIVITY_TIME", "CREATED_DATE", "DATE_CLOSED", "MOVED_TIME"] or data.dtypes.iloc[i] == "datetime64":
+                    elif col in ["DATE_CREATE", "DATE_MODIFY", "LAST_ACTIVITY_TIME", "CREATED_DATE", "DATE_CLOSED", "MOVED_TIME"]:
                         data[col] = pd.to_datetime(data[col].fillna('').replace('', '2000-01-01T00:00:00+03:00').apply(lambda x: dt.strptime(x, '%Y-%m-%dT%H:%M:%S%z').strftime("%Y-%m-%d %H:%M:%S").replace('202-','2024-')))
 # приведение строк
                     else:
