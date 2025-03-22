@@ -164,12 +164,15 @@ for dataset in list(tables.keys()):
             if table_not_created:
                 if config["DB"]["TYPE"] == "CLICKHOUSE":
                     requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/', verify=False,
-                        params={"database": config["DB"]["DB"], "query": (pd.io.sql.get_schema(data, config["BITRIX24"][current_table]) + "  ENGINE=MergeTree ORDER BY (`" + index + "`)").replace("CREATE TABLE ", "CREATE TABLE IF NOT EXISTS " + config["DB"]["DB"] + ".").replace("INTEGER", "Int64")})
+                        params={"database": config["DB"]["DB"], "query": (pd.io.sql.get_schema(data, config["BITRIX24"][current_table]) + "  ENGINE=MergeTree ORDER BY (`" + index + "`)").replace("CREATE TABLE ", "CREATE OR REPLACE TABLE " + config["DB"]["DB"] + ".").replace("INTEGER", "Int64")})
+                else:
+                    connection.execute(text("DROP TABLE IF EXISTS " + config["BITRIX24"][current_table]))
+                    connection.commit()
                 table_not_created = False
             if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
 # обработка ошибок при добавлении данных
                 try:
-                    data.to_sql(name=config["BITRIX24"][current_table], con=engine, if_exists='append', chunksize=100)
+                    data.to_sql(name=config["BITRIX24"][current_table], con=engine, if_exists='replace', chunksize=100)
                 except Exception as E:
                     print (E)
                     connection.rollback()

@@ -118,11 +118,14 @@ for smartproc_id in smartproc_ids:
             index = 'ts'
         else:
             index = 'id'
-        table = os.getenv('BITRIX24_TABLE_SMARTPROC') + smartproc_id
+        table = config["BITRIX24"]["TABLE_SMARTPROC"] + smartproc_id
 # создаем таблицу в первый раз
         if config["DB"]["TYPE"] == "CLICKHOUSE":
             requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/', verify=False,
                 params={"database": config["DB"]["DB"], "query": (pd.io.sql.get_schema(data, table) + "  ENGINE=MergeTree ORDER BY (`" + index + "`)").replace("CREATE TABLE ", "CREATE OR REPLACE TABLE " + config["DB"]["DB"] + ".").replace("INTEGER", "Int64")})
+        else:
+            connection.execute(text("DROP TABLE IF EXISTS " + table))
+            connection.commit()
         if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
 # обработка ошибок при добавлении данных
             try:
