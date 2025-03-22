@@ -136,51 +136,54 @@ for dataset in list(tables.keys()):
                     item = bitrix24_crm_uf_plain_contacts(item)
                     items[int(item['ID'])] = item
                 last_item_id += 1
-            print (dataset + ": " + str(len(items)) + "/" + str(items_last_id))
-# формируем датафрейм
-        data = pd.DataFrame.from_dict(items, orient='index')
-        del items
+            print (dataset + ": " + str(last_item_id) + "/" + str(items_last_id))
+# формируем датафрейм. Загрузка чанками по 10000 записей позволяет уложить процесс в 0,6-0,8 Гб
+            if last_item_id % 10000 < 50 or last_item_id == items_last_id:
+                data = pd.DataFrame.from_dict(items, orient='index')
+                items = {}
 # базовый процесс очистки: приведение к нужным типам
-        for i,col in enumerate(data.columns):
+                for i,col in enumerate(data.columns):
 # приведение целых чисел
-            if col in ["ID", "ASSIGNED_BY_ID", "CREATED_BY_ID", "MODIFY_BY_ID", "LEAD_ID", "ADDRESS_LOC_ADDR_ID", "ADDRESS_COUNTRY_CODE", "REG_ADDRESS_COUNTRY_CODE", "REG_ADDRESS_LOC_ADDR_ID", "LAST_ACTIVITY_BY", "SORT", "CATEGORY_ID", "COMPANY_ID", "CONTACT_ID"] or data.dtypes[i] in ["bool", "int64", "int32"]:
-                data[col] = data[col].fillna('').replace('', 0).astype(np.int64)
+                    if col in ["ID", "ASSIGNED_BY_ID", "CREATED_BY_ID", "MODIFY_BY_ID", "LEAD_ID", "ADDRESS_LOC_ADDR_ID", "ADDRESS_COUNTRY_CODE", "REG_ADDRESS_COUNTRY_CODE", "REG_ADDRESS_LOC_ADDR_ID", "LAST_ACTIVITY_BY", "SORT", "CATEGORY_ID", "COMPANY_ID", "CONTACT_ID"] or data.dtypes.iloc[i] in ["bool", "int64", "int32"]:
+                        data[col] = data[col].fillna('').replace('', 0).astype(np.int64)
 # приведение вещественных чисел
-            elif col in ["REVENUE", "OPPORTUNITY"] or data.dtypes[i] in ["float32", "float64"]:
+                    elif col in ["REVENUE", "OPPORTUNITY"] or data.dtypes.iloc[i] in ["float32", "float64"]:
 # приведение дат
-                data[col] = data[col].fillna('').replace('', 0.0).astype(float)
-            elif col in ["DATE_CREATE", "DATE_MODIFY", "LAST_ACTIVITY_TIME", "CREATED_DATE", "DATE_CLOSED", "MOVED_TIME"] or data.dtypes[i] == "datetime64":
-                data[col] = pd.to_datetime(data[col].fillna('').replace('', '2000-01-01T00:00:00+03:00').apply(lambda x: dt.strptime(x, '%Y-%m-%dT%H:%M:%S%z').strftime("%Y-%m-%d %H:%M:%S").replace('202-','2024-')))
+                        data[col] = data[col].fillna('').replace('', 0.0).astype(float)
+                    elif col in ["DATE_CREATE", "DATE_MODIFY", "LAST_ACTIVITY_TIME", "CREATED_DATE", "DATE_CLOSED", "MOVED_TIME"] or data.dtypes.iloc[i] == "datetime64":
+                        data[col] = pd.to_datetime(data[col].fillna('').replace('', '2000-01-01T00:00:00+03:00').apply(lambda x: dt.strptime(x, '%Y-%m-%dT%H:%M:%S%z').strftime("%Y-%m-%d %H:%M:%S").replace('202-','2024-')))
 # приведение строк
-            else:
-                data[col] = data[col].fillna('')
-        if len(data):
-            if "DATE_CREATE" in data.columns:
-                data["ts"] = pd.DatetimeIndex(data["DATE_CREATE"]).asi8
-                index = 'ts'
-            else:
-                index = 'ID'
+                    else:
+                        data[col] = data[col].fillna('')
+                if len(data):
+                    if "DATE_CREATE" in data.columns:
+                        data["ts"] = pd.DatetimeIndex(data["DATE_CREATE"]).asi8
+                        index = 'ts'
+                    else:
+                        index = 'ID'
 # создаем таблицу в первый раз
-            if table_not_created:
-                if config["DB"]["TYPE"] == "CLICKHOUSE":
-                    requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/', verify=False,
-                        params={"database": config["DB"]["DB"], "query": (pd.io.sql.get_schema(data, config["BITRIX24"][current_table]) + "  ENGINE=MergeTree ORDER BY (`" + index + "`)").replace("CREATE TABLE ", "CREATE OR REPLACE TABLE " + config["DB"]["DB"] + ".").replace("INTEGER", "Int64")})
-                else:
-                    connection.execute(text("DROP TABLE IF EXISTS " + config["BITRIX24"][current_table]))
-                    connection.commit()
-                table_not_created = False
-            if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
+                    if table_not_created:
+                        if config["DB"]["TYPE"] == "CLICKHOUSE":
+                            requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/', verify=False,
+                                params={"database": config["DB"]["DB"], "query": (pd.io.sql.get_schema(data, config["BITRIX24"][current_table]) + "  ENGINE=MergeTree ORDER BY (`" + index + "`)").replace("CREATE TABLE ", "CREATE OR REPLACE TABLE " + config["DB"]["DB"] + ".").replace("INTEGER", "Int64")})
+                        else:
+                            connection.execute(text("DROP TABLE IF EXISTS " + config["BITRIX24"][current_table]))
+                            connection.commit()
+                        table_not_created = False
+                    if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
 # обработка ошибок при добавлении данных
-                try:
-                    data.to_sql(name=config["BITRIX24"][current_table], con=engine, if_exists='replace', chunksize=100)
-                except Exception as E:
-                    print (E)
-                    connection.rollback()
-            elif config["DB"]["TYPE"] == "CLICKHOUSE":
-                csv_file = data.to_csv(index=False).encode('utf-8')
-                requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/',
-                    params={"database": config["DB"]["DB"], "query": 'INSERT INTO ' + config["DB"]["DB"] + '.' + config["BITRIX24"][current_table] + ' FORMAT CSV'},
-                    headers={'Content-Type':'application/octet-stream'}, data=csv_file, stream=True, verify=False)
+                        try:
+                            data.to_sql(name=config["BITRIX24"][current_table], con=engine, if_exists='replace', chunksize=100)
+                        except Exception as E:
+                            print (E)
+                            connection.rollback()
+                    elif config["DB"]["TYPE"] == "CLICKHOUSE":
+                        csv_file = data.to_csv(index=False).encode('utf-8')
+                        requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/',
+                            params={"database": config["DB"]["DB"], "query": 'INSERT INTO ' + config["DB"]["DB"] + '.' + config["BITRIX24"][current_table] + ' FORMAT CSV'},
+                            headers={'Content-Type':'application/octet-stream'}, data=csv_file, stream=True, verify=False)
+# очищаем память
+                del data
         print (dataset + " UF = " + str(items_last_id))
 
 # закрытие подключения к БД
