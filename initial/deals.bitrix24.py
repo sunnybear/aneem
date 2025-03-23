@@ -126,7 +126,7 @@ while deals_current < deals_total - 1:
             requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/',
                 params={"database": config["DB"]["DB"], "query": 'INSERT INTO ' + config["DB"]["DB"] + '.' + config["BITRIX24"]["TABLE_DEALS"] + ' FORMAT CSV'},
                 headers={'Content-Type':'application/octet-stream'}, data=csv_file, stream=True, verify=False)
-    print (str(last_deal_id) + ": " + str(deals_current))
+    print (str(last_deal_id_prev) + ": " + str(deals_current))
 
 # закрытие подключения к БД
 if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:

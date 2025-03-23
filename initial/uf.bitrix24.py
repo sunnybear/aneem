@@ -137,8 +137,8 @@ for dataset in list(tables.keys()):
                     items[int(item['ID'])] = item
                 last_item_id += 1
             print (dataset + ": " + str(last_item_id) + "/" + str(items_last_id))
-# формируем датафрейм. Загрузка чанками по 5000 записей позволяет уложить процесс в 0,6-0,8 Гб
-            if last_item_id % 5000 < 50 or last_item_id == items_last_id:
+# формируем датафрейм. Загрузка чанками по 8000 записей позволяет уложить процесс в 0,6-0,8 Гб
+            if last_item_id % 8000 < 50 or last_item_id == items_last_id:
                 data = pd.DataFrame.from_dict(items, orient='index', dtype=None)
                 items = {}
 # базовый процесс очистки: приведение к нужным типам
@@ -173,12 +173,15 @@ for dataset in list(tables.keys()):
                     if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
 # обработка ошибок при добавлении данных
                         try:
-                            data.to_sql(name=config["BITRIX24"][current_table], con=engine, if_exists='replace', chunksize=100)
+                            data.to_sql(name=config["BITRIX24"][current_table], con=engine, if_exists='append', chunksize=100)
                         except Exception as E:
                             print (E)
                             connection.rollback()
                     elif config["DB"]["TYPE"] == "CLICKHOUSE":
-                        csv_file = data.to_csv(index=False).encode('utf-8')
+                        if current_table == 'TABLE_DEALS_UF':
+                            csv_file = data.to_csv(index=False).encode('utf-8')
+                        else:
+                            csv_file = data.to_csv(index=False, header=False).encode('utf-8')
                         requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/',
                             params={"database": config["DB"]["DB"], "query": 'INSERT INTO ' + config["DB"]["DB"] + '.' + config["BITRIX24"][current_table] + ' FORMAT CSV'},
                             headers={'Content-Type':'application/octet-stream'}, data=csv_file, stream=True, verify=False)
