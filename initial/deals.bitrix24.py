@@ -59,13 +59,15 @@ deals = requests.get(config["BITRIX24"]["WEBHOOK"] + 'crm.deal.list.json?ORDER[I
 deals_total = int(deals["total"])
 # текущий ID сделки - для следующего запроса
 last_deal_id = 0
+# текущий "правильный" ID сделки (не меньше, чем предыдущий)
+last_deal_id_prev = 0
 # счетчик количества сделок
 deals_current = 0
 # запросы пакетами по 50*50 сделок до исчерпания количества для загрузки
-while deals_current < deals_total:
+while deals_current < deals_total - 1:
     deals = {}
     if config["BITRIX24"]["METHOD"] == "BATCH":
-        cmd = ['cmd[0]=crm.deal.list%3Fstart%3D-1%26order%5BID%5D%3DASC%26filter%5B%3EID%5D%3D' + str(last_deal_id)]
+        cmd = ['cmd[0]=crm.deal.list%3Fstart%3D-1%26order%5BID%5D%3DASC%26filter%5B%3EID%5D%3D' + str(last_deal_id_prev)]
         for i in range(1, 50):
             cmd.append('cmd['+str(i)+']=crm.deal.list%3Fstart%3D-1%26order%5BID%5D%3DASC%26filter%5B%3EID%5D%3D%24result%5B'+str(i-1)+'%5D%5B49%5D%5BID%5D')
         deals_req = requests.get(config["BITRIX24"]["WEBHOOK"] + 'batch.json?' + '&'.join(cmd)).json()
@@ -73,13 +75,17 @@ while deals_current < deals_total:
         for deal_group in deals_req["result"]["result"]:
             for deal in deal_group:
                 last_deal_id = int(deal['ID'])
-                deals[last_deal_id] = deal
+                if last_deal_id > last_deal_id_prev:
+                    deals[last_deal_id] = deal
+                    last_deal_id_prev = last_deal_id
     elif config["BITRIX24"]["METHOD"] == "SINGLE":
         deals_req = requests.get(config["BITRIX24"]["WEBHOOK"] + 'crm.deal.list.json?ORDER[ID]=ASC&FILDER[>ID]=' + str(last_deal_id)).json()
 # разбор сделок из обычного запроса
         for deal in deals_req["result"]:
             last_deal_id = int(deal['ID'])
-            deals[last_deal_id] = deal
+            if last_deal_id > last_deal_id_prev:
+                deals[last_deal_id] = deal
+                last_deal_id_prev = last_deal_id
     deals_current += len(deals)
 # формируем датафрейм
     data = pd.DataFrame.from_dict(deals, orient='index')
