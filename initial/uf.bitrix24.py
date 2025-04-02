@@ -111,6 +111,7 @@ for dataset in list(tables.keys()):
 # счетчик количества объектов
         last_item_id = 1
         items = {}
+        data_prev = pd.DataFrame()
 # запросы пакетами по 50 объектов до исчерпания количества для загрузки
         while last_item_id < items_last_id:
             if config["BITRIX24"]["METHOD"] == "BATCH":
@@ -127,7 +128,7 @@ for dataset in list(tables.keys()):
                         item = bitrix24_crm_uf_plain_contacts(item)
                         items[int(item['ID'])] = item
 # задержка для избежания исчерпания лимита запросов
-                time.sleep(0.5)
+                time.sleep(0.2)
             elif config["BITRIX24"]["METHOD"] == "SINGLE":
                 items_req = requests.get(config["BITRIX24"]["WEBHOOK"] + dataset + '.get.json?ID=' + str(ids[last_item_id])).json()
                 if "result" in items_req:
@@ -139,7 +140,7 @@ for dataset in list(tables.keys()):
             print (dataset + ": " + str(last_item_id) + "/" + str(items_last_id))
 # формируем датафрейм. Загрузка чанками по 8000 записей позволяет уложить процесс в 0,6-0,8 Гб
             if last_item_id % 8000 < 50 or last_item_id == items_last_id:
-                data = pd.DataFrame.from_dict(items, orient='index', dtype=None)
+                data = pd.concat([pd.DataFrame.from_dict(items, orient='index', dtype=None), data_prev], axis=0, ignore_index=True)
                 items = {}
 # базовый процесс очистки: приведение к нужным типам
                 for i,col in enumerate(data.columns):
@@ -173,18 +174,39 @@ for dataset in list(tables.keys()):
                     if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
 # обработка ошибок при добавлении данных
                         try:
-                            data.to_sql(name=config["BITRIX24"][current_table], con=engine, if_exists='append', chunksize=100)
+# загружаем новые данные в новую таблицу (структура содержит все предыдущие столбцы)
+                            data.to_sql(name=config["BITRIX24"][current_table] + '_', con=engine, if_exists='append', chunksize=100)
+# копируем старые данные в новую таблицу
+                            connection.execute(text("INSERT INTO " + config["BITRIX24"][current_table] + "_ (`" + "`,`".join(data_prev.columns) + "`) SELECT * FROM " + config["BITRIX24"][current_table]))
+                            connection.commit()
+# удаляем старую таблицу
+                            connection.execute(text("DROP TABLE IF EXISTS " + config["BITRIX24"][current_table]))
+                            connection.commit()
+# переименовывам новую таблицу
+                            connection.execute(text("RENAME TABLE " + config["BITRIX24"][current_table] + "_ TO " + config["BITRIX24"][current_table]))
+                            connection.commit()
                         except Exception as E:
                             print (E)
                             connection.rollback()
                     elif config["DB"]["TYPE"] == "CLICKHOUSE":
-                        if current_table == 'TABLE_DEALS_UF':
-                            csv_file = data.to_csv(index=False).encode('utf-8')
-                        else:
-                            csv_file = data.to_csv(index=False, header=False).encode('utf-8')
+                        csv_file = data.to_csv(index=False).encode('utf-8')
+# загружаем новые данные в новую таблицу (структура содержит все предыдущие столбцы)
+                        requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/', verify=False,
+                            params={"database": config["DB"]["DB"], "query": (pd.io.sql.get_schema(data, config["BITRIX24"][current_table]) + "  ENGINE=MergeTree ORDER BY (`" + index + "`)").replace("CREATE TABLE ", "CREATE OR REPLACE TABLE " + config["DB"]["DB"] + ".").replace("INTEGER", "Int64").replace(config["BITRIX24"][current_table], config["BITRIX24"][current_table] + '_')})
                         requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/',
-                            params={"database": config["DB"]["DB"], "query": 'INSERT INTO ' + config["DB"]["DB"] + '.' + config["BITRIX24"][current_table] + ' FORMAT CSV'},
+                            params={"database": config["DB"]["DB"], "query": 'INSERT INTO ' + config["DB"]["DB"] + '.' + config["BITRIX24"][current_table] + '_ FORMAT CSV'},
                             headers={'Content-Type':'application/octet-stream'}, data=csv_file, stream=True, verify=False)
+# копируем старые данные в новую таблицу
+                        requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/', verify=False,
+                            params={"database": config["DB"]["DB"], "query": 'INSERT INTO ' + config["DB"]["DB"] + '.' + config["BITRIX24"][current_table] + '_ (`' + '`,`'.join(data_prev.columns) + '`) SELECT * FROM ' + config["DB"]["DB"] + '.' + config["BITRIX24"][current_table]})
+# удаляем старую таблицу
+                        requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/', verify=False,
+                            params={"database": config["DB"]["DB"], "query": 'DROP TABLE ' + config["DB"]["DB"] + '.' + config["BITRIX24"][current_table]})
+# переименовывам новую таблицу
+                        requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/', verify=False,
+                            params={"database": config["DB"]["DB"], "query": 'RENAME TABLE ' + config["DB"]["DB"] + '.' + config["BITRIX24"][current_table] + '_ TO ' + config["DB"]["DB"] + '.' + config["BITRIX24"][current_table]})
+# сохраняем структуру (столбцы)
+                data_prev = pd.DataFrame(data[0:0])
 # очищаем память
                 del data
         print (dataset + " UF = " + str(items_last_id))
