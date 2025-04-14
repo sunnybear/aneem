@@ -138,8 +138,8 @@ for dataset in list(tables.keys()):
                     items[int(item['ID'])] = item
                 last_item_id += 1
             print (dataset + ": " + str(last_item_id) + "/" + str(items_last_id))
-# формируем датафрейм. Загрузка чанками по 8000 записей позволяет уложить процесс в 0,6-0,8 Гб
-            if last_item_id % 8000 < 50 or last_item_id == items_last_id:
+# формируем датафрейм. Загрузка чанками по 5000 записей позволяет уложить процесс в 0,6-0,8 Гб
+            if last_item_id % 5000 < 50 or last_item_id == items_last_id:
                 data = pd.concat([pd.DataFrame.from_dict(items, orient='index', dtype=None), data_prev], axis=0, ignore_index=True)
                 items = {}
 # базовый процесс очистки: приведение к нужным типам
@@ -189,16 +189,27 @@ for dataset in list(tables.keys()):
                             print (E)
                             connection.rollback()
                     elif config["DB"]["TYPE"] == "CLICKHOUSE":
-                        csv_file = data.to_csv(index=False).encode('utf-8')
+                        csv_file = data.to_csv(index=False, header=False).encode('utf-8')
 # загружаем новые данные в новую таблицу (структура содержит все предыдущие столбцы)
                         requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/', verify=False,
                             params={"database": config["DB"]["DB"], "query": (pd.io.sql.get_schema(data, config["BITRIX24"][current_table]) + "  ENGINE=MergeTree ORDER BY (`" + index + "`)").replace("CREATE TABLE ", "CREATE OR REPLACE TABLE " + config["DB"]["DB"] + ".").replace("INTEGER", "Int64").replace(config["BITRIX24"][current_table], config["BITRIX24"][current_table] + '_')})
                         requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/',
                             params={"database": config["DB"]["DB"], "query": 'INSERT INTO ' + config["DB"]["DB"] + '.' + config["BITRIX24"][current_table] + '_ FORMAT CSV'},
                             headers={'Content-Type':'application/octet-stream'}, data=csv_file, stream=True, verify=False)
-# копируем старые данные в новую таблицу
-                        requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/', verify=False,
-                            params={"database": config["DB"]["DB"], "query": 'INSERT INTO ' + config["DB"]["DB"] + '.' + config["BITRIX24"][current_table] + '_ (`' + '`,`'.join(data_prev.columns) + '`) SELECT * FROM ' + config["DB"]["DB"] + '.' + config["BITRIX24"][current_table]})
+# запоминаем количество записей в текущей таблице
+                        total_req = requests.get('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/', verify=False,
+                            params={"database": config["DB"]["DB"], "query": 'SELECT count(*) FROM ' + config["DB"]["DB"] + '.' + config["BITRIX24"][current_table]})
+                        total_ids = int(total_req.text)
+                        total_ids_new = total_ids
+                        attempt = 0
+                        while total_ids_new <= total_ids and attempt < 3:
+# копируем старые данные в новую таблицу, пока они там не появятся
+                            requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/', verify=False,
+                                params={"database": config["DB"]["DB"], "query": 'INSERT INTO ' + config["DB"]["DB"] + '.' + config["BITRIX24"][current_table] + '_ (`' + '`,`'.join(data_prev.columns) + '`) SELECT * FROM ' + config["DB"]["DB"] + '.' + config["BITRIX24"][current_table]})
+                            total_req_new = requests.get('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/', verify=False,
+                                params={"database": config["DB"]["DB"], "query": 'SELECT count(*) FROM ' + config["DB"]["DB"] + '.' + config["BITRIX24"][current_table] + '_'})
+                            total_ids_new = int(total_req_new.text)
+                            attempt += 1
 # удаляем старую таблицу
                         requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/', verify=False,
                             params={"database": config["DB"]["DB"], "query": 'DROP TABLE ' + config["DB"]["DB"] + '.' + config["BITRIX24"][current_table]})
