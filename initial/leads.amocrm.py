@@ -100,7 +100,6 @@ if len(leads):
         else:
             data[col] = data[col].fillna('')
     if len(data):
-        print (len(data[data['company']>0]))
 # создаем таблицу в первый раз
         if table_not_created:
             if config["DB"]["TYPE"] == "CLICKHOUSE":
