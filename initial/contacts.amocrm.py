@@ -73,7 +73,7 @@ while contacts_exists:
                 elif k == 'custom_fields_values' and l['custom_fields_values']:
                     for f in l['custom_fields_values']:
                         contact[f['field_name']] = f['values'][0]['value']
-                elif k == '_embedded':
+                elif k == '_embedded' and l['_embedded']:
                     if len(l['_embedded']['companies']):
                         contact['company'] = l['_embedded']['companies'][0]['id']
                     else:

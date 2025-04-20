@@ -69,10 +69,10 @@ while leads_exists:
             for k in l.keys():
                 if k not in ['custom_fields_values', '_links', '_embedded']:
                     lead[k] = l[k]
-                elif k == 'custom_fields_values':
+                elif k == 'custom_fields_values' and l['custom_fields_values']:
                     for f in l['custom_fields_values']:
                         lead[f['field_name']] = f['values'][0]['value']
-                elif k == '_embedded':
+                elif k == '_embedded' and l['_embedded']:
                     if len(l['_embedded']['companies']):
                         lead['company'] = l['_embedded']['companies'][0]['id']
                     else:
@@ -100,6 +100,7 @@ if len(leads):
         else:
             data[col] = data[col].fillna('')
     if len(data):
+        print (len(data[data['company']>0]))
 # создаем таблицу в первый раз
         if table_not_created:
             if config["DB"]["TYPE"] == "CLICKHOUSE":

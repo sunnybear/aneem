@@ -59,7 +59,7 @@ catalog_id = 0
 # отправка запроса на список каталогов
 result = requests.get('https://' + config['AMOCRM']['INSTANCE'] + '/api/v4/catalogs',
     headers = {'Authorization': 'Bearer ' + config['AMOCRM']['ACCESS_TOKEN']},
-    params = {'limit' : 250, 'page': page}).json()
+    params = {'limit' : 250}).json()
 if len(result['_embedded']['catalogs']):
     for c in result['_embedded']['catalogs']:
         if c['type'] == 'products':
