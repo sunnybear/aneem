@@ -70,7 +70,7 @@ while contacts_exists:
             for k in l.keys():
                 if k not in ['custom_fields_values', '_links', '_embedded']:
                     contact[k] = l[k]
-                elif l['custom_fields_values']:
+                elif k == 'custom_fields_values' and l['custom_fields_values']:
                     for f in l['custom_fields_values']:
                         contact[f['field_name']] = f['values'][0]['value']
                 elif k == '_embedded':

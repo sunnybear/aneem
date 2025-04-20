@@ -53,7 +53,7 @@ if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"
 companies_exist = True
 page = 1
 companies = {}
-yesterday = round(dt.now().timestamp()) - 7300
+yesterday = round(dt.now().timestamp()) - 90000
 
 while companies_exist:
     result = False
@@ -107,10 +107,10 @@ if len(companies):
             current_columns = pd.read_csv(StringIO(requests.get('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/', params={"database": config["DB"]["DB"], "query": 'SHOW COLUMNS FROM ' + config["DB"]["DB"] + '.' + config["AMOCRM"]["TABLE_COMPANIES"]}, verify=False).text), delimiter="\t", header=None)[0]
 # добавление новых столбцов
         for column_new in set(data.columns)-set(current_columns):
-            if os.getenv('DB_TYPE') in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
+            if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
                 connection.execute(text("ALTER TABLE " + config["AMOCRM"]["TABLE_COMPANIES"] + " ADD COLUMN `" + column_new + "` (TEXT)"))
                 connection.commit()
-            elif os.getenv('DB_TYPE') == "CLICKHOUSE":
+            elif config["DB"]["TYPE"] == "CLICKHOUSE":
                 requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/',
                 params={"database": config["DB"]["DB"], "query": 'ALTER TABLE ' + config["DB"]["DB"] + '.' + config["AMOCRM"]["TABLE_COMPANIES"] + ' ADD COLUMN `' + column_new + '` String'}, verify=False)
         if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:

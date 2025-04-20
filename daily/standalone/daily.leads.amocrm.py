@@ -53,7 +53,7 @@ if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"
 leads_exist = True
 page = 1
 leads = {}
-yesterday = round(dt.now().timestamp()) - 7300
+yesterday = round(dt.now().timestamp()) - 90000
 
 while leads_exist:
     result = False
@@ -112,10 +112,10 @@ if len(leads):
             current_columns = pd.read_csv(StringIO(requests.get('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/', params={"database": config["DB"]["DB"], "query": 'SHOW COLUMNS FROM ' + config["DB"]["DB"] + '.' + config["AMOCRM"]["TABLE_LEADS"]}, verify=False).text), delimiter="\t", header=None)[0]
 # добавление новых столбцов
         for column_new in set(data.columns)-set(current_columns):
-            if os.getenv('DB_TYPE') in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
+            if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
                 connection.execute(text("ALTER TABLE " + config["AMOCRM"]["TABLE_LEADS"] + " ADD COLUMN `" + column_new + "` (TEXT)"))
                 connection.commit()
-            elif os.getenv('DB_TYPE') == "CLICKHOUSE":
+            elif config["DB"]["TYPE"] == "CLICKHOUSE":
                 requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/',
                 params={"database": config["DB"]["DB"], "query": 'ALTER TABLE ' + config["DB"]["DB"] + '.' + config["AMOCRM"]["TABLE_LEADS"] + ' ADD COLUMN `' + column_new + '` String'}, verify=False)
         if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
@@ -142,6 +142,7 @@ if len(leads):
                 params={"database": config["DB"]["DB"], "query": 'INSERT INTO ' + config["DB"]["DB"] + '.' + config["AMOCRM"]["TABLE_LEADS"] + ' FORMAT CSV'},
                 headers={'Content-Type':'application/octet-stream'}, data=csv_file, stream=True, verify=False)
     print ("Leads:", str(len(data)))
+    print (data.head())
 
 # закрытие подключения к БД
 if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:

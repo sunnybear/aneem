@@ -70,7 +70,7 @@ while companies_exists:
             for k in l.keys():
                 if k not in ['custom_fields_values', '_links', '_embedded']:
                     company[k] = l[k]
-                elif l['custom_fields_values']:
+                elif k == 'custom_fields_values' and l['custom_fields_values']:
                     for f in l['custom_fields_values']:
                         company[f['field_name']] = f['values'][0]['value']
             companies[company['id']] = company
