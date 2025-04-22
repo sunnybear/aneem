@@ -131,7 +131,7 @@ if len(companies):
 # удаление старых данных
             requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/', verify=False,
                 params={"database": config["DB"]["DB"], "query": 'DELETE FROM ' + config["DB"]["DB"] + '.' + config["AMOCRM"]["TABLE_COMPANIES"] + ' WHERE id IN (' + ids + ')'})
-# добавление новых данных
+# добавление/замена (ReplacingMergeTree) новых данных
             csv_file = data.to_csv().encode('utf-8')
             requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/',
                 params={"database": config["DB"]["DB"], "query": 'INSERT INTO ' + config["DB"]["DB"] + '.' + config["AMOCRM"]["TABLE_COMPANIES"] + ' FORMAT CSV'},

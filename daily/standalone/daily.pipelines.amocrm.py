@@ -84,8 +84,8 @@ while pipelines_exist:
 
 if len(statuses):
 # формируем датафрейм
-    data = pd.DataFrame.from_dict(companies, orient='index')
-    ids = ','.join(map(str, list(companies.keys())))
+    data = pd.DataFrame.from_dict(statuses, orient='index')
+    ids = ','.join(map(str, list(statuses.keys())))
 # базовый процесс очистки: приведение к нужным типам
     for col in data.columns:
 # приведение целых чисел
@@ -107,10 +107,7 @@ if len(statuses):
                 print (E)
                 connection.rollback()
         elif config["DB"]["TYPE"] == "CLICKHOUSE":
-# удаление старых данных
-            requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/', verify=False,
-                params={"database": config["DB"]["DB"], "query": 'DELETE FROM ' + config["DB"]["DB"] + '.' + config["AMOCRM"]["TABLE_PIPELINES"]})
-# добавление новых данных
+# добавление/замена новых данных
             csv_file = data.to_csv().encode('utf-8')
             requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/',
                 params={"database": config["DB"]["DB"], "query": 'INSERT INTO ' + config["DB"]["DB"] + '.' + config["AMOCRM"]["TABLE_PIPELINES"] + ' FORMAT CSV'},
