@@ -94,7 +94,7 @@ for period in range(int(config['IIKO']['PERIODS']), 0, -1):
 # базовый процесс очистки: приведение к нужным типам
         for col in data.columns:
 # приведение целых чисел
-            if col in ["CashRegisterName.Number", "DishGroup.Num", "FiscalChequeNumber", "GuestNum", "HourClose", "HourOpen", "OrderNum", "OrderTime.OrderLength", "SessionNum", "TableNum", "UniqOrderId", "WeekInMonthOpen", "WeekInYearOpen", "YearOpen", "DishAmountInt.PerOrder", "DishDiscountSumInt", "DishDiscountSumInt.averageByGuest", "OrderItems", "UniqOrderId.OrdersCount"]:
+            if col in ["CashRegisterName.Number", "DiscountPercent", "DishGroup.Num", "FiscalChequeNumber", "GuestNum", "HourClose", "HourOpen", "OrderNum", "OrderTime.OrderLength", "SessionNum", "TableNum", "UniqOrderId", "WeekInMonthOpen", "WeekInYearOpen", "YearOpen", "DishAmountInt.PerOrder", "DishDiscountSumInt", "DishDiscountSumInt.averageByGuest", "OrderItems", "UniqOrderId.OrdersCount"]:
                 data[col] = data[col].fillna(0).replace('', 0).astype(np.int64)
 # приведение вещественных чисел
             elif col in ["Cooking.GuestWaitTime.Avg", "DiscountSum", "discountWithoutVAT", "DishReturnSum.withoutVAT", "fullSum", "ProductCostBase.OneItem", "ProductCostBase.Percent", "ProductCostBase.PercentWithoutVAT", "ProductCostBase.ProductCost", "ProductCostBase.Profit"]:

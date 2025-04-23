@@ -59,7 +59,7 @@ while leads_exists:
 # отправка запроса
     result = requests.get('https://' + config['AMOCRM']['INSTANCE'] + '/api/v4/leads',
         headers = {'Authorization': 'Bearer ' + config['AMOCRM']['ACCESS_TOKEN']},
-        params = {'limit' : 250, 'page': page, 'with': 'catalog_elements'}).json()
+        params = {'limit' : 250, 'page': page, 'with': 'catalog_elements,contacts'}).json()
     if '_links' not in result or 'next' not in result['_links']:
         leads_exists = False
 # разбор ответа в сделку со всеми полями
@@ -73,18 +73,22 @@ while leads_exists:
                     for f in l['custom_fields_values']:
                         lead[f['field_name']] = f['values'][0]['value']
                 elif k == '_embedded' and l['_embedded']:
-                    if len(l['_embedded']['companies']):
+                    if 'companies' in l['_embedded'] and len(l['_embedded']['companies']):
                         lead['company'] = l['_embedded']['companies'][0]['id']
                     else:
                         lead['company'] = 0
+                    if 'contacts' in l['_embedded'] and len(l['_embedded']['contacts']):
+                        lead['contact'] = l['_embedded']['contacts'][0]['id']
+                    else:
+                        lead['contact'] = 0
                     if 'catalog_elements' in l['_embedded'] and len(l['_embedded']['catalog_elements']):
                         lead['product'] = l['_embedded']['catalog_elements'][0]['id']
-                        if 'catalog_id' in l['_embedded']['catalog_elements'][0]:
-                            lead['product_catalog'] = l['_embedded']['catalog_elements'][0]['catalog_id']
-                        if 'quantity' in l['_embedded']['catalog_elements'][0]:
-                            lead['product_quantity'] = l['_embedded']['catalog_elements'][0]['quantity']
-                        if 'price_id' in l['_embedded']['catalog_elements'][0]:
-                            lead['product_price_id'] = l['_embedded']['catalog_elements'][0]['price_id']
+                        if 'catalog_id' in l['_embedded']['catalog_elements'][0]['metadata']:
+                            lead['product_catalog'] = l['_embedded']['catalog_elements'][0]['metadata']['catalog_id']
+                        if 'quantity' in l['_embedded']['catalog_elements'][0]['metadata']:
+                            lead['product_quantity'] = l['_embedded']['catalog_elements'][0]['metadata']['quantity']
+                        if 'price_id' in l['_embedded']['catalog_elements'][0]['metadata']:
+                            lead['product_price_id'] = l['_embedded']['catalog_elements'][0]['metadata']['price_id']
             leads[lead['id']] = lead
     page += 1
     print ("Fetched:", len(leads), page)
@@ -96,10 +100,10 @@ if len(leads):
 # базовый процесс очистки: приведение к нужным типам
     for col in data.columns:
 # приведение целых чисел
-        if col in ["id", "pipeline_id", "account_id", "status_id", "company", "group_id", "created_by", "updated_by", "responsible_user_id", "is_deleted"]:
+        if col in ["id", "pipeline_id", "account_id", "status_id", "company", "group_id", "created_by", "updated_by", "responsible_user_id", "is_deleted", "product"]:
             data[col] = data[col].fillna('').replace('', 0).astype(np.int64)
 # приведение вещественных чисел
-        elif col in ["price"]:
+        elif col in ["price", "product_quantity"]:
             data[col] = data[col].fillna('').replace('', 0.0).astype(float)
 # приведение дат
         elif col in ["created_at", "updated_at", "closed_at"]:
