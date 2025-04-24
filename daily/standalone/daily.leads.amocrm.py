@@ -87,12 +87,12 @@ while leads_exist:
                         lead['contact'] = 0
                     if 'catalog_elements' in l['_embedded'] and len(l['_embedded']['catalog_elements']):
                         lead['product'] = l['_embedded']['catalog_elements'][0]['id']
-                        if 'catalog_id' in l['_embedded']['catalog_elements'][0]['metadata']:
+                        try:
                             lead['product_catalog'] = l['_embedded']['catalog_elements'][0]['metadata']['catalog_id']
-                        if 'quantity' in l['_embedded']['catalog_elements'][0]['metadata']:
                             lead['product_quantity'] = l['_embedded']['catalog_elements'][0]['metadata']['quantity']
-                        if 'price_id' in l['_embedded']['catalog_elements'][0]['metadata']:
                             lead['product_price_id'] = l['_embedded']['catalog_elements'][0]['metadata']['price_id']
+                        except Exception:
+                            pass
             leads[lead['id']] = lead
     page += 1
     print ("Fetched:", len(leads), page)
@@ -104,7 +104,7 @@ if len(leads):
 # базовый процесс очистки: приведение к нужным типам
     for col in data.columns:
 # приведение целых чисел
-        if col in ["id", "pipeline_id", "account_id", "status_id", "company", "group_id", "created_by", "updated_by", "responsible_user_id", "is_deleted", "product"]:
+        if col in ["id", "pipeline_id", "account_id", "status_id", "company", "group_id", "created_by", "updated_by", "responsible_user_id", "is_deleted", "product", "product_catalog"]:
             data[col] = data[col].fillna('').replace('', 0).astype(np.int64)
 # приведение вещественных чисел
         elif col in ["price", "product_quantity"]:
@@ -150,6 +150,8 @@ if len(leads):
             requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/',
                 params={"database": config["DB"]["DB"], "query": 'INSERT INTO ' + config["DB"]["DB"] + '.' + config["AMOCRM"]["TABLE_LEADS"] + ' FORMAT CSV'},
                 headers={'Content-Type':'application/octet-stream'}, data=csv_file, stream=True, verify=False)
+            requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/', verify=False,
+                params={"database": config["DB"]["DB"], "query": "OPTIMIZE TABLE " + config["DB"]["DB"] + "." + config["AMOCRM"]["TABLE_LEADS"])
     print ("Leads:", str(len(data)))
     print (data.head())
 
