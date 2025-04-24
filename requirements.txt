@@ -5,3 +5,4 @@ sqlalchemy
 json
 tapi_yandex_metrika
 tapi_yandex_direct
+xmltodict
