@@ -159,7 +159,7 @@ def handler(event, context):
             items.append([LOGIN, cid, href, utm_values[0], utm_values[1], utm_values[2], utm_values[3], utm_values[4], cname])
 
 # формируем датафрейм из полученных меток
-    data = pd.DataFrame(items, columns=["ClientLogin", "CampaignId", "CampaignHref", "UTMSource", "UTMMedium", "UTMCampaign", "UTMterm", "UTMContent", "CampaignName"])
+    data = pd.DataFrame(items, columns=["ClientLogin", "CampaignId", "CampaignHref", "UTMSource", "UTMMedium", "UTMCampaign", "UTMTerm", "UTMContent", "CampaignName"])
 # базовый процесс очистки: приведение к нужным типам
     for col in data.columns:
 # приведение целых чисел
