@@ -7,7 +7,7 @@
 # * DB_DB - имя базы данных
 # * DB_PREFIX - префикс базы данных (может отличаться от имени при облачном подключении)
 # * YANDEX_DIRECT_ACCESS_TOKEN - Access Token для приложения, имеющего доступ к статистике кампаний
-# * YANDEX_DIRECT_ACCESS_EMAIL - Email, имеющий доступ к статистике кампаний
+# * YANDEX_DIRECT_ACCESS_LOGIN - Email, имеющий доступ к статистике кампаний
 # * YANDEX_DIRECT_TABLE - имя результирующей таблицы для расходов Яндекс.Директ
 # * YANDEX_DIRECT_TABLE_UTMS - имя результирующей таблицы для UTM меток
 
@@ -64,7 +64,7 @@ def handler(event, context):
 # перебираем все доступы к рекламным кабинетам
     for i_credentials, TOKEN in enumerate(os.getenv('YANDEX_DIRECT_ACCESS_TOKEN').split(",")):
         TOKEN = TOKEN.strip()
-        LOGIN = os.getenv('YANDEX_DIRECT_ACCESS_EMAIL').split(",")[i_credentials].strip()
+        LOGIN = os.getenv('YANDEX_DIRECT_ACCESS_LOGIN').split(",")[i_credentials].strip()
 # создание подключения к API Яндекс.Директ
         client = YandexDirect(
             access_token = TOKEN,
@@ -138,7 +138,7 @@ def handler(event, context):
                         href = ad[f]["TrackingUrl"]
                 if href != '' and href is not None:
 # если ссылка найдена - извлекаем из нее метки
-                    for utm in ['utm_source', 'utm_medium', 'utm_campaign']:
+                    for utm in ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content']:
                         if href.find(utm) > -1:
                             utm_start = href.find(utm)
                             utm_end = href[href.find(utm):].find('&')
@@ -155,11 +155,11 @@ def handler(event, context):
                     break
 # метки "по умолчанию" для кампании, финально применятся только после перебора всех объявлений
             if len(utm_values) == 0 or utm_values[0] == utm_values[1] == utm_values[2] == '':
-                utm_values = ['yandex', 'cpc', str(cid)]
-            items.append([LOGIN, cid, href, utm_values[0], utm_values[1], utm_values[2], cname])
+                utm_values = ['yandex', 'cpc', str(cid), '', '']
+            items.append([LOGIN, cid, href, utm_values[0], utm_values[1], utm_values[2], utm_values[3], utm_values[4], cname])
 
 # формируем датафрейм из полученных меток
-    data = pd.DataFrame(items, columns=["ClientLogin", "CampaignId", "CampaignHref", "UTMSource", "UTMMedium", "UTMCampaign", "CampaignName"])
+    data = pd.DataFrame(items, columns=["ClientLogin", "CampaignId", "CampaignHref", "UTMSource", "UTMMedium", "UTMCampaign", "UTMterm", "UTMContent", "CampaignName"])
 # базовый процесс очистки: приведение к нужным типам
     for col in data.columns:
 # приведение целых чисел

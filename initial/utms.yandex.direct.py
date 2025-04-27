@@ -135,7 +135,7 @@ for i_credentials, TOKEN in enumerate(config["YANDEX_DIRECT"]["ACCESS_TOKEN"].sp
                     href = ad[f]["TrackingUrl"]
             if href != '' and href is not None:
 # если ссылка найдена - извлекаем из нее метки
-                for utm in ['utm_source', 'utm_medium', 'utm_campaign']:
+                for utm in ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content']:
                     if href.find(utm) > -1:
                         utm_start = href.find(utm)
                         utm_end = href[href.find(utm):].find('&')
@@ -152,11 +152,11 @@ for i_credentials, TOKEN in enumerate(config["YANDEX_DIRECT"]["ACCESS_TOKEN"].sp
                 break
 # метки "по умолчанию" для кампании, финально применятся только после перебора всех объявлений
         if len(utm_values) == 0 or utm_values[0] == utm_values[1] == utm_values[2] == '':
-            utm_values = ['yandex', 'cpc', str(cid)]
-        items.append([LOGIN, cid, href, utm_values[0], utm_values[1], utm_values[2], cname])
+            utm_values = ['yandex', 'cpc', str(cid), '', '']
+        items.append([LOGIN, cid, href, utm_values[0], utm_values[1], utm_values[2], utm_values[3], utm_values[4], cname])
 
 # формируем датафрейм из полученных меток
-    data = pd.DataFrame(items, columns=["ClientLogin", "CampaignId", "CampaignHref", "UTMSource", "UTMMedium", "UTMCampaign", "CampaignName"])
+    data = pd.DataFrame(items, columns=["ClientLogin", "CampaignId", "CampaignHref", "UTMSource", "UTMMedium", "UTMCampaign", "UTMTerm", "UTMContent", "CampaignName"])
 # базовый процесс очистки: приведение к нужным типам
     for col in data.columns:
 # приведение целых чисел
