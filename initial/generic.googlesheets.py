@@ -16,7 +16,7 @@ import pandas as pd
 import numpy as np
 import requests
 from openpyxl import load_workbook
-from io import StringIO
+from io import StringIO,BytesIO
 from sqlalchemy import create_engine, text
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 # Скрытие предупреждения Unverified HTTPS request
@@ -75,12 +75,12 @@ for gs_i, gs_key in enumerate(config['GOOGLE_SHEETS']['KEYS'].split(',')):
         import_data = {gs_table: data}
     elif gs_format == 'XLSX':
 # получаем исходный документ и его листы
-        excel_file = requests.get('https://docs.google.com/spreadsheets/d/e/' + gs_key + '/pubhtml').content
+        excel_file = BytesIO(requests.get('https://docs.google.com/spreadsheets/d/e/' + gs_key + '/pub?output=xlsx').content)
         sheets = load_workbook(excel_file, read_only=True).sheetnames
         import_data = {}
 # последовательно складываем все листы в данные и формируем список для загрузки
         for sheet in sheets:
-            import_data[gs_table + '_' + sheet] = pd.read_excel(excel_file, engine='openpyxl', sheet_name=sheet)
+            import_data[gs_table + '_' + sheet.replace(' ', '_')] = pd.read_excel(excel_file, engine='openpyxl', sheet_name=sheet)
     for table in import_data.keys():
         data = import_data[table]
 # поддержка TCP HTTP для Clickhouse
