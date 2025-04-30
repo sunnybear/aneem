@@ -1,17 +1,17 @@
-# Скрипт для первоначального получения всех данных по департаментам из Iiko
-# Необходимо в settings.ini указать
-# * DB.TYPE - тип базы данных (куда выгружать данные)
-# * DB.HOST - адрес (хост) базы данных
-# * DB.PORT - порт хоста базы данных (если отличается от стандартного)
-# * DB.USER - пользователь базы данных
-# * DB.PASSWORD - пароль к базе данных
-# * DB.DB - имя базы данных
-# * IIKO.API_ENDPOINT - точка доступа API
-# * IIKO.ACCESS_TOKEN_LOGIN - логин для получения Access Token
-# * IIKO.ACCESS_TOKEN_PASS - логин для получения Access Token
-# * IIKO.TABLE_DEPARTMENTS - имя результирующей таблицы для департаментов (точек)
+# РЎРєСЂРёРїС‚ РґР»СЏ РїРµСЂРІРѕРЅР°С‡Р°Р»СЊРЅРѕРіРѕ РїРѕР»СѓС‡РµРЅРёСЏ РІСЃРµС… РґР°РЅРЅС‹С… РїРѕ РґРµРїР°СЂС‚Р°РјРµРЅС‚Р°Рј РёР· Iiko
+# РќРµРѕР±С…РѕРґРёРјРѕ РІ settings.ini СѓРєР°Р·Р°С‚СЊ
+# * DB.TYPE - С‚РёРї Р±Р°Р·С‹ РґР°РЅРЅС‹С… (РєСѓРґР° РІС‹РіСЂСѓР¶Р°С‚СЊ РґР°РЅРЅС‹Рµ)
+# * DB.HOST - Р°РґСЂРµСЃ (С…РѕСЃС‚) Р±Р°Р·С‹ РґР°РЅРЅС‹С…
+# * DB.PORT - РїРѕСЂС‚ С…РѕСЃС‚Р° Р±Р°Р·С‹ РґР°РЅРЅС‹С… (РµСЃР»Рё РѕС‚Р»РёС‡Р°РµС‚СЃСЏ РѕС‚ СЃС‚Р°РЅРґР°СЂС‚РЅРѕРіРѕ)
+# * DB.USER - РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ Р±Р°Р·С‹ РґР°РЅРЅС‹С…
+# * DB.PASSWORD - РїР°СЂРѕР»СЊ Рє Р±Р°Р·Рµ РґР°РЅРЅС‹С…
+# * DB.DB - РёРјСЏ Р±Р°Р·С‹ РґР°РЅРЅС‹С…
+# * IIKO.API_ENDPOINT - С‚РѕС‡РєР° РґРѕСЃС‚СѓРїР° API
+# * IIKO.ACCESS_TOKEN_LOGIN - Р»РѕРіРёРЅ РґР»СЏ РїРѕР»СѓС‡РµРЅРёСЏ Access Token
+# * IIKO.ACCESS_TOKEN_PASS - Р»РѕРіРёРЅ РґР»СЏ РїРѕР»СѓС‡РµРЅРёСЏ Access Token
+# * IIKO.TABLE_DEPARTMENTS - РёРјСЏ СЂРµР·СѓР»СЊС‚РёСЂСѓСЋС‰РµР№ С‚Р°Р±Р»РёС†С‹ РґР»СЏ РґРµРїР°СЂС‚Р°РјРµРЅС‚РѕРІ (С‚РѕС‡РµРє)
 
-# импорт общих библиотек
+# РёРјРїРѕСЂС‚ РѕР±С‰РёС… Р±РёР±Р»РёРѕС‚РµРє
 from datetime import datetime as dt
 from datetime import date, timedelta
 import pandas as pd
@@ -21,20 +21,20 @@ import time
 import xmltodict
 from sqlalchemy import create_engine, text
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
-# Скрытие предупреждения Unverified HTTPS request
+# РЎРєСЂС‹С‚РёРµ РїСЂРµРґСѓРїСЂРµР¶РґРµРЅРёСЏ Unverified HTTPS request
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
-# Скрытие предупреждение про fillna
+# РЎРєСЂС‹С‚РёРµ РїСЂРµРґСѓРїСЂРµР¶РґРµРЅРёРµ РїСЂРѕ fillna
 try:
     pd.set_option("future.no_silent_downcasting", True)
 except Exception as E:
     pass
 
-# импорт настроек
+# РёРјРїРѕСЂС‚ РЅР°СЃС‚СЂРѕРµРє
 import configparser
 config = configparser.ConfigParser()
 config.read("../settings.ini")
 
-# подключение к БД
+# РїРѕРґРєР»СЋС‡РµРЅРёРµ Рє Р‘Р”
 if config["DB"]["PORT"] != '':
     DB_PORT = ':' + config["DB"]["PORT"]
 else:
@@ -50,7 +50,7 @@ elif config["DB"]["TYPE"] == "ORACLE":
 elif config["DB"]["TYPE"] == "SQLITE":
     engine = create_engine('sqlite:///' + config["DB"]["DB"])
 
-# создание подключения к БД
+# СЃРѕР·РґР°РЅРёРµ РїРѕРґРєР»СЋС‡РµРЅРёСЏ Рє Р‘Р”
 if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
     connection = engine.connect()
     if config["DB"]["TYPE"] in ["MYSQL", "MARIADB"]:
@@ -58,17 +58,17 @@ if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"
         connection.execute(text('SET CHARACTER SET utf8mb4'))
         connection.execute(text('SET character_set_connection=utf8mb4'))
 
-# создаем таблицу для данных при наличии каких-либо данных
+# СЃРѕР·РґР°РµРј С‚Р°Р±Р»РёС†Сѓ РґР»СЏ РґР°РЅРЅС‹С… РїСЂРё РЅР°Р»РёС‡РёРё РєР°РєРёС…-Р»РёР±Рѕ РґР°РЅРЅС‹С…
 table_not_created = True
 token_timestamp = time.time()
 TOKEN = ''
 
-# получение временного токена
+# РїРѕР»СѓС‡РµРЅРёРµ РІСЂРµРјРµРЅРЅРѕРіРѕ С‚РѕРєРµРЅР°
 result_token = requests.get(config['IIKO']['API_ENDPOINT'] + '/resto/api/auth?login=' + config['IIKO']['ACCESS_TOKEN_LOGIN'] + '&pass=' + config['IIKO']['ACCESS_TOKEN_PASS'])
 TOKEN = result_token.text
 token_timestamp = time.time()
 
-# отправка основного запроса
+# РѕС‚РїСЂР°РІРєР° РѕСЃРЅРѕРІРЅРѕРіРѕ Р·Р°РїСЂРѕСЃР°
 result = xmltodict.parse(requests.get(config['IIKO']['API_ENDPOINT'] + '/resto/api/corporation/departments/',
     headers = {'Cookie': 'key=' + TOKEN, 'Accept-Type': 'application/json'}).content)
 
@@ -86,29 +86,29 @@ if len(result):
                 if departments[d]['taxpayerIdNumber'] == item['jurPersonAdditionalPropertiesDto']['taxpayerId']:
                     departments[d]['jurname'] = item['name']
                     departments[d]['address'] = item['jurPersonAdditionalPropertiesDto']['address']
-# формируем датафрейм из ответа API
+# С„РѕСЂРјРёСЂСѓРµРј РґР°С‚Р°С„СЂРµР№Рј РёР· РѕС‚РІРµС‚Р° API
     data = pd.DataFrame.from_dict(departments, orient='index')
-# базовый процесс очистки: приведение к нужным типам
+# Р±Р°Р·РѕРІС‹Р№ РїСЂРѕС†РµСЃСЃ РѕС‡РёСЃС‚РєРё: РїСЂРёРІРµРґРµРЅРёРµ Рє РЅСѓР¶РЅС‹Рј С‚РёРїР°Рј
     for col in data.columns:
-# приведение строк
+# РїСЂРёРІРµРґРµРЅРёРµ СЃС‚СЂРѕРє
         data[col] = data[col].fillna('')
 
 if len(data):
-# поддержка TCP HTTP для Clickhouse
+# РїРѕРґРґРµСЂР¶РєР° TCP HTTP РґР»СЏ Clickhouse
     if config["DB"]["PORT"] != '8443':
         CLICKHOUSE_PROTO = 'http://'
         CLICKHOUSE_PORT = config["DB"]["PORT"]
     else:
         CLICKHOUSE_PROTO = 'https://'
         CLICKHOUSE_PORT = config["DB"]["PORT"]
-# создаем таблицу в первый раз
+# СЃРѕР·РґР°РµРј С‚Р°Р±Р»РёС†Сѓ РІ РїРµСЂРІС‹Р№ СЂР°Р·
     if table_not_created:
         if config["DB"]["TYPE"] == "CLICKHOUSE":
             requests.post(CLICKHOUSE_PROTO + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':' + CLICKHOUSE_PORT + '/', verify=False,
                 params={"database": config["DB"]["DB"], "query": (pd.io.sql.get_schema(data, config["IIKO"]["TABLE_DEPARTMENTS"]) + "  ENGINE=MergeTree ORDER BY (`id`)").replace("CREATE TABLE ", "CREATE OR REPLACE TABLE " + config["DB"]["DB"] + ".").replace("INTEGER", "Int64")})
         table_not_created = False
     if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
-# обработка ошибок при добавлении данных
+# РѕР±СЂР°Р±РѕС‚РєР° РѕС€РёР±РѕРє РїСЂРё РґРѕР±Р°РІР»РµРЅРёРё РґР°РЅРЅС‹С…
         try:
             data.to_sql(name=config["IIKO"]["TABLE_DEPARTMENTS"], con=engine, if_exists='append', chunksize=100)
         except Exception as E:
@@ -123,9 +123,9 @@ if len(data):
 else:
     print ("No departments")
 
-# закрытие подключения к БД
+# Р·Р°РєСЂС‹С‚РёРµ РїРѕРґРєР»СЋС‡РµРЅРёСЏ Рє Р‘Р”
 if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
-# добавление индексов
+# РґРѕР±Р°РІР»РµРЅРёРµ РёРЅРґРµРєСЃРѕРІ
     connection.execute(text("ALTER TABLE " + config["IIKO"]["TABLE_DEPARTMENTS"] + " ADD INDEX id (`id`)"))
     connection.commit()
     connection.close()
