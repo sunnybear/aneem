@@ -106,7 +106,7 @@ for gs_i, gs_key in enumerate(config['GOOGLE_SHEETS']['KEYS'].split(',')):
         elif config["DB"]["TYPE"] == "CLICKHOUSE":
             csv_file = data.to_csv(index=False, header=False).encode('utf-8')
             requests.post(CLICKHOUSE_PROTO + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':' + CLICKHOUSE_PORT + '/',
-                params={"database": config["DB"]["DB"], "query": 'INSERT INTO ' + config["DB"]["DB"] + '."' + table + '" FORMAT CSV\n"' + '","'.join(data.columns) + '"\n"' + '","'.join(['String']*len(data.columns))},
+                params={"database": config["DB"]["DB"], "query": 'INSERT INTO ' + config["DB"]["DB"] + '."' + table + '" FORMAT CSV\n"' + '","'.join(data.columns) + '"\n"' + '","'.join(['String']*len(data.columns)) + '"'},
                 headers={'Content-Type':'application/octet-stream'}, data=csv_file, stream=True, verify=False)
         print (table + ":", len(data))
 
