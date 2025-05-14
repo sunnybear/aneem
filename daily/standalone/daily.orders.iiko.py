@@ -101,12 +101,12 @@ if len(result.text) > 500 and 'data' in result.json():
 if len(data):
     data["ts"] = pd.DatetimeIndex(data["OpenDate.Typed"]).asi8
 # поддержка TCP HTTP для Clickhouse
-    if config["DB"]["PORT"] != '8443':
+    if 'PORT' in config["DB"] and config["DB"]["PORT"] != '8443':
         CLICKHOUSE_PROTO = 'http://'
         CLICKHOUSE_PORT = config["DB"]["PORT"]
     else:
         CLICKHOUSE_PROTO = 'https://'
-        CLICKHOUSE_PORT = config["DB"]["PORT"]
+        CLICKHOUSE_PORT = '8443'
     if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
 # удаление данных за вчера-сегодня
         try:
