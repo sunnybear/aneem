@@ -1,4 +1,4 @@
-# Скрипт для ежедневного обновления воронок и статусов из AmoCRM
+# Скрипт для ежедневного обновления товаров из AmoCRM
 # Необходимо в settings.ini указать
 # * DB.TYPE - тип базы данных (куда выгружать данные)
 # * DB.HOST - адрес (хост) базы данных
@@ -6,7 +6,7 @@
 # * DB.PASSWORD - пароль к базе данных
 # * DB.DB - имя базы данных
 # * AMOCRM.ACESS_TOKEN - ключ доступа Amo.CRM (многоразовый)
-# * AMOCRM.TABLE_PIPELINES - имя результирующей таблицы, например, raw_amo_pipelines
+# * AMOCRM.TABLE_PRODUCTS - имя результирующей таблицы, например, raw_amo_products
 
 # импорт общих библиотек
 from datetime import datetime as dt
@@ -50,59 +50,68 @@ if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"
         connection.execute(text('SET CHARACTER SET utf8mb4'))
         connection.execute(text('SET character_set_connection=utf8mb4'))
 
-pipelines_exist = True
+yesterday = round(dt.now().timestamp()) - 90000
+products_exists = True
 page = 1
-statuses = {}
+products = {}
+catalog_id = 0
 
-while pipelines_exist:
+# отправка запроса на список каталогов
+result = requests.get('https://' + config['AMOCRM']['INSTANCE'] + '/api/v4/catalogs',
+    headers = {'Authorization': 'Bearer ' + config['AMOCRM']['ACCESS_TOKEN']},
+    params = {'limit' : 250}).json()
+if len(result['_embedded']['catalogs']):
+    for c in result['_embedded']['catalogs']:
+        if c['type'] == 'products':
+            catalog_id = c['id']
+
+while products_exists:
     result = False
 # отправка запроса
     try:
-        result = requests.get('https://' + config['AMOCRM']['INSTANCE'] + '/api/v4/leads/pipelines',
+        result = requests.get('https://' + config['AMOCRM']['INSTANCE'] + '/api/v4/catalogs/' + str(catalog_id) + '/elements',
             headers = {'Authorization': 'Bearer ' + config['AMOCRM']['ACCESS_TOKEN']},
-            params = {'limit' : 250, 'page': page}).json()
+            , params = {'limit' : 250, 'page': p, 'filter[updated_at][from]': yesterday}).json()
         if '_links' not in result or 'next' not in result['_links']:
-            pipelines_exist = False
+            products_exists = False
     except Exception:
-        pipelines_exist = False
-# разбор ответа в статусы с полями воронок
-    if len(result['_embedded']['pipelines']):
-        for l in result['_embedded']['pipelines']:
-            for s in l['_embedded']['statuses']:
-                status = {}
-                for k in s.keys():
-                    if k not in ['custom_fields_values', '_links', '_embedded']:
-                        status[k] = s[k]
-                status['pipeline_name'] = l['name']
-                status['pipeline_is_main'] = l['is_main']
-                status['pipeline_is_unsorted_on'] = l['is_unsorted_on']
-                status['pipeline_is_archive'] = l['is_archive']
-                status['pid'] = str(status['pipeline_id']) + '_' + str(status['id'])
-                statuses[status['pid']] = status
+        products_exists = False
+# разбор ответа в товар со всеми полями
+    if len(result['_embedded']['elements']):
+        for l in result['_embedded']['elements']:
+            product = {}
+            for k in l.keys():
+                if k not in ['custom_fields_values', '_links', '_embedded', 'rights']:
+                    product[k] = l[k]
+                elif l['custom_fields_values']:
+                    for f in l['custom_fields_values']:
+                        product[f['field_name']] = f['values'][0]['value']
+            products[product['id']] = product
     page += 1
-    print ("Fetched:", len(statuses), page)
+    print ("Fetched:", len(products), page)
 
-if len(statuses):
+if len(products):
 # формируем датафрейм
-    data = pd.DataFrame.from_dict(statuses, orient='index')
-    ids = ','.join(map(str, list(statuses.keys())))
+    data = pd.DataFrame.from_dict(products, orient='index')
+    del products
+    ids = ','.join(map(str, list(products.keys())))
 # базовый процесс очистки: приведение к нужным типам
     for col in data.columns:
 # приведение целых чисел
-        if col in ["id", "account_id", "pipeline_is_main", "pipeline_is_unsorted_on", "pipeline_is_archive", "is_editable", "pipeline_id", "sort", "type"]:
+        if col in ["id", "is_deleted", "created_by", "updated_by"]:
             data[col] = data[col].fillna('').replace('', 0).astype(np.int64)
 # приведение дат
-        elif col in ["created_at", "updated_at", "closed_at"]:
+        elif col in ["created_at", "updated_at"]:
             data[col] = pd.to_datetime(data[col].fillna(0).replace('None', 0), unit='s')
 # приведение строк
         else:
             data[col] = data[col].fillna('')
-    if len(data) and 'pid' in list(data.columns):
-        data = data.set_index('pid')
+    if len(data):
+        data = data.set_index('id')
         if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
 # добавление новых данных
             try:
-                data.to_sql(name=config["AMOCRM"]["TABLE_PIPELINES"], con=engine, if_exists='replace', chunksize=100)
+                data.to_sql(name=config["AMOCRM"]["TABLE_PRODUCTS"], con=engine, if_exists='append', chunksize=100)
             except Exception as E:
                 print (E)
                 connection.rollback()
@@ -110,11 +119,11 @@ if len(statuses):
 # добавление/замена новых данных
             csv_file = data.to_csv().encode('utf-8')
             requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/',
-                params={"database": config["DB"]["DB"], "query": 'INSERT INTO ' + config["DB"]["DB"] + '.' + config["AMOCRM"]["TABLE_PIPELINES"] + ' FORMAT CSV'},
+                params={"database": config["DB"]["DB"], "query": 'INSERT INTO ' + config["DB"]["DB"] + '.' + config["AMOCRM"]["TABLE_PRODUCTS"] + ' FORMAT CSV'},
                 headers={'Content-Type':'application/octet-stream'}, data=csv_file, stream=True, verify=False)
             requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/', verify=False,
-                params={"database": config["DB"]["DB"], "query": "OPTIMIZE TABLE " + config["DB"]["DB"] + "." + config["AMOCRM"]["TABLE_PIPELINES"])
-    print ("Statuses:", str(len(data)))
+                params={"database": config["DB"]["DB"], "query": "OPTIMIZE TABLE " + config["DB"]["DB"] + "." + config["AMOCRM"]["TABLE_PRODUCTS"])
+    print ("Products:", str(len(data)))
 
 # закрытие подключения к БД
 if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
