@@ -30,7 +30,7 @@ except Exception as E:
 # импорт настроек
 import configparser
 config = configparser.ConfigParser()
-config.read("../settings.ini")
+config.read("../../settings.ini")
 
 # подключение к БД
 if 'PORT' in config["DB"] and config["DB"]["PORT"] != '':
@@ -115,13 +115,13 @@ if 'accessToken' in auth_result:
 # удаляем данные за вчера
         if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
             try:
-                connection.execute(text('DELETE FROM ' + config["DB"]["DB"] + '.' + config["SERVICEINSPECTOR"]["TABLE_AUDITS"] + ' WHERE startTime>=' + date_since))
+                connection.execute(text("DELETE FROM " + config["DB"]["DB"] + "." + config["SERVICEINSPECTOR"]["TABLE_AUDITS"] + " WHERE startTime>='" + date_since.replace('.000000', '') + "'"))
             except Exception as E:
                 print (E)
                 connection.rollback()
         elif config["DB"]["TYPE"] == "CLICKHOUSE":
             requests.post(CLICKHOUSE_PROTO + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':' + CLICKHOUSE_PORT + '/', verify=False,
-                params={"database": config["DB"]["DB"], "query": 'DELETE FROM ' + config["DB"]["DB"] + '.' + config["SERVICEINSPECTOR"]["TABLE_AUDITS"] + ' WHERE startTime>=' + date_since})
+                params={"database": config["DB"]["DB"], "query": "DELETE FROM " + config["DB"]["DB"] + "." + config["SERVICEINSPECTOR"]["TABLE_AUDITS"] + " WHERE startTime>='" + date_since.replace('.000000', '') + "'"})
         if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
 # обработка ошибок при добавлении данных
             try:
