@@ -86,7 +86,7 @@ if 'accessToken' in auth_result:
                 for k in checklist:
                     if k in ['id', 'name', 'result', 'order']:
                         a['checklist_' + k] = audit[k]
-				    elif k != 'processedChecks'
+                    elif k != 'processedChecks'
                         a[k] = audit[k]
                 for k in check:
                     a[k] = audit[k]
