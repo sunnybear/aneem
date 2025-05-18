@@ -78,12 +78,18 @@ if 'token' in auth_result:
 # пробуем по номеру телефона
         if 'id' not in customer_result:
             customer_result = requests.post('https://api-ru.iiko.services/api/1/loyalty/iiko/customer/info', json={'organizationId': org_id, 'type': 'phone', 'phone': customer_card}, headers={'Authorization': 'Bearer ' + TOKEN}).json()
+# пробуем по номеру телефона +7
+        if 'id' not in customer_result:
+            customer_result = requests.post('https://api-ru.iiko.services/api/1/loyalty/iiko/customer/info', json={'organizationId': org_id, 'type': 'phone', 'phone': '7' +customer_card}, headers={'Authorization': 'Bearer ' + TOKEN}).json()
         if 'id' in customer_result:
             customer_id = customer_result['id']
 # получаем все транзации по покупателю
             transactions_result = requests.post('https://api-ru.iiko.services/api/1/loyalty/iiko/customer/transactions/by_date', json={'organizationId': org_id, 'customerId': customer_id, 'pageSize': 1000, 'pageNumber': 0, 'dateFrom': date_since, 'dateTo': date_until}, headers={'Authorization': 'Bearer ' + TOKEN}).json()
             if 'transactions' in transactions_result:
-                transactions = transactions + transactions_result['transactions']
+                for item in transactions_result['transactions']:
+                    item['customerId'] = customer_id
+                    item['customerCard'] = customer_card
+                    transactions.append(item)
         else:
             print ("Нет покупателя для ", customer_card, customer_result)
     data = pd.DataFrame(transactions)
@@ -91,7 +97,7 @@ if 'token' in auth_result:
 # базовый процесс очистки: приведение к нужным типам
         for col in data.columns:
 # приведение целых чисел
-            if col in ["type", "isDelivery", "isIgnored", "revision"]:
+            if col in ["type", "isDelivery", "isIgnored", "revision", "orderNumber"]:
                 data[col] = data[col].fillna(0).replace('', 0).astype(np.int64)
 # приведение вещественных чисел
             elif col in ["balanceAfter", "balanceBefore", "posBalanceBefore", "sum"]:
