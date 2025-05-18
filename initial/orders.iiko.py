@@ -34,7 +34,7 @@ config = configparser.ConfigParser()
 config.read("../settings.ini")
 
 # подключение к БД
-if config["DB"]["PORT"] != '':
+if 'PORT' in config["DB"] and config["DB"]["PORT"] != '':
     DB_PORT = ':' + config["DB"]["PORT"]
 else:
     DB_PORT = ''
