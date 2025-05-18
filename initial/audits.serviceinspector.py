@@ -73,7 +73,7 @@ except Exception:
 if 'accessToken' in auth_result:
     TOKEN = auth_result['accessToken']
     org_id = auth_result['organizationInfo']['id']
-    audit_result = requests.get(API_ENDPOINT + '/api/0/inspector/get_processed_audits_with_details?access_token=' + TOKEN + '&org_id=' + org_id + '&date_from=' + date_since + '&date_to=' + date_until).json()
+    audit_result = requests.get(API_ENDPOINT + '/api/0/inspector/get_processed_audits_with_details?access_token=' + TOKEN + '&org_id=' + org_id + '&from_date=' + date_since + '&to_date=' + date_until).json()
     for audit in audit_result:
         for checklist in audit['checkLists']:
             for check in checklist['processedChecks']:
@@ -85,25 +85,25 @@ if 'accessToken' in auth_result:
                         a[k] = audit[k]
                 for k in checklist:
                     if k in ['id', 'name', 'result', 'order']:
-                        a['checklist_' + k] = audit[k]
-                    elif k != 'processedChecks'
-                        a[k] = audit[k]
+                        a['checklist_' + k] = checklist[k]
+                    elif k != 'processedChecks':
+                        a[k] = checklist[k]
                 for k in check:
-                    a[k] = audit[k]
+                    a[k] = check[k]
                 audits.append(a)
     data = pd.DataFrame(audits)
     if len(data):
 # базовый процесс очистки: приведение к нужным типам
         for col in data.columns:
 # приведение целых чисел
-            if col in ["audit_isClosed", "checklist_order", "order", "mark", "taskType", "checklist_requireVerifiable", "requiredQuestion"]:
+            if col in ["isClosed", "checklist_order", "order", "mark", "taskType", "requireVerifiable", "requiredQuestion"]:
                 data[col] = data[col].fillna(0).replace('', 0).astype(np.int64)
 # приведение вещественных чисел
             elif col in ["audit_result", "checklist_result", "checkResult", "maxValue", "weight"]:
                 data[col] = data[col].fillna(0.0).replace('', 0.0).astype(float)
 # приведение дат
             elif col in ["startTime", "endTime"]:
-                data[col] = pd.to_datetime(data[col].str.replace('T', ' ').replace(r'\..*', '', regex=True), format='ISO8601')
+                data[col] = pd.to_datetime(data[col].str.replace('T', ' ').replace(r'\..*', '', regex=True), format='ISO8601').fillna('1970-01-01 00:00:00')
 # приведение строк
             else:
                 data[col] = data[col].fillna('')
