@@ -111,7 +111,7 @@ if 'token' in auth_result:
 # удаление данных
         if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
             try:
-                connection.execute(text("DELETE FROM " + config["IIKOWEB"]["TABLE_TRANSACTIONS"] + " WHERE whenCreated>='" + date_since.replace('.000', '') + "'", con=engine, if_exists='append', chunksize=100)
+                connection.execute(text("DELETE FROM " + config["IIKOWEB"]["TABLE_TRANSACTIONS"] + " WHERE whenCreated>='" + date_since.replace('.000', '') + "'"), con=engine, if_exists='append', chunksize=100)
             except Exception as E:
                 print (E)
                 connection.rollback()
@@ -121,7 +121,7 @@ if 'token' in auth_result:
         if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
 # обработка ошибок при добавлении данных
             try:
-                data.to_sql(name=config["IIKOWEB"]["TABLE_TRANSACTIONS"], con=engine, if_exists='replace', chunksize=100)
+                data.to_sql(name=config["IIKOWEB"]["TABLE_TRANSACTIONS"], con=engine, if_exists='append', chunksize=100)
             except Exception as E:
                 print (E)
                 connection.rollback()
