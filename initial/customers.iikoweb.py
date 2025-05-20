@@ -1,4 +1,4 @@
-# Скрипт для первоначального получения транзакций программы лояльности всех покупателей из Iiko.web
+# Скрипт для первоначального получения всех покупателей из Iiko.web по номерам карт/телефонов
 # Необходимо в settings.ini указать
 # * DB.TYPE - тип базы данных (куда выгружать данные)
 # * DB.HOST - адрес (хост) базы данных
@@ -7,7 +7,7 @@
 # * DB.PASSWORD - пароль к базе данных
 # * DB.DB - имя базы данных
 # * IIKOWEB.ACCESS_TOKEN - токен доступа к https://api-ru.iiko.services/
-# * IIKOWEB.TABLE_TRANSACTIONS - имя результирующей таблицы для транзакций
+# * IIKOWEB.TABLE_CUSTOMERS - имя результирующей таблицы для покупателей
 
 # импорт общих библиотек
 from datetime import datetime as dt
@@ -57,9 +57,7 @@ if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"
 
 # создаем таблицу для данных при наличии каких-либо данных
 table_not_created = True
-transactions = []
-date_since = '2000-01-01 00:00:00.000'
-date_until = (date.today()).strftime('%Y-%m-%d 23:59:59.999')
+customers = []
 
 # отправка запроса на временный токен
 try:
@@ -68,42 +66,33 @@ except Exception:
     auth_result = {}
 if 'token' in auth_result:
     TOKEN = auth_result['token']
-# получение всех ID объектов
-    if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
-        ids = list(pd.read_sql("SELECT customerId FROM " + config["DB"]["DB"] + "." + config["IIKOWEB"]["CUSTOMERS"], connection)["customerId"].values)
-        org_id = pd.read_sql("SELECT distinct organizationId FROM " + config["DB"]["DB"] + "." + config["IIKOWEB"]["CUSTOMERS"], connection)["organizationId"].values[0]
-    elif config["DB"]["TYPE"] == "CLICKHOUSE":
-        ids_req = requests.get('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/', verify=False
-            params={"database": config["DB"]["DB"], "query": 'SELECT customerId FROM ' + config["DB"]["DB"] + '.' + config["IIKOWEB"]["CUSTOMERS"]})
-        ids = list(ids_req.text.split("\n"))
-        org_id_req = requests.get('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/', verify=False
-            params={"database": config["DB"]["DB"], "query": 'SELECT distinct organizationId FROM ' + config["DB"]["DB"] + '.' + config["IIKOWEB"]["CUSTOMERS"]})
-        org_id = org_id_req.text.split("\n")[0]
-    for customer_d in ids:
-        customer_card = customer_card.replace('-', '').strip()
-# получаем все транзации по покупателю
-        transactions_result = requests.post('https://api-ru.iiko.services/api/1/loyalty/iiko/customer/transactions/by_date', json={'organizationId': org_id, 'customerId': customer_id, 'pageSize': 1000, 'pageNumber': 0, 'dateFrom': date_since, 'dateTo': date_until}, headers={'Authorization': 'Bearer ' + TOKEN}).json()
-        if 'transactions' in transactions_result:
-            for item in transactions_result['transactions']:
-                item['customerId'] = customer_id
-                item['customerCard'] = customer_card
-                transactions.append(item)
-    data = pd.DataFrame(transactions)
+    org_result = requests.get('https://api-ru.iiko.services/api/1/organizations', headers={'Authorization': 'Bearer ' + TOKEN})
+    org_id = org_result.json()['organizations'][0]['id']
+    customer_cards = config['IIKOWEB']['CUSTOMER_CARDS'].split(",")
+    for customer_card in customer_cards:
+        customer_card = customer_card.strip()
+# получаем ID покупателя по номеру карты
+        customer_result = requests.post('https://api-ru.iiko.services/api/1/loyalty/iiko/customer/info', json={'organizationId': org_id, 'type': 'cardNumber', 'cardNumber': customer_card}, headers={'Authorization': 'Bearer ' + TOKEN}).json()
+# пробуем по номеру телефона
+        if 'id' not in customer_result:
+            customer_result = requests.post('https://api-ru.iiko.services/api/1/loyalty/iiko/customer/info', json={'organizationId': org_id, 'type': 'phone', 'phone': customer_card}, headers={'Authorization': 'Bearer ' + TOKEN}).json()
+# пробуем по номеру телефона 7
+        if 'id' not in customer_result:
+            customer_result = requests.post('https://api-ru.iiko.services/api/1/loyalty/iiko/customer/info', json={'organizationId': org_id, 'type': 'phone', 'phone': '7' +customer_card}, headers={'Authorization': 'Bearer ' + TOKEN}).json()
+# пробуем по номеру телефона +7
+        if 'id' not in customer_result:
+            customer_result = requests.post('https://api-ru.iiko.services/api/1/loyalty/iiko/customer/info', json={'organizationId': org_id, 'type': 'phone', 'phone': '+7' +customer_card}, headers={'Authorization': 'Bearer ' + TOKEN}).json()
+        if 'id' in customer_result:
+            customer_id = customer_result['id']
+            customers.append({'customerId': customer_id, 'customerCard': customer_card, 'organizationId': org_id})
+        else:
+            print (customer_result)
+    data = pd.DataFrame(customers)
     if len(data):
 # базовый процесс очистки: приведение к нужным типам
         for col in data.columns:
-# приведение целых чисел
-            if col in ["type", "isDelivery", "isIgnored", "revision", "orderNumber"]:
-                data[col] = data[col].fillna(0).replace('', 0).astype(np.int64)
-# приведение вещественных чисел
-            elif col in ["balanceAfter", "balanceBefore", "posBalanceBefore", "sum", "orderSum"]:
-                data[col] = data[col].fillna(0.0).replace('', 0.0).astype(float)
-# приведение дат
-            elif col in ["whenCreated", "whenCreatedOrder"]:
-                data[col] = pd.to_datetime(data[col].str.replace(r'\..*', '', regex=True), format='ISO8601')
 # приведение строк
-            else:
-                data[col] = data[col].fillna('')
+            data[col] = data[col].fillna('')
 # поддержка TCP HTTP для Clickhouse
         if 'PORT' in config["DB"] and config["DB"]["PORT"] != '8443':
             CLICKHOUSE_PROTO = 'http://'
@@ -115,28 +104,27 @@ if 'token' in auth_result:
         if table_not_created:
             if config["DB"]["TYPE"] == "CLICKHOUSE":
                 requests.post(CLICKHOUSE_PROTO + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':' + CLICKHOUSE_PORT + '/', verify=False,
-                    params={"database": config["DB"]["DB"], "query": (pd.io.sql.get_schema(data, config["IIKOWEB"]["TABLE_TRANSACTIONS"]) + "  ENGINE=MergeTree ORDER BY (`id`)").replace("CREATE TABLE ", "CREATE TABLE IF NOT EXISTS " + config["DB"]["DB"] + ".").replace("INTEGER", "Int64")})
+                    params={"database": config["DB"]["DB"], "query": (pd.io.sql.get_schema(data, config["IIKOWEB"]["TABLE_CUSTOMERS"]) + "  ENGINE=MergeTree ORDER BY (`customerId`)").replace("CREATE TABLE ", "CREATE OR REPLACE TABLE " + config["DB"]["DB"] + ".").replace("INTEGER", "Int64")})
             table_not_created = False
         if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
 # обработка ошибок при добавлении данных
             try:
-                data.to_sql(name=config["IIKOWEB"]["TABLE_TRANSACTIONS"], con=engine, if_exists='append', chunksize=100)
+                data.to_sql(name=config["IIKOWEB"]["TABLE_CUSTOMERS"], con=engine, if_exists='append', chunksize=100)
             except Exception as E:
                 print (E)
                 connection.rollback()
         elif config["DB"]["TYPE"] == "CLICKHOUSE":
             csv_file = data.to_csv(index=False).encode('utf-8')
             requests.post(CLICKHOUSE_PROTO + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':' + CLICKHOUSE_PORT + '/',
-                params={"database": config["DB"]["DB"], "query": 'INSERT INTO ' + config["DB"]["DB"] + '.' + config["IIKOWEB"]["TABLE_TRANSACTIONS"] + ' FORMAT CSV'},
+                params={"database": config["DB"]["DB"], "query": 'INSERT INTO ' + config["DB"]["DB"] + '.' + config["IIKOWEB"]["TABLE_CUSTOMERS"] + ' FORMAT CSV'},
                 headers={'Content-Type':'application/octet-stream'}, data=csv_file, stream=True, verify=False)
-        print (date_since, "=>", date_until, ":", len(data))
+        print ("Customers:", len(data))
 else:
     print ('Ошибка доступа')
 
 # закрытие подключения к БД
 if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
 # добавление индексов
-    connection.execute(text("ALTER TABLE " + config["IIKOWEB"]["TABLE_TRANSACTIONS"] + " ADD INDEX ididx (`id`)"))
-    connection.execute(text("ALTER TABLE " + config["IIKOWEB"]["TABLE_TRANSACTIONS"] + " ADD INDEX dateidx (`whenCreated`)"))
+    connection.execute(text("ALTER TABLE " + config["IIKO"]["TABLE_ORDERS"] + " ADD INDEX customerids (`customerId`)"))
     connection.commit()
     connection.close()
