@@ -30,7 +30,7 @@ except Exception as E:
 # импорт настроек
 import configparser
 config = configparser.ConfigParser()
-config.read("../settings.ini")
+config.read("../../settings.ini")
 
 # подключение к БД
 if 'PORT' in config["DB"] and config["DB"]["PORT"] != '':
@@ -56,10 +56,8 @@ if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"
         connection.execute(text('SET CHARACTER SET utf8mb4'))
         connection.execute(text('SET character_set_connection=utf8mb4'))
 
-# создаем таблицу для данных при наличии каких-либо данных
-table_not_created = True
 transactions = []
-date_since = '2000-01-01 00:00:00.000'
+date_since = (date.today() - timedelta(days=1)).strftime('%Y-%m-%d 00:00:00.000')
 date_until = (date.today()).strftime('%Y-%m-%d 23:59:59.999')
 
 # отправка запроса на временный токен
@@ -110,12 +108,16 @@ if 'token' in auth_result:
 # приведение строк
             else:
                 data[col] = data[col].fillna('')
-# создаем таблицу в первый раз
-        if table_not_created:
-            if config["DB"]["TYPE"] == "CLICKHOUSE":
-                requests.post(CLICKHOUSE_PROTO + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':' + CLICKHOUSE_PORT + '/', verify=False,
-                    params={"database": config["DB"]["DB"], "query": (pd.io.sql.get_schema(data, config["IIKOWEB"]["TABLE_TRANSACTIONS"]) + "  ENGINE=MergeTree ORDER BY (`id`)").replace("CREATE TABLE ", "CREATE OR REPLACE TABLE " + config["DB"]["DB"] + ".").replace("INTEGER", "Int64")})
-            table_not_created = False
+# удаление данных
+        if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
+            try:
+                connection.execute(text("DELETE FROM " + config["IIKOWEB"]["TABLE_TRANSACTIONS"] + " WHERE whenCreated>='" + date_since.replace('.000', '') + "'", con=engine, if_exists='append', chunksize=100)
+            except Exception as E:
+                print (E)
+                connection.rollback()
+        elif config["DB"]["TYPE"] == "CLICKHOUSE":
+            requests.post(CLICKHOUSE_PROTO + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':' + CLICKHOUSE_PORT + '/',verify=False,
+                params={"database": config["DB"]["DB"], "query": 'DELETE FROM ' + config["DB"]["DB"] + '.' + config["IIKOWEB"]["TABLE_TRANSACTIONS"] + " WHERE whenCreated>='" + date_since.replace('.000', '') + "'"})
         if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
 # обработка ошибок при добавлении данных
             try:
