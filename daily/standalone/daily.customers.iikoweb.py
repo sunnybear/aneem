@@ -1,4 +1,4 @@
-# Скрипт для первоначального получения всех покупателей из Iiko.web по номерам карт/телефонов
+# Скрипт для регулярного получения новых покупателей из Iiko.web по номерам карт
 # Необходимо в settings.ini указать
 # * DB.TYPE - тип базы данных (куда выгружать данные)
 # * DB.HOST - адрес (хост) базы данных
@@ -8,7 +8,6 @@
 # * DB.DB - имя базы данных
 # * IIKOWEB.ACCESS_TOKEN - токен доступа к https://api-ru.iiko.services/
 # * IIKOWEB.CUSTOMER_CARDS_RANGES - список начальных диапазонов карт пользователей, через запятую в формате начало_диапазона:длина. Например, XXXXXXXXXXXXXXX:10000
-# * IIKOWEB.CUSTOMER_CARDS - список карт пользователей (не из диапазонов), через запятую
 # * IIKOWEB.TABLE_CUSTOMERS - имя результирующей таблицы для покупателей
 
 # импорт общих библиотек
@@ -57,9 +56,9 @@ if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"
         connection.execute(text('SET CHARACTER SET utf8mb4'))
         connection.execute(text('SET character_set_connection=utf8mb4'))
 
-# создаем таблицу для данных при наличии каких-либо данных
-table_not_created = True
 customers = []
+
+
 
 # отправка запроса на временный токен
 try:
@@ -70,37 +69,30 @@ if 'token' in auth_result:
     TOKEN = auth_result['token']
     org_result = requests.get('https://api-ru.iiko.services/api/1/organizations', headers={'Authorization': 'Bearer ' + TOKEN})
     org_id = org_result.json()['organizations'][0]['id']
+# поддержка TCP HTTP для Clickhouse
+    if 'PORT' in config["DB"] and config["DB"]["PORT"] != '8443':
+        CLICKHOUSE_PROTO = 'http://'
+        CLICKHOUSE_PORT = config["DB"]["PORT"]
+    else:
+        CLICKHOUSE_PROTO = 'https://'
+        CLICKHOUSE_PORT = '8443'
 # перебираем диапазоны с картами
     ranges = config['IIKOWEB']['CUSTOMER_CARDS_RANGES'].split(",")
     for range_ in ranges:
         range_ = range_.split(':')
-        for i in range(int(range_[1])):
-            customer_card = str(int(range_[0]) + i)
+# получаем максимальный номер последней карты в диапазоне
+        if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
+            customer_card_max = int(pd.read_sql("SELECT max(CAST(customerCard AS INT64)) AS c FROM " + config["DB"]["DB"] + "." + config["IIKOWEB"]["TABLE_CUSTOMERS"] + " WHERE CAST(customerCard AS INT64)>" + range_[0] + " and CAST(customerCard AS INT64)/" + range_[0] + "<2", connection)["c"].values[0])
+        elif config["DB"]["TYPE"] == "CLICKHOUSE":
+            customer_card_max = requests.get(CLICKHOUSE_PROTO + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':' + CLICKHOUSE_PORT + '/', verify=False,
+            params={"database": config["DB"]["DB"], "query": 'SELECT max(toInt64(customerCard)) FROM ' + config["DB"]["DB"] + '.' + config["IIKOWEB"]["TABLE_CUSTOMERS"] + " WHERE toInt64(customerCard)>" + range_[0] + " AND toInt64(customerCard)/" + range_[0] + "<2"})
+        for i in range(1, 5000):
+            customer_card = str(customer_card_max + i)
 # получаем ID покупателя по номеру карты
             customer_result = requests.post('https://api-ru.iiko.services/api/1/loyalty/iiko/customer/info', json={'organizationId': org_id, 'type': 'cardNumber', 'cardNumber': customer_card}, headers={'Authorization': 'Bearer ' + TOKEN}).json()
             if 'id' in customer_result:
                 customer_id = customer_result['id']
                 customers.append({'customerId': customer_id, 'customerCard': customer_card, 'organizationId': org_id})
-# выгружаем карты по одной
-    customer_cards = config['IIKOWEB']['CUSTOMER_CARDS'].split(",")
-    for customer_card in customer_cards:
-        customer_card = customer_card.strip()
-# получаем ID покупателя по номеру карты
-        customer_result = requests.post('https://api-ru.iiko.services/api/1/loyalty/iiko/customer/info', json={'organizationId': org_id, 'type': 'cardNumber', 'cardNumber': customer_card}, headers={'Authorization': 'Bearer ' + TOKEN}).json()
-# пробуем по номеру телефона
-        if 'id' not in customer_result:
-            customer_result = requests.post('https://api-ru.iiko.services/api/1/loyalty/iiko/customer/info', json={'organizationId': org_id, 'type': 'phone', 'phone': customer_card}, headers={'Authorization': 'Bearer ' + TOKEN}).json()
-# пробуем по номеру телефона 7
-        if 'id' not in customer_result:
-            customer_result = requests.post('https://api-ru.iiko.services/api/1/loyalty/iiko/customer/info', json={'organizationId': org_id, 'type': 'phone', 'phone': '7' +customer_card}, headers={'Authorization': 'Bearer ' + TOKEN}).json()
-# пробуем по номеру телефона +7
-        if 'id' not in customer_result:
-            customer_result = requests.post('https://api-ru.iiko.services/api/1/loyalty/iiko/customer/info', json={'organizationId': org_id, 'type': 'phone', 'phone': '+7' +customer_card}, headers={'Authorization': 'Bearer ' + TOKEN}).json()
-        if 'id' in customer_result:
-            customer_id = customer_result['id']
-            customers.append({'customerId': customer_id, 'customerCard': customer_card, 'organizationId': org_id})
-        else:
-            print (customer_result)
     data = pd.DataFrame(customers)
     if len(data):
 # базовый процесс очистки: приведение к нужным типам
@@ -114,12 +106,6 @@ if 'token' in auth_result:
         else:
             CLICKHOUSE_PROTO = 'https://'
             CLICKHOUSE_PORT = '8443'
-# создаем таблицу в первый раз
-        if table_not_created:
-            if config["DB"]["TYPE"] == "CLICKHOUSE":
-                requests.post(CLICKHOUSE_PROTO + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':' + CLICKHOUSE_PORT + '/', verify=False,
-                    params={"database": config["DB"]["DB"], "query": (pd.io.sql.get_schema(data, config["IIKOWEB"]["TABLE_CUSTOMERS"]) + "  ENGINE=MergeTree ORDER BY (`customerId`)").replace("CREATE TABLE ", "CREATE OR REPLACE TABLE " + config["DB"]["DB"] + ".").replace("INTEGER", "Int64")})
-            table_not_created = False
         if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
 # обработка ошибок при добавлении данных
             try:
