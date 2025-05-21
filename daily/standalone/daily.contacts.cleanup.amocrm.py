@@ -75,7 +75,7 @@ for id in ids:
                     connection.commit()
                 elif config['DB']['TYPE'] == "CLICKHOUSE":
                     requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/', verify=False,
-                        params={"database": config["DB"]["DB"], "query": 'INSERT INTO ' + config["DB"]["DB"] + '.' + config["AMOCRM"]["TABLE_CONTACTS"] + ' SELECT * REPLACE(plus(is_deleted, 1) AS is_deleted) FROM ' + config["DB"]["DB"] + '.' + config["AMOCRM"]["TABLE_CONTACTS"] + 'FINAL WHERE id=' + id})
+                        params={"database": config["DB"]["DB"], "query": 'INSERT INTO ' + config["DB"]["DB"] + '.' + config["AMOCRM"]["TABLE_CONTACTS"] + ' SELECT * REPLACE(plus(is_deleted, 1) AS is_deleted) FROM ' + config["DB"]["DB"] + '.' + config["AMOCRM"]["TABLE_CONTACTS"] + ' FINAL WHERE id=' + id})
                 print ("Deleted:", id)
 	
 # закрытие подключения к БД
