@@ -57,7 +57,6 @@ if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"
 
 # создаем таблицу для данных при наличии каких-либо данных
 table_not_created = True
-customers = []
 
 # отправка запроса на временный токен
 try:
@@ -67,9 +66,9 @@ except Exception:
 if 'token' in auth_result:
     TOKEN = auth_result['token']
     org_result = requests.get('https://api-ru.iiko.services/api/1/organizations', headers={'Authorization': 'Bearer ' + TOKEN}).json()
+    data = []
     if 'organizations' in org_result:
-        print (org_result['organizations'])
-#        data = pd.DataFrame(org_result['organizations'])
+        data = pd.DataFrame(org_result['organizations'])
     if len(data):
 # базовый процесс очистки: приведение к нужным типам
         for col in data.columns:
@@ -86,7 +85,7 @@ if 'token' in auth_result:
         if table_not_created:
             if config["DB"]["TYPE"] == "CLICKHOUSE":
                 requests.post(CLICKHOUSE_PROTO + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':' + CLICKHOUSE_PORT + '/', verify=False,
-                    params={"database": config["DB"]["DB"], "query": (pd.io.sql.get_schema(data, config["IIKOWEB"]["TABLE_ORGANIZATIONS"]) + "  ENGINE=MergeTree ORDER BY (`customerId`)").replace("CREATE TABLE ", "CREATE OR REPLACE TABLE " + config["DB"]["DB"] + ".").replace("INTEGER", "Int64")})
+                    params={"database": config["DB"]["DB"], "query": (pd.io.sql.get_schema(data, config["IIKOWEB"]["TABLE_ORGANIZATIONS"]) + "  ENGINE=MergeTree ORDER BY (`id`)").replace("CREATE TABLE ", "CREATE OR REPLACE TABLE " + config["DB"]["DB"] + ".").replace("INTEGER", "Int64")})
             table_not_created = False
         if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
 # обработка ошибок при добавлении данных
@@ -107,6 +106,6 @@ else:
 # закрытие подключения к БД
 if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
 # добавление индексов
-    connection.execute(text("ALTER TABLE " + config["IIKO"]["TABLE_ORDERS"] + " ADD INDEX organizationidx (`organizationId`)"))
+    connection.execute(text("ALTER TABLE " + config["IIKO"]["TABLE_ORDERS"] + " ADD INDEX idx (`id`)"))
     connection.commit()
     connection.close()
