@@ -88,8 +88,12 @@ if 'token' in auth_result:
             params={"database": config["DB"]["DB"], "query": 'SELECT max(toInt64(customerCard)) FROM ' + config["DB"]["DB"] + '.' + config["IIKOWEB"]["TABLE_CUSTOMERS"] + " WHERE toInt64(customerCard)>" + range_[0] + " AND toInt64(customerCard)/" + range_[0] + "<2"})
         for i in range(1, 5000):
             customer_card = str(customer_card_max + i)
+            customer_result = {}
+			try:
 # получаем ID покупателя по номеру карты
-            customer_result = requests.post('https://api-ru.iiko.services/api/1/loyalty/iiko/customer/info', json={'organizationId': org_id, 'type': 'cardNumber', 'cardNumber': customer_card}, headers={'Authorization': 'Bearer ' + TOKEN}).json()
+                customer_result = requests.post('https://api-ru.iiko.services/api/1/loyalty/iiko/customer/info', json={'organizationId': org_id, 'type': 'cardNumber', 'cardNumber': customer_card}, headers={'Authorization': 'Bearer ' + TOKEN}).json()
+            except Exception:
+                customer_result = {}
             if 'id' in customer_result:
                 customer_id = customer_result['id']
                 customers.append({'customerId': customer_id, 'customerCard': customer_card, 'organizationId': org_id})

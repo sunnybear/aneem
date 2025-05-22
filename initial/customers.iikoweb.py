@@ -77,7 +77,10 @@ if 'token' in auth_result:
         for i in range(int(range_[1])):
             customer_card = str(int(range_[0]) + i)
 # получаем ID покупателя по номеру карты
-            customer_result = requests.post('https://api-ru.iiko.services/api/1/loyalty/iiko/customer/info', json={'organizationId': org_id, 'type': 'cardNumber', 'cardNumber': customer_card}, headers={'Authorization': 'Bearer ' + TOKEN}).json()
+            try:
+                customer_result = requests.post('https://api-ru.iiko.services/api/1/loyalty/iiko/customer/info', json={'organizationId': org_id, 'type': 'cardNumber', 'cardNumber': customer_card}, headers={'Authorization': 'Bearer ' + TOKEN}).json()
+            except Exception:
+                customer_result = {}
             if 'id' in customer_result:
                 customer_id = customer_result['id']
                 customers.append({'customerId': customer_id, 'customerCard': customer_card, 'organizationId': org_id})
@@ -86,16 +89,28 @@ if 'token' in auth_result:
     for customer_card in customer_cards:
         customer_card = customer_card.strip()
 # получаем ID покупателя по номеру карты
-        customer_result = requests.post('https://api-ru.iiko.services/api/1/loyalty/iiko/customer/info', json={'organizationId': org_id, 'type': 'cardNumber', 'cardNumber': customer_card}, headers={'Authorization': 'Bearer ' + TOKEN}).json()
+        try:
+            customer_result = requests.post('https://api-ru.iiko.services/api/1/loyalty/iiko/customer/info', json={'organizationId': org_id, 'type': 'cardNumber', 'cardNumber': customer_card}, headers={'Authorization': 'Bearer ' + TOKEN}).json()
+        except Exception:
+            customer_result = {}
 # пробуем по номеру телефона
         if 'id' not in customer_result:
-            customer_result = requests.post('https://api-ru.iiko.services/api/1/loyalty/iiko/customer/info', json={'organizationId': org_id, 'type': 'phone', 'phone': customer_card}, headers={'Authorization': 'Bearer ' + TOKEN}).json()
+            try:
+                customer_result = requests.post('https://api-ru.iiko.services/api/1/loyalty/iiko/customer/info', json={'organizationId': org_id, 'type': 'phone', 'phone': customer_card}, headers={'Authorization': 'Bearer ' + TOKEN}).json()
+            except Exception:
+                customer_result = {}
 # пробуем по номеру телефона 7
         if 'id' not in customer_result:
-            customer_result = requests.post('https://api-ru.iiko.services/api/1/loyalty/iiko/customer/info', json={'organizationId': org_id, 'type': 'phone', 'phone': '7' +customer_card}, headers={'Authorization': 'Bearer ' + TOKEN}).json()
+            try:
+                customer_result = requests.post('https://api-ru.iiko.services/api/1/loyalty/iiko/customer/info', json={'organizationId': org_id, 'type': 'phone', 'phone': '7' +customer_card}, headers={'Authorization': 'Bearer ' + TOKEN}).json()
+            except Exception:
+                customer_result = {}
 # пробуем по номеру телефона +7
         if 'id' not in customer_result:
-            customer_result = requests.post('https://api-ru.iiko.services/api/1/loyalty/iiko/customer/info', json={'organizationId': org_id, 'type': 'phone', 'phone': '+7' +customer_card}, headers={'Authorization': 'Bearer ' + TOKEN}).json()
+            try:
+                customer_result = requests.post('https://api-ru.iiko.services/api/1/loyalty/iiko/customer/info', json={'organizationId': org_id, 'type': 'phone', 'phone': '+7' +customer_card}, headers={'Authorization': 'Bearer ' + TOKEN}).json()
+            except Exception:
+                customer_result = {}
         if 'id' in customer_result:
             customer_id = customer_result['id']
             customers.append({'customerId': customer_id, 'customerCard': customer_card, 'organizationId': org_id})
