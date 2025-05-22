@@ -89,7 +89,10 @@ if 'token' in auth_result:
         org_id = org_id_req.text.split("\n")[0]
     for customer_id in ids:
 # получаем все транзации по покупателю
-        transactions_result = requests.post('https://api-ru.iiko.services/api/1/loyalty/iiko/customer/transactions/by_date', json={'organizationId': org_id, 'customerId': customer_id, 'pageSize': 1000, 'pageNumber': 0, 'dateFrom': date_since, 'dateTo': date_until}, headers={'Authorization': 'Bearer ' + TOKEN}).json()
+        try:
+            transactions_result = requests.post('https://api-ru.iiko.services/api/1/loyalty/iiko/customer/transactions/by_date', json={'organizationId': org_id, 'customerId': customer_id, 'pageSize': 1000, 'pageNumber': 0, 'dateFrom': date_since, 'dateTo': date_until}, headers={'Authorization': 'Bearer ' + TOKEN}).json()
+        except Exception:
+            transactions_result = {}
         if 'transactions' in transactions_result:
             for item in transactions_result['transactions']:
                 item['customerId'] = customer_id
