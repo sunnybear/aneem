@@ -30,7 +30,7 @@ except Exception as E:
 # импорт настроек
 import configparser
 config = configparser.ConfigParser()
-config.read("../settings.ini")
+config.read("../../settings.ini")
 
 # подключение к БД
 if 'PORT' in config["DB"] and config["DB"]["PORT"] != '':
@@ -58,8 +58,6 @@ if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"
 
 customers = []
 
-
-
 # отправка запроса на временный токен
 try:
     auth_result = requests.post('https://api-ru.iiko.services/api/1/access_token', json={'apiLogin': config['IIKOWEB']['ACCESS_TOKEN']}).json()
@@ -84,12 +82,12 @@ if 'token' in auth_result:
         if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
             customer_card_max = int(pd.read_sql("SELECT max(CAST(customerCard AS INT64)) AS c FROM " + config["DB"]["DB"] + "." + config["IIKOWEB"]["TABLE_CUSTOMERS"] + " WHERE CAST(customerCard AS INT64)>" + range_[0] + " and CAST(customerCard AS INT64)/" + range_[0] + "<2", connection)["c"].values[0])
         elif config["DB"]["TYPE"] == "CLICKHOUSE":
-            customer_card_max = requests.get(CLICKHOUSE_PROTO + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':' + CLICKHOUSE_PORT + '/', verify=False,
-            params={"database": config["DB"]["DB"], "query": 'SELECT max(toInt64(customerCard)) FROM ' + config["DB"]["DB"] + '.' + config["IIKOWEB"]["TABLE_CUSTOMERS"] + " WHERE toInt64(customerCard)>" + range_[0] + " AND toInt64(customerCard)/" + range_[0] + "<2"})
+            customer_card_max = int(requests.get(CLICKHOUSE_PROTO + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':' + CLICKHOUSE_PORT + '/', verify=False,
+            params={"database": config["DB"]["DB"], "query": 'SELECT max(toInt64(customerCard)) FROM ' + config["DB"]["DB"] + '.' + config["IIKOWEB"]["TABLE_CUSTOMERS"] + " WHERE toInt64(customerCard)>" + range_[0] + " AND toInt64(customerCard)/" + range_[0] + "<2"}).text.split("\n")[0])
         for i in range(1, 5000):
             customer_card = str(customer_card_max + i)
             customer_result = {}
-			try:
+            try:
 # получаем ID покупателя по номеру карты
                 customer_result = requests.post('https://api-ru.iiko.services/api/1/loyalty/iiko/customer/info', json={'organizationId': org_id, 'type': 'cardNumber', 'cardNumber': customer_card}, headers={'Authorization': 'Bearer ' + TOKEN}).json()
             except Exception:
