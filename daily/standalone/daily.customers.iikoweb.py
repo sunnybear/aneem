@@ -80,10 +80,13 @@ if 'token' in auth_result:
         range_ = range_.split(':')
 # получаем максимальный номер последней карты в диапазоне
         if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
-            customer_card_max = int(pd.read_sql("SELECT max(CAST(customerCard AS INT64)) AS c FROM " + config["DB"]["DB"] + "." + config["IIKOWEB"]["TABLE_CUSTOMERS"] + " WHERE CAST(customerCard AS INT64)>" + range_[0] + " and CAST(customerCard AS INT64)/" + range_[0] + "<2", connection)["c"].values[0])
+            customer_card_max = int(pd.read_sql("SELECT max(CAST(customerCard AS INT64)) AS c FROM " + config["DB"]["DB"] + "." + config["IIKOWEB"]["TABLE_CUSTOMERS"] + " WHERE CAST(customerCard AS INT64)>" + range_[0] + " and CAST(customerCard AS INT64)/" + str(int(range_[0]) + int(range_[1])) + "<10", connection)["c"].values[0])
         elif config["DB"]["TYPE"] == "CLICKHOUSE":
             customer_card_max = int(requests.get(CLICKHOUSE_PROTO + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':' + CLICKHOUSE_PORT + '/', verify=False,
-            params={"database": config["DB"]["DB"], "query": 'SELECT max(toInt64(customerCard)) FROM ' + config["DB"]["DB"] + '.' + config["IIKOWEB"]["TABLE_CUSTOMERS"] + " WHERE toInt64(customerCard)>" + range_[0] + " AND toInt64(customerCard)/" + range_[0] + "<2"}).text.split("\n")[0])
+            params={"database": config["DB"]["DB"], "query": 'SELECT max(toInt64(customerCard)) FROM ' + config["DB"]["DB"] + '.' + config["IIKOWEB"]["TABLE_CUSTOMERS"] + " WHERE toInt64(customerCard)>" + range_[0] + " AND toInt64(customerCard)/" + str(int(range_[0]) + int(range_[1])) + "<10"}).text.split("\n")[0])
+# если пока карт из диапазона нет, то начинаем с начала диапазона
+        if customer_card_max == 0:
+            customer_card_max = int(range_[0])
         for i in range(1, 5000):
             customer_card = str(customer_card_max + i)
             customer_result = {}
