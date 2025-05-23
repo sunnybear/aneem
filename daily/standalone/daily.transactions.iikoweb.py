@@ -76,11 +76,11 @@ if 'token' in auth_result:
         CLICKHOUSE_PORT = '8443'
 # получение всех ID объектов
     if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
-        ids = list(pd.read_sql("SELECT customerId FROM " + config["DB"]["DB"] + "." + config["IIKOWEB"]["TABLE_CUSTOMERS"], connection)["customerId"].values)
+        ids = list(pd.read_sql("SELECT distinct customerId FROM " + config["DB"]["DB"] + "." + config["IIKOWEB"]["TABLE_CUSTOMERS"], connection)["customerId"].values)
         org_id = pd.read_sql("SELECT distinct organizationId FROM " + config["DB"]["DB"] + "." + config["IIKOWEB"]["TABLE_CUSTOMERS"], connection)["organizationId"].values[0]
     elif config["DB"]["TYPE"] == "CLICKHOUSE":
         ids_req = requests.get(CLICKHOUSE_PROTO + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':' + CLICKHOUSE_PORT + '/', verify=False,
-            params={"database": config["DB"]["DB"], "query": 'SELECT customerId FROM ' + config["DB"]["DB"] + '.' + config["IIKOWEB"]["TABLE_CUSTOMERS"]})
+            params={"database": config["DB"]["DB"], "query": 'SELECT distinct customerId FROM ' + config["DB"]["DB"] + '.' + config["IIKOWEB"]["TABLE_CUSTOMERS"]})
         ids = list(ids_req.text.split("\n"))
         org_id_req = requests.get(CLICKHOUSE_PROTO + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':' + CLICKHOUSE_PORT + '/', verify=False,
             params={"database": config["DB"]["DB"], "query": 'SELECT distinct organizationId FROM ' + config["DB"]["DB"] + '.' + config["IIKOWEB"]["TABLE_CUSTOMERS"]})
