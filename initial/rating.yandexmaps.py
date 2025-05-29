@@ -96,51 +96,54 @@ for i, point in enumerate(points):
     im2 = im.crop((49, 311, 59, 328))
 # если нашли цифры, то распознаем их по маске
     if np.sum(np.array(im1)) + np.sum(np.array(im2)) < 75000:
-        rating = float(detect_digit(im1) + '.' + detect_digit(im2))
+        r = float(detect_digit(im1) + '.' + detect_digit(im2))
     else:
 # иначе пробуем еще одно место расположения цифр - и тоже распознаем
         im1 = im.crop((101, 311, 111, 328))
         im2 = im.crop((113, 311, 123, 328))
         if np.sum(np.array(im1)) + np.sum(np.array(im2)) < 75000:
-            rating = float(detect_digit(im1) + '.' + detect_digit(im2))
+            r = float(detect_digit(im1) + '.' + detect_digit(im2))
         else:
-            rating = 0.0
-    if rating > 0:
-        rating.append({'date': today, 'point': point, 'rating': rating})
+            r = 0.0
+    if r > 0:
+        rating.append({'date': today, 'point': point, 'rating': r})
 
 data = pd.DataFrame(rating)
+if len(data):
 # преобразование типов данных
-for col in data.columns:
-    if col in ['rating']:
-        data[col] = data[col].fillna(0.0).astype(float)
-    elif col in ['date']:
-        data[col] = pd.to_datetime(data[col])
-    else:
-        data[col] = data[col].fillna('').astype(str)
+    for col in data.columns:
+        if col in ['rating']:
+            data[col] = data[col].fillna(0.0).astype(float)
+        elif col in ['date']:
+            data[col] = pd.to_datetime(data[col])
+        else:
+            data[col] = data[col].fillna('').astype(str)
 # поддержка TCP HTTP для Clickhouse
-if "PORT" in config["DB"] and config["DB"]["PORT"] != '8443':
-    CLICKHOUSE_PROTO = 'http://'
-    CLICKHOUSE_PORT = config["DB"]["PORT"]
-else:
-    CLICKHOUSE_PROTO = 'https://'
-    CLICKHOUSE_PORT = '8443'
+    if "PORT" in config["DB"] and config["DB"]["PORT"] != '8443':
+        CLICKHOUSE_PROTO = 'http://'
+        CLICKHOUSE_PORT = config["DB"]["PORT"]
+    else:
+        CLICKHOUSE_PROTO = 'https://'
+        CLICKHOUSE_PORT = '8443'
 # создаем таблицу в первый раз
-if config["DB"]["TYPE"] == "CLICKHOUSE":
-    requests.post(CLICKHOUSE_PROTO + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':' + CLICKHOUSE_PORT + '/', verify=False,
-        params={"database": config["DB"]["DB"], "query": (pd.io.sql.get_schema(data, config["YANDEXMAPS"]["TABLE_RATING"]) + "  ENGINE=MergeTree ORDER BY (`" + list(data.columns)[0] + "`)").replace("CREATE TABLE ", "CREATE TABLE IF NOT EXISTS " + config["DB"]["DB"] + ".").replace("INTEGER", "Int64")})
-if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
+    if config["DB"]["TYPE"] == "CLICKHOUSE":
+        requests.post(CLICKHOUSE_PROTO + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':' + CLICKHOUSE_PORT + '/', verify=False,
+            params={"database": config["DB"]["DB"], "query": (pd.io.sql.get_schema(data, config["YANDEXMAPS"]["TABLE_RATING"]) + "  ENGINE=MergeTree ORDER BY (`" + list(data.columns)[0] + "`)").replace("CREATE TABLE ", "CREATE TABLE IF NOT EXISTS " + config["DB"]["DB"] + ".").replace("INTEGER", "Int64")})
+    if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
 # обработка ошибок при добавлении данных
-    try:
-        data.to_sql(name=config["YANDEXMAPS"]["TABLE_RATING"], con=engine, if_exists='append', chunksize=100)
-    except Exception as E:
-        print (E)
-        connection.rollback()
-elif config["DB"]["TYPE"] == "CLICKHOUSE":
-    csv_file = data.to_csv(index=False, header=False).encode('utf-8')
-    requests.post(CLICKHOUSE_PROTO + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':' + CLICKHOUSE_PORT + '/',
-        params={"database": config["DB"]["DB"], "query": 'INSERT INTO ' + config["DB"]["DB"] + '."' + config["YANDEXMAPS"]["TABLE_RATING"] + '" FORMAT CSV\n"' + '","'.join(data.columns) + '"\n"' + '","'.join(['String']*len(data.columns)) + '"'},
-        headers={'Content-Type':'application/octet-stream'}, data=csv_file, stream=True, verify=False)
-print ("Yandex.Maps:", len(data))
+        try:
+            data.to_sql(name=config["YANDEXMAPS"]["TABLE_RATING"], con=engine, if_exists='append', chunksize=100)
+        except Exception as E:
+            print (E)
+            connection.rollback()
+    elif config["DB"]["TYPE"] == "CLICKHOUSE":
+        csv_file = data.to_csv(index=False, header=False).encode('utf-8')
+        requests.post(CLICKHOUSE_PROTO + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':' + CLICKHOUSE_PORT + '/',
+            params={"database": config["DB"]["DB"], "query": 'INSERT INTO ' + config["DB"]["DB"] + '."' + config["YANDEXMAPS"]["TABLE_RATING"] + '" FORMAT CSV'},
+            headers={'Content-Type':'application/octet-stream'}, data=csv_file, stream=True, verify=False)
+    print ("Yandex.Maps:", len(data))
+else:
+    print ("Yandex.Maps: No data")
 
 # закрытие подключения к БД
 if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
