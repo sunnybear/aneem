@@ -33,7 +33,7 @@ config = configparser.ConfigParser()
 config.read("../settings.ini")
 
 # подключение к БД
-if config["DB"]["PORT"] != '':
+if "PORT" in config["DB"] and config["DB"]["PORT"] != '':
     DB_PORT = ':' + config["DB"]["PORT"]
 else:
     DB_PORT = ''
@@ -86,12 +86,12 @@ for gs_i, gs_key in enumerate(config['GOOGLE_SHEETS']['KEYS'].split(',')):
         for col in data.columns:
             data[col] = data[col].fillna('').astype(str)
 # поддержка TCP HTTP для Clickhouse
-        if config["DB"]["PORT"] != '8443':
+        if "PORT" in config["DB"] and config["DB"]["PORT"] != '8443':
             CLICKHOUSE_PROTO = 'http://'
             CLICKHOUSE_PORT = config["DB"]["PORT"]
         else:
             CLICKHOUSE_PROTO = 'https://'
-            CLICKHOUSE_PORT = config["DB"]["PORT"]
+            CLICKHOUSE_PORT = '8443'
 # создаем таблицу в первый раз
         if config["DB"]["TYPE"] == "CLICKHOUSE":
             requests.post(CLICKHOUSE_PROTO + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':' + CLICKHOUSE_PORT + '/', verify=False,
