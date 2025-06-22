@@ -42,6 +42,8 @@ def handler(event, context):
     cacert = '/etc/ssl/certs/ca-certificates.crt'
     yesterday = (date.today() - timedelta(days=1)).strftime('%Y-%m-%d')
     threedaysago = (date.today() - timedelta(days=3)).strftime('%Y-%m-%d')
+    weekdaysago = (date.today() - timedelta(days=7)).strftime('%Y-%m-%d')
+    monthdaysago = (date.today() - timedelta(days=30)).strftime('%Y-%m-%d')
 
 # подключение к БД
     if os.getenv('DB_TYPE') == "MYSQL":
@@ -70,7 +72,7 @@ def handler(event, context):
 #        ,'raw_ym_costs': ('ym:ev:date', 'Яндекс.Метрика: расходы', 1)
 #        ,'raw_bx_crm_lead': ('DATE_CREATE', 'Битрикс24: лиды', 3)
 #        ,'raw_bx_crm_deal': ('DATE_CREATE', 'Битрикс24: сделки', 3)
-#        ,'raw_yw_shows_daily': ('Date', 'Yandex.Wordstat: показы', 1)
+#        ,'raw_yw_shows_daily': ('Date', 'Yandex.Wordstat: показы', 7)
     }
     alerts = 0
 
@@ -79,6 +81,10 @@ def handler(event, context):
         TABLE_FIELD = tables[TABLE][0]
         if tables[TABLE][2] == 3:
             DATE_DELTA = threedaysago
+        elif tables[TABLE][2] == 7:
+            DATE_DELTA = weekdaysago
+        elif tables[TABLE][2] == 30:
+            DATE_DELTA = monthdaysago
         else:
             DATE_DELTA = yesterday
 # проверяем вчерашние данные

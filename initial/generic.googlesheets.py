@@ -83,32 +83,35 @@ for gs_i, gs_key in enumerate(config['GOOGLE_SHEETS']['KEYS'].split(',')):
             import_data[gs_table + '_' + sheet.replace(' ', '_')] = pd.read_excel(excel_file, engine='openpyxl', sheet_name=sheet)
     for table in import_data.keys():
         data = import_data[table]
-        for col in data.columns:
-            data[col] = data[col].fillna('').astype(str)
+        if len(data):
+            for col in data.columns:
+                data[col] = data[col].fillna('').astype(str)
 # поддержка TCP HTTP для Clickhouse
-        if "PORT" in config["DB"] and config["DB"]["PORT"] != '8443':
-            CLICKHOUSE_PROTO = 'http://'
-            CLICKHOUSE_PORT = config["DB"]["PORT"]
-        else:
-            CLICKHOUSE_PROTO = 'https://'
-            CLICKHOUSE_PORT = '8443'
+            if "PORT" in config["DB"] and config["DB"]["PORT"] != '8443':
+                CLICKHOUSE_PROTO = 'http://'
+                CLICKHOUSE_PORT = config["DB"]["PORT"]
+            else:
+                CLICKHOUSE_PROTO = 'https://'
+                CLICKHOUSE_PORT = '8443'
 # создаем таблицу в первый раз
-        if config["DB"]["TYPE"] == "CLICKHOUSE":
-            requests.post(CLICKHOUSE_PROTO + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':' + CLICKHOUSE_PORT + '/', verify=False,
-                params={"database": config["DB"]["DB"], "query": (pd.io.sql.get_schema(data, table) + "  ENGINE=MergeTree ORDER BY (`" + list(data.columns)[0] + "`)").replace("CREATE TABLE ", "CREATE OR REPLACE TABLE " + config["DB"]["DB"] + ".").replace("INTEGER", "Int64")})
-        if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
+            if config["DB"]["TYPE"] == "CLICKHOUSE":
+                requests.post(CLICKHOUSE_PROTO + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':' + CLICKHOUSE_PORT + '/', verify=False,
+                    params={"database": config["DB"]["DB"], "query": (pd.io.sql.get_schema(data, table) + "  ENGINE=MergeTree ORDER BY (`" + list(data.columns)[0] + "`)").replace("CREATE TABLE ", "CREATE OR REPLACE TABLE " + config["DB"]["DB"] + ".").replace("INTEGER", "Int64")})
+            if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
 # обработка ошибок при добавлении данных
-            try:
-                data.to_sql(name=table, con=engine, if_exists='replace', chunksize=100)
-            except Exception as E:
-                print (E)
-                connection.rollback()
-        elif config["DB"]["TYPE"] == "CLICKHOUSE":
-            csv_file = data.to_csv(index=False, header=False).encode('utf-8')
-            requests.post(CLICKHOUSE_PROTO + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':' + CLICKHOUSE_PORT + '/',
-                params={"database": config["DB"]["DB"], "query": 'INSERT INTO ' + config["DB"]["DB"] + '."' + table + '" FORMAT CSV\n"' + '","'.join(data.columns) + '"\n"' + '","'.join(['String']*len(data.columns)) + '"'},
-                headers={'Content-Type':'application/octet-stream'}, data=csv_file, stream=True, verify=False)
-        print (table + ":", len(data))
+                try:
+                    data.to_sql(name=table, con=engine, if_exists='replace', chunksize=100)
+                except Exception as E:
+                    print (E)
+                    connection.rollback()
+            elif config["DB"]["TYPE"] == "CLICKHOUSE":
+                csv_file = data.to_csv(index=False, header=False).encode('utf-8')
+                requests.post(CLICKHOUSE_PROTO + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':' + CLICKHOUSE_PORT + '/',
+                    params={"database": config["DB"]["DB"], "query": 'INSERT INTO ' + config["DB"]["DB"] + '."' + table + '" FORMAT CSV\n"' + '","'.join(data.columns) + '"\n"' + '","'.join(['String']*len(data.columns)) + '"'},
+                    headers={'Content-Type':'application/octet-stream'}, data=csv_file, stream=True, verify=False)
+            print (table + ":", len(data))
+        else:
+            print (table + ": No data")
 
 # закрытие подключения к БД
 if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
