@@ -129,7 +129,7 @@ if len(leads):
                 connection.commit()
             elif config["DB"]["TYPE"] == "CLICKHOUSE":
                 requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/',
-                params={"database": config["DB"]["DB"], "query": 'ALTER TABLE ' + config["DB"]["DB"] + '.' + config["AMOCRM"]["TABLE_LEADS"] + ' ADD COLUMN `' + column_new + '` String'}, verify=False)
+                params={"database": config["DB"]["DB"], "query": 'ALTER TABLE ' + config["DB"]["DB"] + '.' + config["AMOCRM"]["TABLE_LEADS"] + ' ADD COLUMN `' + requests.utils.quote(column_new) + '` String'}, verify=False)
         if config["DB"]["TYPE"] in ["MYSQL", "POSTGRESQL", "MARIADB", "ORACLE", "SQLITE"]:
 # удаление старых данных
             try:

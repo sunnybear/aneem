@@ -116,7 +116,7 @@ if len(leads):
         if table_not_created:
             if config["DB"]["TYPE"] == "CLICKHOUSE":
                 requests.post('https://' + config["DB"]["USER"] + ':' + config["DB"]["PASSWORD"] + '@' + config["DB"]["HOST"] + ':8443/', verify=False,
-                    params={"database": config["DB"]["DB"], "query": (pd.io.sql.get_schema(data, config["AMOCRM"]["TABLE_LEADS"]) + "  ENGINE=ReplacingMergeTree ORDER BY (`id`)").replace("CREATE TABLE ", "CREATE OR REPLACE TABLE " + config["DB"]["DB"] + ".").replace("INTEGER", "Int64")})
+                    params={"database": config["DB"]["DB"], "query": requests.utils.quote((pd.io.sql.get_schema(data, config["AMOCRM"]["TABLE_LEADS"]) + "  ENGINE=ReplacingMergeTree ORDER BY (`id`)").replace("CREATE TABLE ", "CREATE OR REPLACE TABLE " + config["DB"]["DB"] + ".").replace("INTEGER", "Int64"))})
             else:
                 connection.execute(text("DROP TABLE IF EXISTS " + config["AMOCRM"]["TABLE_LEADS"]))
                 connection.commit()
