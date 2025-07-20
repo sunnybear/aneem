@@ -73,9 +73,12 @@ for gs_i, gs_key in enumerate(config['GOOGLE_SHEETS']['KEYS'].split(',')):
 # приведение строк
             data[col] = data[col].fillna('')
         import_data = {gs_table: data}
-    elif gs_format == 'XLSX':
+    elif gs_format in ['XLSX', 'XLS']:
 # получаем исходный документ и его листы
-        excel_file = BytesIO(requests.get('https://docs.google.com/spreadsheets/d/e/' + gs_key + '/pub?output=xlsx').content)
+        if gs_format == 'XLSX':
+            excel_file = BytesIO(requests.get('https://docs.google.com/spreadsheets/d/e/' + gs_key + '/pub?output=xlsx').content)
+        elif gs_format == 'XLS':
+            excel_file = BytesIO(requests.get('https://docs.google.com/spreadsheets/d/' + gs_key + '/export?format=xlsx&id=' + gs_key).content)
         sheets = load_workbook(excel_file, read_only=True).sheetnames
         import_data = {}
 # последовательно складываем все листы в данные и формируем список для загрузки
