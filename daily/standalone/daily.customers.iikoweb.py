@@ -75,7 +75,9 @@ if 'token' in auth_result:
         CLICKHOUSE_PROTO = 'https://'
         CLICKHOUSE_PORT = '8443'
 # перебираем диапазоны с картами
-    ranges = config['IIKOWEB']['CUSTOMER_CARDS_RANGES'].split(",")
+    ranges = []
+    if 'CUSTOMER_CARDS_RANGES' in config['IIKOWEB']:
+        ranges = config['IIKOWEB']['CUSTOMER_CARDS_RANGES'].split(",")
     for range_ in ranges:
         range_ = range_.split(':')
 # получаем максимальный номер последней карты в диапазоне

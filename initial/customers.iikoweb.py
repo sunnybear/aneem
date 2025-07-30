@@ -71,7 +71,9 @@ if 'token' in auth_result:
     org_result = requests.get('https://api-ru.iiko.services/api/1/organizations', headers={'Authorization': 'Bearer ' + TOKEN})
     org_id = org_result.json()['organizations'][0]['id']
 # перебираем диапазоны с картами
-    ranges = config['IIKOWEB']['CUSTOMER_CARDS_RANGES'].split(",")
+    ranges = []
+    if 'CUSTOMER_CARDS_RANGES' in config['IIKOWEB']:
+        ranges = config['IIKOWEB']['CUSTOMER_CARDS_RANGES'].split(",")
     for range_ in ranges:
         range_ = range_.split(':')
         for i in range(int(range_[1])):
@@ -85,7 +87,9 @@ if 'token' in auth_result:
                 customer_id = customer_result['id']
                 customers.append({'customerId': customer_id, 'customerCard': customer_card, 'organizationId': org_id})
 # выгружаем карты по одной
-    customer_cards = config['IIKOWEB']['CUSTOMER_CARDS'].split(",")
+    customer_cards = []
+    if 'CUSTOMER_CARDS' in config['IIKOWEB']:
+        customer_cards = config['IIKOWEB']['CUSTOMER_CARDS'].split(",")
     for customer_card in customer_cards:
         customer_card = customer_card.strip()
 # получаем ID покупателя по номеру карты
