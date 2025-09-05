@@ -95,10 +95,16 @@ for period in range(int(config['IIKO']['PERIODS']), 0, -1):
         for col in data.columns:
 # приведение целых чисел
             if col in ["CashRegisterName.Number", "DiscountPercent", "DishGroup.Num", "FiscalChequeNumber", "GuestNum", "HourClose", "HourOpen", "OrderNum", "OrderTime.OrderLength", "SessionNum", "TableNum", "UniqOrderId", "WeekInMonthOpen", "WeekInYearOpen", "YearOpen", "DishAmountInt.PerOrder", "DishDiscountSumInt", "DishDiscountSumInt.averageByGuest", "OrderItems", "UniqOrderId.OrdersCount"]:
-                data[col] = data[col].fillna(0).replace('', 0).astype(np.int64)
+                if str(datsa.dtypes[col]).find('int') > -1 or str(datsa.dtypes[col]).find('float') > -1:
+                    data[col] = data[col].fillna(0).astype(np.int64)
+                else:
+                    try:
+                        data[col] = data[col].fillna('0').str.replace('', '0').str.replace(',', '').str.replace(' ', '').astype(np.int64)
+                    except Exception:
+                        data[col] = data[col].fillna('0').astype(np.int64)
 # приведение вещественных чисел
             elif col in ["Cooking.GuestWaitTime.Avg", "DiscountSum", "discountWithoutVAT", "DishReturnSum.withoutVAT", "fullSum", "ProductCostBase.OneItem", "ProductCostBase.Percent", "ProductCostBase.PercentWithoutVAT", "ProductCostBase.ProductCost", "ProductCostBase.Profit"]:
-                data[col] = data[col].fillna(0.0).replace('', 0.0).astype(float)
+                data[col] = data[col].fillna(0.0).astype(float)
 # приведение дат
             elif col in ["OpenDate.Typed", "OpenTime"]:
                 data[col] = pd.to_datetime(data[col], format='ISO8601')
