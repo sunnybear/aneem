@@ -88,7 +88,7 @@ while users_exists:
                         if rights_group in ['leads', 'contacts', 'companies', 'tasks']:
                             for right in l[k][rights_group].keys():
                                 user['rights_' + rights_group + '_' + right] = l[k][rights_group][right]
-                        elif rights_group in ['status_rights', 'catalog_rights']:
+                        elif rights_group in ['status_rights', 'catalog_rights'] and l[k][rights_group] is not None:
                             for rights_group_status in l[k][rights_group]:
                                 if 'status_id' in rights_group_status:
                                     rights_group_prefix = 'status'
